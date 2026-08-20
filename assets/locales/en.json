@@ -1,0 +1,22 @@
+{
+  "home": {
+    "play": "Play",
+    "map": "Map",
+    "events": "Events",
+    "shop": "Shop",
+    "achievements": "Achievements",
+    "stats": "Stats",
+    "daily": "Daily",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "sound": "Sound",
+    "music": "Music",
+    "haptics": "Vibration",
+    "effects": "Visual Effects",
+    "notifications": "Notifications",
+    "language": "Language",
+    "reset": "Reset to Defaults"
+  }
+}

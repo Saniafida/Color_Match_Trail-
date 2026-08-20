@@ -1,0 +1,22 @@
+{
+  "home": {
+    "play": "يلعب",
+    "map": "خريطة",
+    "events": "الأحداث",
+    "shop": "متجر",
+    "achievements": "إنجازات",
+    "stats": "إحصائيات",
+    "daily": "يومي",
+    "settings": "إعدادات"
+  },
+  "settings": {
+    "title": "إعدادات",
+    "sound": "صوت",
+    "music": "موسيقى",
+    "haptics": "اهتزاز",
+    "effects": "تأثيرات بصرية",
+    "notifications": "إشعارات",
+    "language": "لغة",
+    "reset": "إعادة تعيين"
+  }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "shop_item_1",
+    "titleKey": "buy_hammer",
+    "descriptionKey": "buy_hammer_desc",
+    "price": 100,
+    "currencyType": "coins",
+    "reward": {
+      "id": "hammer_reward",
+      "rewardType": "booster",
+      "amount": 1,
+      "itemId": "hammer",
+      "source": "shop"
+    },
+    "enabled": true
+  }
+]

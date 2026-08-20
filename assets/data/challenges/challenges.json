@@ -1,0 +1,11 @@
+[
+  {
+    "challengeId": "daily_1",
+    "titleKey": "challenge_1_title",
+    "descriptionKey": "challenge_1_desc",
+    "objective": "clear_blocks",
+    "target": 50,
+    "rewardId": "coins_50",
+    "activeRule": "any"
+  }
+]

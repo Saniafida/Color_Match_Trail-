@@ -1,0 +1,22 @@
+{
+  "home": {
+    "play": "Jugar",
+    "map": "Mapa",
+    "events": "Eventos",
+    "shop": "Tienda",
+    "achievements": "Logros",
+    "stats": "Estadísticas",
+    "daily": "Diario",
+    "settings": "Ajustes"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "sound": "Sonido",
+    "music": "Música",
+    "haptics": "Vibración",
+    "effects": "Efectos visuales",
+    "notifications": "Notificaciones",
+    "language": "Idioma",
+    "reset": "Restablecer"
+  }
+}

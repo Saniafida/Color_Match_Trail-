@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import '../../screens/splash/splash_screen.dart';
+import '../../screens/home/home_screen.dart';
+import '../../screens/world_map/world_map_screen.dart';
+import '../../screens/gameplay/gameplay_screen.dart';
+import '../../screens/challenges/daily_challenge_screen.dart';
+import '../../screens/events/events_screen.dart';
+import '../../screens/events/event_detail_screen.dart';
+import '../../screens/shop/shop_screen.dart';
+import '../../screens/rewards/rewards_screen.dart';
+import '../../screens/settings/settings_screen.dart';
+import '../../screens/achievements/achievements_screen.dart';
+import '../../screens/statistics/statistics_screen.dart';
+import '../../screens/onboarding/onboarding_screen.dart';
+
+class AppRoutes {
+  static const String splash = '/';
+  static const String onboarding = '/onboarding';
+  static const String home = '/home';
+  static const String levelSelect = '/level_select';
+  static const String gameplay = '/gameplay';
+  static const String challenges = '/challenges';
+  static const String events = '/events';
+  static const String eventDetail = '/event_detail';
+  static const String shop = '/shop';
+  static const String rewards = '/rewards';
+  static const String settings = '/settings';
+  static const String achievements = '/achievements';
+  static const String statistics = '/statistics';
+
+  static Route<dynamic> generateRoute(RouteSettings routeSettings) {
+    switch (routeSettings.name) {
+      case splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
+      case onboarding:
+        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+      case home:
+        return MaterialPageRoute(builder: (_) => const HomeScreen());
+      case levelSelect:
+        return MaterialPageRoute(builder: (_) => const WorldMapScreen());
+      case gameplay:
+        final levelId = routeSettings.arguments as String? ?? "level_1";
+        return MaterialPageRoute(builder: (_) => GameplayScreen(levelId: levelId));
+      case challenges:
+        return MaterialPageRoute(builder: (_) => const DailyChallengeScreen());
+      case events:
+        return MaterialPageRoute(builder: (_) => const EventsScreen());
+      case eventDetail:
+        final eventId = routeSettings.arguments as String;
+        return MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventId));
+      case shop:
+        return MaterialPageRoute(builder: (_) => const ShopScreen());
+      case rewards:
+        return MaterialPageRoute(builder: (_) => const RewardsScreen());
+      case settings:
+        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case achievements:
+        return MaterialPageRoute(builder: (_) => const AchievementsScreen());
+      case statistics:
+        return MaterialPageRoute(builder: (_) => const StatisticsScreen());
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(
+              child: Text('No route defined for ${routeSettings.name}'),
+            ),
+          ),
+        );
+    }
+  }
+}
+

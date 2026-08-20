@@ -1,0 +1,18 @@
+[
+  {
+    "worldId": "world_1",
+    "titleKey": "world_1_title",
+    "descriptionKey": "world_1_desc",
+    "levelIds": ["level_1", "level_2", "level_3"],
+    "unlockRequirement": 0,
+    "backgroundAsset": "assets/images/world_1_bg.png"
+  },
+  {
+    "worldId": "world_2",
+    "titleKey": "world_2_title",
+    "descriptionKey": "world_2_desc",
+    "levelIds": ["level_4", "level_5", "level_6"],
+    "unlockRequirement": 5,
+    "backgroundAsset": "assets/images/world_2_bg.png"
+  }
+]

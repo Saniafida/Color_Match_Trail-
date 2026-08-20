@@ -1,0 +1,13 @@
+[
+  {
+    "id": "event_1",
+    "name": "Weekend Blast",
+    "description": "Clear blocks fast!",
+    "startTime": "2026-08-01T00:00:00.000Z",
+    "endTime": "2026-12-31T23:59:59.000Z",
+    "eventType": "score",
+    "target": 1000,
+    "rewardId": "hammer_2",
+    "rewardAmount": 2
+  }
+]

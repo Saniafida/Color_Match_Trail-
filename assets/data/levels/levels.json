@@ -1,0 +1,19 @@
+[
+  {
+    "levelId": "level_1",
+    "worldId": "world_1",
+    "boardRows": 6,
+    "boardColumns": 6,
+    "blockTypes": ["normal"],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearColor",
+        "targetAmount": 10
+      }
+    ],
+    "moveLimit": 15,
+    "difficulty": "easy",
+    "scoreTarget": 500
+  }
+]
