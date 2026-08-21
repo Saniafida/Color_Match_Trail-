@@ -1,45 +1,55 @@
 import 'achievement_category.dart';
-import 'achievement_type.dart';
 
 class AchievementDefinition {
-  final String id;
-  final String name;
-  final String description;
-  final String icon;
+  final String achievementId;
+  final String titleKey;
+  final String descriptionKey;
+  final String iconAsset;
   final AchievementCategory category;
-  final AchievementType achievementType;
+  final String targetType;
   final int targetValue;
   final String? rewardId;
-  final int rewardAmount;
-  final bool hidden;
   final bool enabled;
 
   const AchievementDefinition({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.icon,
+    required this.achievementId,
+    required this.titleKey,
+    required this.descriptionKey,
+    required this.iconAsset,
     required this.category,
-    required this.achievementType,
+    required this.targetType,
     required this.targetValue,
     this.rewardId,
-    this.rewardAmount = 0,
-    this.hidden = false,
     this.enabled = true,
   });
 
+  factory AchievementDefinition.fromJson(Map<String, dynamic> json) {
+    return AchievementDefinition(
+      achievementId: json['achievementId'] as String,
+      titleKey: json['titleKey'] as String,
+      descriptionKey: json['descriptionKey'] as String,
+      iconAsset: json['iconAsset'] as String? ?? 'assets/images/achievements/default.png',
+      category: AchievementCategory.values.firstWhere(
+        (e) => e.name == json['category'],
+        orElse: () => AchievementCategory.all,
+      ),
+      targetType: json['targetType'] as String,
+      targetValue: json['targetValue'] as int? ?? 1,
+      rewardId: json['rewardId'] as String?,
+      enabled: json['enabled'] as bool? ?? true,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'icon': icon,
+      'achievementId': achievementId,
+      'titleKey': titleKey,
+      'descriptionKey': descriptionKey,
+      'iconAsset': iconAsset,
       'category': category.name,
-      'achievementType': achievementType.name,
+      'targetType': targetType,
       'targetValue': targetValue,
       'rewardId': rewardId,
-      'rewardAmount': rewardAmount,
-      'hidden': hidden,
       'enabled': enabled,
     };
   }
