@@ -2,33 +2,33 @@ class AchievementProgress {
   final String achievementId;
   final int currentValue;
   final int targetValue;
-  final bool unlocked;
-  final DateTime? unlockedAt;
-  final bool rewardClaimed;
+  final bool completed;
+  final DateTime? completedAt;
+  final bool rewardGranted;
 
   const AchievementProgress({
     required this.achievementId,
     required this.currentValue,
     required this.targetValue,
-    required this.unlocked,
-    this.unlockedAt,
-    required this.rewardClaimed,
+    required this.completed,
+    this.completedAt,
+    required this.rewardGranted,
   });
 
   AchievementProgress copyWith({
     int? currentValue,
     int? targetValue,
-    bool? unlocked,
-    DateTime? unlockedAt,
-    bool? rewardClaimed,
+    bool? completed,
+    DateTime? completedAt,
+    bool? rewardGranted,
   }) {
     return AchievementProgress(
       achievementId: achievementId,
       currentValue: currentValue ?? this.currentValue,
       targetValue: targetValue ?? this.targetValue,
-      unlocked: unlocked ?? this.unlocked,
-      unlockedAt: unlockedAt ?? this.unlockedAt,
-      rewardClaimed: rewardClaimed ?? this.rewardClaimed,
+      completed: completed ?? this.completed,
+      completedAt: completedAt ?? this.completedAt,
+      rewardGranted: rewardGranted ?? this.rewardGranted,
     );
   }
 
@@ -37,9 +37,9 @@ class AchievementProgress {
       'achievementId': achievementId,
       'currentValue': currentValue,
       'targetValue': targetValue,
-      'unlocked': unlocked,
-      'unlockedAt': unlockedAt?.toIso8601String(),
-      'rewardClaimed': rewardClaimed,
+      'completed': completed,
+      'completedAt': completedAt?.toIso8601String(),
+      'rewardGranted': rewardGranted,
     };
   }
 
@@ -48,11 +48,11 @@ class AchievementProgress {
       achievementId: json['achievementId'] as String,
       currentValue: json['currentValue'] as int? ?? 0,
       targetValue: json['targetValue'] as int? ?? 1,
-      unlocked: json['unlocked'] as bool? ?? false,
-      unlockedAt: json['unlockedAt'] != null
-          ? DateTime.tryParse(json['unlockedAt'] as String)
+      completed: json['completed'] as bool? ?? false,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'] as String)
           : null,
-      rewardClaimed: json['rewardClaimed'] as bool? ?? false,
+      rewardGranted: json['rewardGranted'] as bool? ?? false,
     );
   }
 }
