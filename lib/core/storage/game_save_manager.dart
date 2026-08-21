@@ -173,6 +173,11 @@ class GameSaveManager extends ChangeNotifier {
     requestSave();
   }
 
+  void updateMilestones(Map<String, dynamic> data) {
+    _playerData = _playerData.copyWith(milestones: data);
+    requestSave();
+  }
+
   void updateOnboarding(Map<String, dynamic> data) {
     _playerData = _playerData.copyWith(onboarding: data);
     requestSave();
@@ -200,6 +205,7 @@ class GameSaveManager extends ChangeNotifier {
       campaignProgress: {'highestUnlockedLevel': 1},
       coins: 100,
       achievements: {},
+      milestones: {},
       statistics: {},
       onboarding: {},
       scheduledNotifications: {},
