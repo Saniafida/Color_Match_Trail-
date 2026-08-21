@@ -1,4 +1,3 @@
-import '../../models/booster.dart';
 import '../../models/models.dart';
 import '../board/board.dart';
 import 'booster_combination_definition.dart';

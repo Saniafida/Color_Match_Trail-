@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:color_match_trail/game/progression/progression_manager.dart';
-import 'package:color_match_trail/game/progression/level_progress.dart';
 import 'package:color_match_trail/game/rewards/reward_manager.dart';
 import 'package:color_match_trail/game/rewards/reward_claim_store.dart';
 import 'package:color_match_trail/game/coins/coin_manager.dart';
@@ -201,7 +200,7 @@ void main() {
     });
 
     test('8. First win reward is granted only once', () async {
-      final initialCoins = coinManager.coins;
+      final initialCoins = coinManager.balance;
 
       // First win
       await progressionManager.saveLevelResult(
@@ -213,8 +212,8 @@ void main() {
         completed: true,
       );
 
-      expect(coinManager.coins, greaterThan(initialCoins));
-      final coinsAfterFirstWin = coinManager.coins;
+      expect(coinManager.balance, greaterThan(initialCoins));
+      final coinsAfterFirstWin = coinManager.balance;
 
       // Replay win
       await progressionManager.saveLevelResult(
@@ -227,7 +226,7 @@ void main() {
       );
 
       // Coins should not increase again for the same level
-      expect(coinManager.coins, equals(coinsAfterFirstWin));
+      expect(coinManager.balance, equals(coinsAfterFirstWin));
     });
 
     test('9. Home Continue returns next playable level', () async {

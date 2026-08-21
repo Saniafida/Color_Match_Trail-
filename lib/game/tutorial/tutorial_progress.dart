@@ -13,13 +13,19 @@ class TutorialProgress {
     this.tutorialVersion = 1,
   });
 
+  static int? _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   factory TutorialProgress.fromJson(Map<String, dynamic> json) {
     return TutorialProgress(
       currentTutorialId: json['currentTutorialId'] as String?,
-      currentStep: json['currentStep'] as int? ?? 0,
-      completedTutorials: (json['completedTutorials'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      skippedTutorials: (json['skippedTutorials'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      tutorialVersion: json['tutorialVersion'] as int? ?? 1,
+      currentStep: _parseInt(json['currentStep']) ?? 0,
+      completedTutorials: (json['completedTutorials'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      skippedTutorials: (json['skippedTutorials'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      tutorialVersion: _parseInt(json['tutorialVersion']) ?? 1,
     );
   }
 

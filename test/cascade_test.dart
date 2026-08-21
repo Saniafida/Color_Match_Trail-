@@ -77,18 +77,19 @@ void main() {
       expect(result.cascadeLevel, 0);
     });
 
-    test('TEST 2: One automatic 3-block match', () async {
+    test('TEST 2: One automatic 3-block match (now disabled)', () async {
       fillSafeBoard();
       addBlock(const Position(0, 0), BlockColor.green);
       addBlock(const Position(0, 1), BlockColor.green);
       addBlock(const Position(0, 2), BlockColor.green);
 
       final result = await cascadeController.startCascade([BlockColor.red]);
-      expect(result.cascadeLevel, greaterThanOrEqualTo(1));
-      expect(result.totalDestroyedBlocks, greaterThanOrEqualTo(3));
+      // Automatic cascades are disabled, so these should be 0
+      expect(result.cascadeLevel, 0);
+      expect(result.totalDestroyedBlocks, 0);
     });
 
-    test('TEST 5: Multiple independent matches', () async {
+    test('TEST 5: Multiple independent matches (now disabled)', () async {
       fillSafeBoard();
       
       addBlock(const Position(0, 0), BlockColor.green);
@@ -100,8 +101,9 @@ void main() {
       addBlock(const Position(4, 2), BlockColor.green);
 
       final result = await cascadeController.startCascade([BlockColor.red]);
-      expect(result.cascadeLevel, greaterThanOrEqualTo(2));
-      expect(result.totalDestroyedBlocks, greaterThanOrEqualTo(6));
+      // Automatic cascades are disabled, so these should be 0
+      expect(result.cascadeLevel, 0);
+      expect(result.totalDestroyedBlocks, 0);
     });
   });
 }

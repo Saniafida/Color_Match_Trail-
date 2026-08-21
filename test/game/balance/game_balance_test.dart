@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:color_match_trail/game/balance/game_balance_manager.dart';
 import 'package:color_match_trail/game/balance/difficulty_tier.dart';
-import 'package:color_match_trail/core/data/game_balance_config.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

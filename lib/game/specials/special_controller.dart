@@ -119,15 +119,14 @@ class SpecialController extends ChangeNotifier {
 
       case SpecialBlockType.smallArea:
         // Small area (diamond/cross of radius 1 around center)
-        final neighbors = [
-          Position(center.row - 1, center.column),
-          Position(center.row + 1, center.column),
-          Position(center.row, center.column - 1),
-          Position(center.row, center.column + 1),
+        final List<List<int>> offsets = [
+          [-1, 0], [1, 0], [0, -1], [0, 1]
         ];
-        for (final pos in neighbors) {
-          if (pos.row >= 0 && pos.row < rows && pos.column >= 0 && pos.column < cols) {
-            targets.add(pos);
+        for (final offset in offsets) {
+          final r = center.row + offset[0];
+          final c = center.column + offset[1];
+          if (r >= 0 && r < rows && c >= 0 && c < cols) {
+            targets.add(Position(r, c));
           }
         }
         break;
@@ -145,10 +144,10 @@ class SpecialController extends ChangeNotifier {
         break;
 
       case SpecialBlockType.megaBomb:
-        // 5x5 Mega Bomb radius
-        final megaRadius = SpecialConfig.megaBombRadius;
-        for (int r = center.row - megaRadius; r <= center.row + megaRadius; r++) {
-          for (int c = center.column - megaRadius; c <= center.column + megaRadius; c++) {
+        // Huge 5x5 explosive radius
+        final radius = SpecialConfig.megaBombRadius;
+        for (int r = center.row - radius; r <= center.row + radius; r++) {
+          for (int c = center.column - radius; c <= center.column + radius; c++) {
             if (r >= 0 && r < rows && c >= 0 && c < cols) {
               targets.add(Position(r, c));
             }

@@ -38,32 +38,11 @@ class CascadeController extends ChangeNotifier {
 
     while (iterations < maxCascadeIterations) {
       iterations++;
-
-      // Scan for automatic board matches
-      final matches = matchScanner.scan();
-      if (matches.isNotEmpty) {
-        currentCascadeLevel += matches.length;
-        final Set<String> uniqueIds = {};
-        for (final match in matches) {
-          totalCascadeBlasts++;
-          final blastRes = await blastController.processMatch(match, source: DestructionSource.cascade);
-          if (blastRes.success) {
-            uniqueIds.addAll(blastRes.destroyedBlockIds);
-            totalDestroyedBlocks += blastRes.destroyedCount;
-          }
-        }
-        phases.add(CascadeBlastPhase(
-          cascadeLevel: iterations,
-          matches: matches,
-          uniqueDestroyedBlockIds: uniqueIds,
-          totalDestroyedCount: uniqueIds.length,
-        ));
-      }
       
       // Apply gravity and block spawning
       final gravityResult = await gravityController.applyGravity(allowedColors);
       
-      if (!gravityResult.cascadeCheckRequired && matches.isEmpty) {
+      if (!gravityResult.cascadeCheckRequired) {
         break; // Board is completely stable
       }
     }

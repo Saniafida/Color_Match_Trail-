@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../game/board/board.dart';
 import '../../game/board/board_widget.dart';
-import '../../game/combos/combo_controller.dart';
+import '../../game/combo/combo_controller.dart';
 import '../../game/score/score_controller.dart';
 import '../../game/goals/goal_controller.dart';
 import '../../game/moves/move_controller.dart';
-import '../../game/timer/timer_controller.dart';
+import '../../core/services/timer/timer_controller.dart';
 import '../../game/level_result/level_result_system.dart';
 import '../../game/levels/initial_board_generator.dart';
 import '../../game/gravity/gravity_controller.dart';
 import '../../game/specials/special_controller.dart';
+import '../../game/specials/special_creation_result.dart';
 import '../../game/specials/power_up_manager.dart';
 import '../../game/blast/blast_controller.dart';
 import '../../game/blast/blast_result.dart';
@@ -35,7 +36,7 @@ import 'widgets/booster_target_overlay.dart';
 import 'widgets/combo_display.dart';
 import 'widgets/feedback/feedback_layer.dart';
 import 'widgets/pause_dialog.dart';
-import '../tutorial/widgets/tutorial_overlay.dart';
+import '../tutorial/tutorial_overlay.dart';
 
 class GameplayScreen extends StatefulWidget {
   final String levelId;
@@ -456,7 +457,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
           Navigator.pop(context);
           Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
         },
-        onQuit: () {
+        onExit: () {
           Navigator.pop(context);
           Navigator.pop(context);
         },

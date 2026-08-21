@@ -1,5 +1,6 @@
 import 'progression_state.dart';
 import '../../core/data/game_data_manager.dart';
+import '../../models/world_definition.dart';
 
 enum LevelUnlockStatus {
   unlocked,
@@ -65,10 +66,13 @@ class LevelUnlockValidator {
 
     // 2. Find which world contains this level
     final allWorlds = dataManager.getAllWorlds();
-    final world = allWorlds.firstWhere(
-      (w) => w.levelIds.contains(levelId),
-      orElse: () => allWorlds.isNotEmpty ? allWorlds.first : null as dynamic,
-    );
+    WorldDefinition? world;
+    for (final w in allWorlds) {
+      if (w.levelIds.contains(levelId)) {
+        world = w;
+        break;
+      }
+    }
 
     if (world != null) {
       if (!world.enabled) {
@@ -109,9 +113,10 @@ class LevelUnlockValidator {
         previousLevelId = world.levelIds[index - 1];
         final prevProgress = state.levels[previousLevelId];
         if (prevProgress == null || !prevProgress.completed) {
+          final levelNum = previousLevelId.replaceAll(RegExp(r'[^0-9]'), '');
           return LevelUnlockValidationResult.locked(
             status: LevelUnlockStatus.lockedPreviousLevel,
-            message: 'Complete level ${previousLevelId.replaceAll(RegExp(r'[^0-9]'), '')} to unlock.',
+            message: 'Complete level $levelNum to unlock.',
             requiredLevelId: previousLevelId,
           );
         }

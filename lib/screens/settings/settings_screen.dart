@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/services/service_locator.dart';
-import '../../app/routes/routes.dart';
 import '../../game/settings/vibration_strength.dart';
 import 'widgets/settings_header.dart';
 import 'widgets/settings_switch_row.dart';
