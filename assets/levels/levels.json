@@ -17,7 +17,7 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 20,
+        "target": 15,
         "color": "red"
       }
     ],
@@ -50,13 +50,13 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 25,
+        "target": 20,
         "color": "blue"
       },
       {
         "id": "goal_2",
         "type": "score",
-        "target": 3000
+        "target": 2000
       }
     ],
     "specials": {
@@ -90,18 +90,13 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 30,
+        "target": 25,
         "color": "green"
       },
       {
         "id": "goal_2",
         "type": "score",
-        "target": 5000
-      },
-      {
-        "id": "goal_3",
-        "type": "createSpecial",
-        "target": 2
+        "target": 4000
       }
     ],
     "specials": {
@@ -124,7 +119,7 @@
       "rows": 7,
       "columns": 7
     },
-    "timeLimit": 60,
+    "timeLimit": 75,
     "colors": [
       "red",
       "blue",
@@ -141,7 +136,7 @@
       {
         "id": "goal_2",
         "type": "score",
-        "target": 6000
+        "target": 5000
       }
     ],
     "specials": {
@@ -170,24 +165,244 @@
       "blue",
       "green",
       "yellow",
-      "purple"
+      "purple",
+      "orange"
+    ],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearColor",
+        "target": 30,
+        "color": "yellow"
+      },
+      {
+        "id": "goal_2",
+        "type": "score",
+        "target": 6000
+      }
+    ],
+    "specials": {
+      "enabled": true,
+      "allowed": [
+        "horizontalLine",
+        "verticalLine",
+        "bomb",
+        "colorSpecial"
+      ]
+    },
+    "boosters": {
+      "allowed": [
+        "hammer",
+        "shuffle",
+        "rowClear",
+        "colorClear"
+      ]
+    },
+    "spawn": {
+      "avoidImmediateMatch": true
+    }
+  },
+  {
+    "id": 6,
+    "version": 1,
+    "board": {
+      "rows": 7,
+      "columns": 7
+    },
+    "movesLimit": 28,
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
+    ],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearColor",
+        "target": 25,
+        "color": "orange"
+      },
+      {
+        "id": "goal_2",
+        "type": "score",
+        "target": 5000
+      }
+    ],
+    "specials": {
+      "enabled": true,
+      "allowed": [
+        "horizontalLine",
+        "verticalLine",
+        "bomb",
+        "colorSpecial"
+      ]
+    },
+    "spawn": {
+      "avoidImmediateMatch": true
+    }
+  },
+  {
+    "id": 7,
+    "version": 1,
+    "board": {
+      "rows": 7,
+      "columns": 7
+    },
+    "movesLimit": 30,
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
+    ],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearColor",
+        "target": 30,
+        "color": "purple"
+      },
+      {
+        "id": "goal_2",
+        "type": "score",
+        "target": 6000
+      }
+    ],
+    "specials": {
+      "enabled": true,
+      "allowed": [
+        "horizontalLine",
+        "verticalLine",
+        "bomb",
+        "colorSpecial"
+      ]
+    },
+    "spawn": {
+      "avoidImmediateMatch": true
+    }
+  },
+  {
+    "id": 8,
+    "version": 1,
+    "board": {
+      "rows": 8,
+      "columns": 8
+    },
+    "movesLimit": 32,
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
+    ],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearColor",
+        "target": 35,
+        "color": "red"
+      },
+      {
+        "id": "goal_2",
+        "type": "clearColor",
+        "target": 35,
+        "color": "green"
+      }
+    ],
+    "specials": {
+      "enabled": true,
+      "allowed": [
+        "horizontalLine",
+        "verticalLine",
+        "bomb",
+        "colorSpecial"
+      ]
+    },
+    "spawn": {
+      "avoidImmediateMatch": true
+    }
+  },
+  {
+    "id": 9,
+    "version": 1,
+    "board": {
+      "rows": 8,
+      "columns": 8
+    },
+    "movesLimit": 35,
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
+    ],
+    "goals": [
+      {
+        "id": "goal_1",
+        "type": "clearBlocks",
+        "target": 60
+      },
+      {
+        "id": "goal_2",
+        "type": "score",
+        "target": 8000
+      }
+    ],
+    "specials": {
+      "enabled": true,
+      "allowed": [
+        "horizontalLine",
+        "verticalLine",
+        "bomb",
+        "colorSpecial"
+      ]
+    },
+    "spawn": {
+      "avoidImmediateMatch": true
+    }
+  },
+  {
+    "id": 10,
+    "version": 1,
+    "board": {
+      "rows": 8,
+      "columns": 8
+    },
+    "movesLimit": 35,
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
     ],
     "goals": [
       {
         "id": "goal_1",
         "type": "clearColor",
         "target": 40,
-        "color": "yellow"
+        "color": "orange"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 8000
+        "type": "clearColor",
+        "target": 40,
+        "color": "blue"
       },
       {
         "id": "goal_3",
-        "type": "reachCascade",
-        "target": 3
+        "type": "score",
+        "target": 10000
       }
     ],
     "specials": {
