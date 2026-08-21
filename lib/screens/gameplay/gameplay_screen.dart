@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../game/board/board.dart';
+import '../../game/board/board_widget.dart';
 import '../../game/combos/combo_controller.dart';
 import '../../game/score/score_controller.dart';
 import '../../game/goals/goal_controller.dart';
@@ -22,19 +23,19 @@ import '../../game/boosters/booster_target_controller.dart';
 import '../../game/feedback/feedback_controller.dart';
 import '../../game/tutorial/tutorial_validator.dart';
 import '../../game/achievements/achievement_event.dart';
-import '../../game/challenges/daily_challenge_definition.dart';
-import '../../game/events/event_definition.dart';
+import '../../game/challenges/daily_challenge_type.dart';
+import '../../game/events/event_type.dart';
 import '../../core/services/service_locator.dart';
 import '../../app/routes/routes.dart';
 
-import 'widgets/hud/gameplay_hud.dart';
-import 'widgets/goals/goal_panel.dart';
-import 'widgets/boosters/booster_bar.dart';
-import 'widgets/boosters/booster_target_overlay.dart';
-import 'widgets/combos/combo_display.dart';
+import 'widgets/gameplay_hud.dart';
+import 'widgets/goal_panel.dart';
+import 'widgets/booster_bar.dart';
+import 'widgets/booster_target_overlay.dart';
+import 'widgets/combo_display.dart';
 import 'widgets/feedback/feedback_layer.dart';
-import 'widgets/pause/pause_dialog.dart';
-import 'widgets/tutorial/tutorial_overlay.dart';
+import 'widgets/pause_dialog.dart';
+import '../tutorial/widgets/tutorial_overlay.dart';
 
 class GameplayScreen extends StatefulWidget {
   final String levelId;
@@ -270,7 +271,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
           return;
         }
       }
-      return; // Single tap on normal block does nothing
+      return;
     }
 
     const minMatch = 2;
@@ -293,7 +294,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final isPowerUpCreation = count >= 4;
 
     if (isPowerUpCreation) {
-      // 2. Power-Up Transformation Flow (Block in group transforms, other blocks vanish into it)
+      // 2. Power-Up Transformation Flow (Block transforms, others disappear into it)
       final transformResult = await _powerUpManager.processTrailPowerUp(
         blockIds: trail.blockIds,
         positions: trail.positions,
@@ -370,7 +371,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
       eventManager.incrementProgress(EventType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
     }
 
-    // 4. Gravity & Cascades (Transformed power-up drops and settles naturally without disappearing)
+    // 4. Gravity & Cascades (Transformed power-up stays intact on board, falls and settles)
     final allowedColors = _level.colorConfig?.availableColors ?? [];
     final cascadeResult = await _cascadeController.startCascade(allowedColors);
     if (cascadeResult.cascadeLevel > 0) {
