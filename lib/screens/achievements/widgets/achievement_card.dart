@@ -14,8 +14,8 @@ class AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isUnlocked = progress.unlocked;
-    final bool isHidden = definition.hidden && !isUnlocked;
+    final bool isUnlocked = progress.completed;
+    final bool isHidden = false;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -38,7 +38,7 @@ class AchievementCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHidden ? '???' : definition.name,
+                  isHidden ? '???' : definition.titleKey,
                   style: TextStyle(
                     color: isUnlocked ? Colors.amber : Colors.white,
                     fontSize: 16,
@@ -47,7 +47,7 @@ class AchievementCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isHidden ? 'Keep playing to discover this achievement' : definition.description,
+                  isHidden ? 'Keep playing to discover this achievement' : definition.descriptionKey,
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
@@ -113,7 +113,7 @@ class AchievementCard extends StatelessWidget {
         const Icon(Icons.check_circle, color: Colors.greenAccent, size: 14),
         const SizedBox(width: 4),
         Text(
-          progress.rewardClaimed ? 'Reward Claimed' : 'Unlocked',
+          progress.rewardGranted ? 'Reward Granted' : 'Unlocked',
           style: const TextStyle(color: Colors.greenAccent, fontSize: 12),
         ),
       ],
