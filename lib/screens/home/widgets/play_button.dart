@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 class PlayButton extends StatefulWidget {
-  final int highestUnlockedLevel;
+  final int currentLevelNumber;
+  final bool isCampaignCompleted;
   final VoidCallback onPlay;
 
   const PlayButton({
     super.key,
-    required this.highestUnlockedLevel,
+    required this.currentLevelNumber,
+    this.isCampaignCompleted = false,
     required this.onPlay,
   });
 
@@ -39,11 +41,18 @@ class _PlayButtonState extends State<PlayButton> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    String buttonText = 'PLAY';
+    if (widget.isCampaignCompleted) {
+      buttonText = 'ALL CLEAR 🎉';
+    } else if (widget.currentLevelNumber > 1) {
+      buttonText = 'CONTINUE';
+    }
+
     return ScaleTransition(
       scale: _scaleAnimation,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF2C3E50),
           shape: RoundedRectangleBorder(
@@ -56,18 +65,20 @@ class _PlayButtonState extends State<PlayButton> with SingleTickerProviderStateM
         child: Column(
           children: [
             Text(
-              widget.highestUnlockedLevel > 1 ? 'CONTINUE' : 'PLAY',
-              style: const TextStyle(
-                fontSize: 32,
+              buttonText,
+              style: TextStyle(
+                fontSize: widget.isCampaignCompleted ? 24 : 30,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'LEVEL ${widget.highestUnlockedLevel}',
+              widget.isCampaignCompleted
+                  ? 'Replay Any Level'
+                  : 'LEVEL ${widget.currentLevelNumber}',
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Colors.black54,
               ),
