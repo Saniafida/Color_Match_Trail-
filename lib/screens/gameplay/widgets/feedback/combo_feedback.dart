@@ -31,7 +31,7 @@ class _ComboFeedbackState extends State<ComboFeedback> with SingleTickerProvider
       TweenSequenceItem(tween: Tween(begin: 0.8, end: 1.5), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.5, end: 1.2), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.2), weight: 40),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _opacity = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
