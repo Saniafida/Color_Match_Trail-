@@ -1,4 +1,4 @@
-enum BoosterType { hammer, shuffle, rowClear, colorClear, extraMoves }
+enum BoosterType { hammer, shuffle, rowClear, colorClear, extraMoves, areaBlast }
 
 class BoosterInventory {
   final Map<BoosterType, int> quantities;
