@@ -9,9 +9,19 @@ import '../moves/move_controller.dart';
 import '../moves/move_event.dart';
 import '../level_result/level_result_system.dart';
 import '../../core/services/service_locator.dart';
+import '../achievements/achievement_event.dart';
 import 'booster_use_state.dart';
 import 'booster_use_result.dart';
 import 'booster_definition.dart';
+import 'booster_validator.dart';
+import 'booster_combination_definition.dart';
+import 'booster_combination_manager.dart';
+import 'effects/hammer_effect.dart';
+import 'effects/color_bomb_effect.dart';
+import 'effects/shuffle_effect.dart';
+import 'effects/extra_moves_effect.dart';
+import 'effects/line_blast_effect.dart';
+import 'effects/area_blast_effect.dart';
 
 class BoosterManager extends ChangeNotifier {
   final BoardController boardController;
@@ -30,6 +40,12 @@ class BoosterManager extends ChangeNotifier {
 
   BoosterDefinition? _selectedBoosterDef;
   BoosterDefinition? get selectedBoosterDef => _selectedBoosterDef;
+
+  BoosterDefinition? _secondBoosterDef;
+  BoosterDefinition? get secondBoosterDef => _secondBoosterDef;
+
+  BoosterCombinationDefinition? _activeCombination;
+  BoosterCombinationDefinition? get activeCombination => _activeCombination;
 
   BoosterManager({
     required this.boardController,
@@ -55,29 +71,15 @@ class BoosterManager extends ChangeNotifier {
   }
 
   Future<void> loadInventory() async {
-    // Inventory is now pre-loaded globally by InventoryManager
     notifyListeners();
   }
 
   bool canActivateBooster(BoosterType type) {
-    // Inventory check
-    if (inventory.getQuantity(type) <= 0) return false;
-
-    // Game state check
-    if (levelResultController.status != GameStatus.playing) return false;
-    
-    // Resolution check
-    if (blastController.isBlasting) return false;
-
-    // Level type checks
-    final def = BoosterDefinition.registry[type];
-    if (def == null) return false;
-
-    final levelDef = levelResultController.levelDefinition;
-    if (levelDef.movesLimit != null && !def.allowedInMoveLevels) return false;
-    if (levelDef.timeLimit != null && !def.allowedInTimeLevels) return false;
-
-    return true;
+    return BoosterValidator.canActivateBooster(
+      type: type,
+      levelResultController: levelResultController,
+      blastController: blastController,
+    );
   }
 
   void selectBooster(BoosterType type) {
@@ -86,6 +88,57 @@ class BoosterManager extends ChangeNotifier {
 
     final def = BoosterDefinition.registry[type];
     if (def == null) return;
+
+    if (_state == BoosterUseState.selectingCombo) {
+      if (_selectedBoosterDef?.type == type || _secondBoosterDef?.type == type) {
+        cancelSelection();
+        return;
+      } else {
+        cancelSelection();
+        // and we could re-select the new one, but let's just cancel for now.
+      }
+    }
+
+    if (_state == BoosterUseState.selecting) {
+      if (_selectedBoosterDef?.type == type) {
+        cancelSelection();
+        return;
+      }
+
+      // Check if they can be combined
+      final combo = BoosterCombinationDefinition.getCombination(_selectedBoosterDef!.type, type);
+      if (combo != null) {
+        // Can we afford the second one?
+        // Note: if a user clicks the same type twice, we need 2 in inventory.
+        final neededForA = combo.boosterA == type ? 1 : 0;
+        final neededForB = combo.boosterB == type ? 1 : 0;
+        final totalNeeded = neededForA + neededForB;
+        if (inventory.getQuantity(type) < totalNeeded) {
+          // Can't afford it, just swap selection
+          _selectedBoosterDef = def;
+          _activeCombination = null;
+          _secondBoosterDef = null;
+          notifyListeners();
+          return;
+        }
+
+        _secondBoosterDef = def;
+        _activeCombination = combo;
+        _state = BoosterUseState.selectingCombo;
+        notifyListeners();
+        
+        // If both boosters in combination are instant, execute now.
+        // For simplicity, combos currently require targeting.
+        return;
+      } else {
+        // Cannot combine, swap selection
+        _selectedBoosterDef = def;
+        _activeCombination = null;
+        _secondBoosterDef = null;
+        notifyListeners();
+        return;
+      }
+    }
 
     _selectedBoosterDef = def;
     _state = BoosterUseState.selecting;
@@ -97,8 +150,10 @@ class BoosterManager extends ChangeNotifier {
   }
 
   void cancelSelection() {
-    if (_state == BoosterUseState.selecting) {
+    if (_state == BoosterUseState.selecting || _state == BoosterUseState.selectingCombo) {
       _selectedBoosterDef = null;
+      _secondBoosterDef = null;
+      _activeCombination = null;
       _state = BoosterUseState.cancelled;
       notifyListeners();
       
@@ -114,16 +169,20 @@ class BoosterManager extends ChangeNotifier {
     notifyListeners();
 
     if (def.type == BoosterType.shuffle) {
-      await _executeShuffle();
+      await ShuffleEffect.execute(boardController, onMoveBlock);
     } else if (def.type == BoosterType.extraMoves) {
-      await _executeExtraMoves();
+      await ExtraMovesEffect.execute(moveController);
     }
 
-    // Consume inventory AFTER successful execution
     await ServiceLocator.instance.inventoryManager.consumeBooster(def.type, 1);
 
     _state = BoosterUseState.completed;
     _selectedBoosterDef = null;
+    
+    final boosterEvent = BoosterUsedEvent(def.type.name);
+    ServiceLocator.instance.achievementManager.processEvent(boosterEvent);
+    ServiceLocator.instance.milestoneManager.processEvent(boosterEvent);
+    
     notifyListeners();
 
     Future.microtask(() {
@@ -133,59 +192,67 @@ class BoosterManager extends ChangeNotifier {
   }
 
   Future<BoosterUseResult> executeTargetedBooster(Position targetPos) async {
-    if (_state != BoosterUseState.selecting || _selectedBoosterDef == null) {
+    if ((_state != BoosterUseState.selecting && _state != BoosterUseState.selectingCombo) || _selectedBoosterDef == null) {
       return const BoosterUseResult(success: false, boosterType: BoosterType.hammer, error: "Invalid state");
     }
 
+    final isCombo = _state == BoosterUseState.selectingCombo && _activeCombination != null;
     final def = _selectedBoosterDef!;
+    final secondDef = _secondBoosterDef;
+    final combo = _activeCombination;
     
-    final targetBlockId = boardController.getBlockId(targetPos);
-    if (targetBlockId == null) {
+    if (!BoosterValidator.isTargetValid(
+      targetPos: targetPos,
+      boardController: boardController,
+      getBlock: getBlock,
+    )) {
       cancelSelection();
-      return BoosterUseResult(success: false, boosterType: def.type, error: "Empty cell");
-    }
-    
-    final block = getBlock(targetBlockId);
-    if (block == null || block.isLocked) {
-      cancelSelection();
-      return BoosterUseResult(success: false, boosterType: def.type, error: "Invalid block");
+      return BoosterUseResult(success: false, boosterType: def.type, error: "Invalid target");
     }
 
     _state = BoosterUseState.executing;
     notifyListeners();
 
-    Set<String> affectedIds = {};
     Set<Position> affectedPositions = {};
 
-    if (def.type == BoosterType.hammer) {
-      affectedIds.add(block.id);
-      affectedPositions.add(block.position);
-    } else if (def.type == BoosterType.rowClear) {
-      for (int c = 0; c < boardController.columns; c++) {
-        final pos = Position(targetPos.row, c);
-        final id = boardController.getBlockId(pos);
-        if (id != null) {
-          affectedIds.add(id);
-          affectedPositions.add(pos);
-        }
-      }
-    } else if (def.type == BoosterType.colorClear) {
-      for (int r = 0; r < boardController.rows; r++) {
-        for (int c = 0; c < boardController.columns; c++) {
-          final pos = Position(r, c);
-          final id = boardController.getBlockId(pos);
-          if (id != null) {
-            final b = getBlock(id);
-            if (b != null && b.color == block.color) {
-              affectedIds.add(id);
-              affectedPositions.add(pos);
-            }
-          }
-        }
+    if (isCombo) {
+      affectedPositions = BoosterCombinationManager.executeCombinationEffect(
+        combo!.resultEffect,
+        targetPos,
+        boardController,
+        getBlock,
+      );
+    } else {
+      switch (def.type) {
+        case BoosterType.hammer:
+          affectedPositions = HammerEffect.getAffectedPositions(targetPos, boardController, getBlock);
+          break;
+        case BoosterType.rowClear:
+          affectedPositions = LineBlastEffect.getAffectedPositions(targetPos, boardController);
+          break;
+        case BoosterType.colorClear:
+          affectedPositions = ColorBombEffect.getAffectedPositions(targetPos, boardController, getBlock);
+          break;
+        case BoosterType.areaBlast:
+          affectedPositions = AreaBlastEffect.getAffectedPositions(targetPos, boardController);
+          break;
+        default:
+          break;
       }
     }
 
-    // Special checks
+    if (affectedPositions.isEmpty) {
+      cancelSelection();
+      return BoosterUseResult(success: false, boosterType: def.type, error: "No blocks affected");
+    }
+
+    Set<String> affectedIds = {};
+    for (final pos in affectedPositions) {
+      final id = boardController.getBlockId(pos);
+      if (id != null) affectedIds.add(id);
+    }
+
+    // Special block expansion
     final Set<String> specialExpandedIds = {};
     final Set<Position> specialExpandedPos = {};
     
@@ -207,19 +274,38 @@ class BoosterManager extends ChangeNotifier {
 
     affectedIds.addAll(specialExpandedIds);
     affectedPositions.addAll(specialExpandedPos);
+    
+    final targetBlockIdForColor = boardController.getBlockId(targetPos);
+    final targetBlockColor = targetBlockIdForColor != null ? getBlock(targetBlockIdForColor)?.color : null;
 
     final matchResult = MatchResult(
       isValid: true,
       blockIds: affectedIds.toList(),
       positions: affectedPositions.toList(),
       length: affectedIds.length,
-      color: block.color,
+      color: targetBlockColor,
     );
 
     final blastResult = await blastController.processMatch(matchResult, source: DestructionSource.booster);
 
-    // Consume the booster ONLY AFTER SUCCESS
-    await ServiceLocator.instance.inventoryManager.consumeBooster(def.type, 1);
+    // Consume inventory
+    if (isCombo) {
+      await ServiceLocator.instance.inventoryManager.consumeBooster(def.type, 1);
+      await ServiceLocator.instance.inventoryManager.consumeBooster(secondDef!.type, 1);
+      
+      final boosterEvent1 = BoosterUsedEvent(def.type.name);
+      final boosterEvent2 = BoosterUsedEvent(secondDef.type.name);
+      ServiceLocator.instance.achievementManager.processEvent(boosterEvent1);
+      ServiceLocator.instance.achievementManager.processEvent(boosterEvent2);
+      ServiceLocator.instance.milestoneManager.processEvent(boosterEvent1);
+      ServiceLocator.instance.milestoneManager.processEvent(boosterEvent2);
+    } else {
+      await ServiceLocator.instance.inventoryManager.consumeBooster(def.type, 1);
+      
+      final boosterEvent = BoosterUsedEvent(def.type.name);
+      ServiceLocator.instance.achievementManager.processEvent(boosterEvent);
+      ServiceLocator.instance.milestoneManager.processEvent(boosterEvent);
+    }
 
     if (def.moveCost > 0) {
       moveController.consumeMove(source: MoveSource.booster);
@@ -227,6 +313,8 @@ class BoosterManager extends ChangeNotifier {
 
     _state = BoosterUseState.completed;
     _selectedBoosterDef = null;
+    _secondBoosterDef = null;
+    _activeCombination = null;
     notifyListeners();
 
     Future.microtask(() {
@@ -241,35 +329,5 @@ class BoosterManager extends ChangeNotifier {
       affectedBlockIds: blastResult.destroyedBlockIds,
       affectedPositions: blastResult.destroyedPositions,
     );
-  }
-
-  Future<void> _executeShuffle() async {
-    final List<String> blockIds = [];
-    final List<Position> positions = [];
-
-    for (int r = 0; r < boardController.rows; r++) {
-      for (int c = 0; c < boardController.columns; c++) {
-        final pos = Position(r, c);
-        final id = boardController.getBlockId(pos);
-        if (id != null) {
-          blockIds.add(id);
-          positions.add(pos);
-        }
-      }
-    }
-
-    blockIds.shuffle();
-
-    for (int i = 0; i < blockIds.length; i++) {
-      boardController.setBlockId(positions[i], blockIds[i]);
-      onMoveBlock(blockIds[i], positions[i]);
-    }
-
-    await Future.delayed(const Duration(milliseconds: 500));
-  }
-
-  Future<void> _executeExtraMoves() async {
-    moveController.addMoves(5);
-    await Future.delayed(const Duration(milliseconds: 300));
   }
 }
