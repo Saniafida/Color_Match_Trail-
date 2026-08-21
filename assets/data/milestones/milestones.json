@@ -1,0 +1,29 @@
+[
+  {
+    "milestoneId": "clear_100_blocks",
+    "titleKey": "milestone_blocks_100_title",
+    "descriptionKey": "milestone_blocks_100_desc",
+    "targetType": "blocks_cleared",
+    "targetValue": 100,
+    "rewardId": "reward_coins_10",
+    "enabled": true
+  },
+  {
+    "milestoneId": "clear_500_blocks",
+    "titleKey": "milestone_blocks_500_title",
+    "descriptionKey": "milestone_blocks_500_desc",
+    "targetType": "blocks_cleared",
+    "targetValue": 500,
+    "rewardId": "reward_coins_25",
+    "enabled": true
+  },
+  {
+    "milestoneId": "earn_25_stars",
+    "titleKey": "milestone_stars_25_title",
+    "descriptionKey": "milestone_stars_25_desc",
+    "targetType": "stars_earned",
+    "targetValue": 25,
+    "rewardId": "reward_booster_hammer_1",
+    "enabled": true
+  }
+]

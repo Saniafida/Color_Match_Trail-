@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "easy",
+    "minColors": 3,
+    "maxColors": 4,
+    "minMoves": 25,
+    "maxMoves": 35,
+    "baseScoreMultiplier": 1,
+    "estimatedClearRate": 0.95,
+    "complexityWeight": 1.0
+  },
+  {
+    "tier": "normal",
+    "minColors": 4,
+    "maxColors": 5,
+    "minMoves": 20,
+    "maxMoves": 30,
+    "baseScoreMultiplier": 2,
+    "estimatedClearRate": 0.80,
+    "complexityWeight": 1.5
+  },
+  {
+    "tier": "hard",
+    "minColors": 4,
+    "maxColors": 5,
+    "minMoves": 18,
+    "maxMoves": 28,
+    "baseScoreMultiplier": 3,
+    "estimatedClearRate": 0.60,
+    "complexityWeight": 2.2
+  },
+  {
+    "tier": "expert",
+    "minColors": 5,
+    "maxColors": 6,
+    "minMoves": 15,
+    "maxMoves": 25,
+    "baseScoreMultiplier": 4,
+    "estimatedClearRate": 0.40,
+    "complexityWeight": 3.0
+  }
+]

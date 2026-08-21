@@ -1,0 +1,17 @@
+{
+  "templateName": "compact",
+  "boardRows": 5,
+  "boardColumns": 5,
+  "colorCount": 4,
+  "moveLimit": 18,
+  "difficulty": "hard",
+  "goals": [
+    {
+      "id": "goal_compact",
+      "type": "clearBlocks",
+      "targetAmount": 25
+    }
+  ],
+  "scoreTarget": 3000,
+  "starThresholds": [1500, 2250, 3000]
+}

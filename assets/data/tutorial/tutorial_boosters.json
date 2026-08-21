@@ -1,0 +1,18 @@
+{
+  "tutorialId": "boosters_intro",
+  "version": 1,
+  "levelId": "3",
+  "rewardId": "none",
+  "enabled": true,
+  "steps": [
+    {
+      "stepId": "booster_intro",
+      "titleKey": "tutorial_booster_title",
+      "descriptionKey": "tutorial_booster_desc",
+      "targetType": "booster",
+      "targetId": "hammer",
+      "requiredAction": "use_booster",
+      "highlightType": "booster_bar"
+    }
+  ]
+}

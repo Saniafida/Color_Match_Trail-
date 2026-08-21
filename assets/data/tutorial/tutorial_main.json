@@ -1,0 +1,49 @@
+{
+  "tutorialId": "main_mechanics",
+  "version": 1,
+  "levelId": "1",
+  "rewardId": "tutorial_reward",
+  "enabled": true,
+  "steps": [
+    {
+      "stepId": "welcome",
+      "titleKey": "tutorial_welcome_title",
+      "descriptionKey": "tutorial_welcome_desc",
+      "targetType": "board",
+      "requiredAction": "continue",
+      "highlightType": "board"
+    },
+    {
+      "stepId": "connect",
+      "titleKey": "tutorial_connect_title",
+      "descriptionKey": "tutorial_connect_desc",
+      "targetType": "board",
+      "requiredAction": "connect",
+      "highlightType": "board"
+    },
+    {
+      "stepId": "blast",
+      "titleKey": "tutorial_blast_title",
+      "descriptionKey": "tutorial_blast_desc",
+      "targetType": "none",
+      "requiredAction": "continue",
+      "highlightType": "overlay"
+    },
+    {
+      "stepId": "moves",
+      "titleKey": "tutorial_moves_title",
+      "descriptionKey": "tutorial_moves_desc",
+      "targetType": "moves",
+      "requiredAction": "continue",
+      "highlightType": "moves_panel"
+    },
+    {
+      "stepId": "goals",
+      "titleKey": "tutorial_goals_title",
+      "descriptionKey": "tutorial_goals_desc",
+      "targetType": "goal",
+      "requiredAction": "continue",
+      "highlightType": "goal_panel"
+    }
+  ]
+}

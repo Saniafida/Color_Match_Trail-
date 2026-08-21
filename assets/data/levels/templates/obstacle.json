@@ -1,0 +1,17 @@
+{
+  "templateName": "obstacle",
+  "boardRows": 7,
+  "boardColumns": 7,
+  "colorCount": 5,
+  "moveLimit": 30,
+  "difficulty": "hard",
+  "goals": [
+    {
+      "id": "goal_obstacle",
+      "type": "clearColor",
+      "targetAmount": 35
+    }
+  ],
+  "scoreTarget": 5000,
+  "starThresholds": [2500, 3750, 5000]
+}

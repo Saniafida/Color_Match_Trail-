@@ -1,0 +1,22 @@
+{
+  "templateName": "multi_goal",
+  "boardRows": 8,
+  "boardColumns": 8,
+  "colorCount": 5,
+  "moveLimit": 32,
+  "difficulty": "hard",
+  "goals": [
+    {
+      "id": "goal_mg_1",
+      "type": "clearColor",
+      "targetAmount": 30
+    },
+    {
+      "id": "goal_mg_2",
+      "type": "clearBlocks",
+      "targetAmount": 50
+    }
+  ],
+  "scoreTarget": 7500,
+  "starThresholds": [3750, 5625, 7500]
+}

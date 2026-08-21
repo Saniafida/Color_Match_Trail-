@@ -1,0 +1,90 @@
+[
+  {
+    "achievementId": "complete_10_levels",
+    "titleKey": "achievement_levels_10_title",
+    "descriptionKey": "achievement_levels_10_desc",
+    "iconAsset": "assets/images/achievements/trophy_bronze.png",
+    "category": "levels",
+    "targetType": "levels_completed",
+    "targetValue": 10,
+    "rewardId": "reward_coins_50",
+    "enabled": true
+  },
+  {
+    "achievementId": "complete_50_levels",
+    "titleKey": "achievement_levels_50_title",
+    "descriptionKey": "achievement_levels_50_desc",
+    "iconAsset": "assets/images/achievements/trophy_silver.png",
+    "category": "levels",
+    "targetType": "levels_completed",
+    "targetValue": 50,
+    "rewardId": "reward_coins_100",
+    "enabled": true
+  },
+  {
+    "achievementId": "earn_100_stars",
+    "titleKey": "achievement_stars_100_title",
+    "descriptionKey": "achievement_stars_100_desc",
+    "iconAsset": "assets/images/achievements/star_gold.png",
+    "category": "stars",
+    "targetType": "stars_earned",
+    "targetValue": 100,
+    "rewardId": "reward_booster_hammer_1",
+    "enabled": true
+  },
+  {
+    "achievementId": "create_10_large_blasts",
+    "titleKey": "achievement_blasts_10_title",
+    "descriptionKey": "achievement_blasts_10_desc",
+    "iconAsset": "assets/images/achievements/blast.png",
+    "category": "blasts",
+    "targetType": "large_blasts",
+    "targetValue": 10,
+    "rewardId": "reward_coins_25",
+    "enabled": true
+  },
+  {
+    "achievementId": "create_mega_blast",
+    "titleKey": "achievement_mega_blast_title",
+    "descriptionKey": "achievement_mega_blast_desc",
+    "iconAsset": "assets/images/achievements/mega_blast.png",
+    "category": "blasts",
+    "targetType": "mega_blasts",
+    "targetValue": 1,
+    "rewardId": "reward_booster_rocket_1",
+    "enabled": true
+  },
+  {
+    "achievementId": "reach_combo_5x",
+    "titleKey": "achievement_combo_5_title",
+    "descriptionKey": "achievement_combo_5_desc",
+    "iconAsset": "assets/images/achievements/combo.png",
+    "category": "combo",
+    "targetType": "combos",
+    "targetValue": 5,
+    "rewardId": "reward_coins_50",
+    "enabled": true
+  },
+  {
+    "achievementId": "use_10_boosters",
+    "titleKey": "achievement_boosters_10_title",
+    "descriptionKey": "achievement_boosters_10_desc",
+    "iconAsset": "assets/images/achievements/booster.png",
+    "category": "boosters",
+    "targetType": "boosters_used",
+    "targetValue": 10,
+    "rewardId": "reward_coins_25",
+    "enabled": true
+  },
+  {
+    "achievementId": "complete_world_1",
+    "titleKey": "achievement_world_1_title",
+    "descriptionKey": "achievement_world_1_desc",
+    "iconAsset": "assets/images/achievements/world_1.png",
+    "category": "worlds",
+    "targetType": "worlds_completed",
+    "targetValue": 1,
+    "rewardId": "reward_coins_200",
+    "enabled": true
+  }
+]

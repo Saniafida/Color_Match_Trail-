@@ -1,0 +1,22 @@
+{
+  "templateName": "wide",
+  "boardRows": 6,
+  "boardColumns": 8,
+  "colorCount": 4,
+  "moveLimit": 28,
+  "difficulty": "normal",
+  "goals": [
+    {
+      "id": "goal_wide_1",
+      "type": "clearColor",
+      "targetAmount": 20
+    },
+    {
+      "id": "goal_wide_2",
+      "type": "clearBlocks",
+      "targetAmount": 30
+    }
+  ],
+  "scoreTarget": 2500,
+  "starThresholds": [1250, 1875, 2500]
+}

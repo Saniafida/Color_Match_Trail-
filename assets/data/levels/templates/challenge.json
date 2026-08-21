@@ -1,0 +1,22 @@
+{
+  "templateName": "challenge",
+  "boardRows": 8,
+  "boardColumns": 8,
+  "colorCount": 6,
+  "moveLimit": 35,
+  "difficulty": "expert",
+  "goals": [
+    {
+      "id": "goal_ch_1",
+      "type": "clearColor",
+      "targetAmount": 40
+    },
+    {
+      "id": "goal_ch_2",
+      "type": "clearBlocks",
+      "targetAmount": 60
+    }
+  ],
+  "scoreTarget": 10000,
+  "starThresholds": [5000, 7500, 10000]
+}

@@ -1,0 +1,17 @@
+{
+  "templateName": "basic",
+  "boardRows": 6,
+  "boardColumns": 6,
+  "colorCount": 4,
+  "moveLimit": 25,
+  "difficulty": "easy",
+  "goals": [
+    {
+      "id": "goal_basic",
+      "type": "clearColor",
+      "targetAmount": 15
+    }
+  ],
+  "scoreTarget": 1000,
+  "starThresholds": [500, 750, 1000]
+}
