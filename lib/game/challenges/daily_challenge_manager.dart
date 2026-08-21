@@ -8,6 +8,7 @@ import 'daily_challenge_generator.dart';
 import 'daily_challenge_type.dart';
 import '../../core/services/service_locator.dart';
 import '../rewards/reward_definition.dart';
+import '../achievements/achievement_event.dart';
 
 class DailyChallengeManager extends ChangeNotifier {
   final DateService dateService;
@@ -79,6 +80,13 @@ class DailyChallengeManager extends ChangeNotifier {
     );
 
     await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+    
+    if (isCompleted) {
+      final evt = ChallengeCompletedEvent(_currentChallenge!.id);
+      ServiceLocator.instance.achievementManager.processEvent(evt);
+      ServiceLocator.instance.milestoneManager.processEvent(evt);
+    }
+    
     notifyListeners();
   }
 
@@ -98,6 +106,13 @@ class DailyChallengeManager extends ChangeNotifier {
         completed: isCompleted,
       );
       await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+      
+      if (isCompleted) {
+        final evt = ChallengeCompletedEvent(_currentChallenge!.id);
+        ServiceLocator.instance.achievementManager.processEvent(evt);
+        ServiceLocator.instance.milestoneManager.processEvent(evt);
+      }
+      
       notifyListeners();
     }
   }
