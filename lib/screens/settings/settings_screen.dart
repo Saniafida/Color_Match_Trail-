@@ -7,6 +7,7 @@ import 'widgets/settings_switch_row.dart';
 import 'widgets/settings_selection_row.dart';
 import 'widgets/reset_settings_dialog.dart';
 import 'widgets/language_selector.dart';
+import '../tutorial/tutorial_replay_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -70,10 +71,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleReplayTutorial() async {
-    await ServiceLocator.instance.onboardingManager.replayTutorial();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
-    }
+    // Navigate to the new tutorial replay screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TutorialReplayScreen()),
+    );
   }
 
   @override
