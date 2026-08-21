@@ -1,22 +1,40 @@
 {
   "home": {
-    "play": "يلعب",
-    "map": "خريطة",
-    "events": "الأحداث",
-    "shop": "متجر",
-    "achievements": "إنجازات",
-    "stats": "إحصائيات",
-    "daily": "يومي",
-    "settings": "إعدادات"
+    "play": "لعب",
+    "map": "الخريطة",
+    "events": "الفعاليات",
+    "shop": "المتجر",
+    "achievements": "الإنجازات",
+    "stats": "الإحصائيات",
+    "daily": "اليومي",
+    "settings": "الإعدادات"
   },
   "settings": {
-    "title": "إعدادات",
-    "sound": "صوت",
-    "music": "موسيقى",
-    "haptics": "اهتزاز",
-    "effects": "تأثيرات بصرية",
-    "notifications": "إشعارات",
-    "language": "لغة",
-    "reset": "إعادة تعيين"
-  }
+    "title": "الإعدادات",
+    "sound": "الصوت",
+    "music": "الموسيقى",
+    "haptics": "الاهتزاز",
+    "effects": "المؤثرات البصرية",
+    "notifications": "الإشعارات",
+    "language": "اللغة",
+    "reset": "إعادة التعيين"
+  },
+  "progression": {
+    "level_locked": "المستوى مقفل",
+    "level_complete": "اكتمل المستوى",
+    "world_complete": "اكتمل العالم",
+    "continue_level": "متابعة المستوى",
+    "replay_level": "إعادة المستوى",
+    "best_score": "أفضل نتيجة",
+    "best_stars": "أفضل نجوم",
+    "campaign_complete": "اكتملت الحملة"
+  },
+  "level_locked": "المستوى مقفل",
+  "level_complete": "اكتمل المستوى",
+  "world_complete": "اكتمل العالم",
+  "continue_level": "متابعة المستوى",
+  "replay_level": "إعادة المستوى",
+  "best_score": "أفضل نتيجة",
+  "best_stars": "أفضل نجوم",
+  "campaign_complete": "اكتملت الحملة"
 }
