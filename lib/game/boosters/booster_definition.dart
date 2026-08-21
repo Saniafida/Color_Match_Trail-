@@ -71,5 +71,13 @@ class BoosterDefinition {
       moveCost: 0,
       allowedInTimeLevels: false,
     ),
+    BoosterType.areaBlast: BoosterDefinition(
+      type: BoosterType.areaBlast,
+      name: "Area Blast",
+      description: "Clears blocks in a 3x3 area.",
+      icon: Icons.api, // Using an available icon like api or crop_square
+      activationStyle: BoosterActivationStyle.targeted,
+      moveCost: 0,
+    ),
   };
 }
