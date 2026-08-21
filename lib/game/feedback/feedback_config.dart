@@ -9,11 +9,8 @@ class FeedbackConfig {
   static const int thresholdGreat = 5;
   static const int thresholdAmazing = 6;
 
-  // Strings
+  // Text popups are explicitly disabled (transformation is the celebration)
   static String getMatchText(int length) {
-    if (length >= thresholdAmazing) return "AMAZING!";
-    if (length >= thresholdGreat) return "GREAT!";
-    if (length >= minBigMatch) return "GOOD!";
     return "";
   }
 }
