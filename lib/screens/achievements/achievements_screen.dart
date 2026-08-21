@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/service_locator.dart';
 import '../../game/achievements/achievement_category.dart';
 import 'widgets/achievement_card.dart';
+import 'widgets/milestone_card.dart';
 import 'widgets/achievement_category_tabs.dart';
 
 class AchievementsScreen extends StatefulWidget {
@@ -12,67 +13,101 @@ class AchievementsScreen extends StatefulWidget {
 }
 
 class _AchievementsScreenState extends State<AchievementsScreen> {
-  final _manager = ServiceLocator.instance.achievementManager;
+  final _achManager = ServiceLocator.instance.achievementManager;
+  final _mileManager = ServiceLocator.instance.milestoneManager;
   AchievementCategory _selectedCategory = AchievementCategory.all;
 
   @override
   void initState() {
     super.initState();
-    _manager.addListener(_onAchievementsChanged);
+    _achManager.addListener(_onDataChanged);
+    _mileManager.addListener(_onDataChanged);
   }
 
   @override
   void dispose() {
-    _manager.removeListener(_onAchievementsChanged);
+    _achManager.removeListener(_onDataChanged);
+    _mileManager.removeListener(_onDataChanged);
     super.dispose();
   }
 
-  void _onAchievementsChanged() {
+  void _onDataChanged() {
     if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    var defs = _manager.definitions;
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF141E2A),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'PROGRESS',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
+          ),
+          centerTitle: true,
+          bottom: const TabBar(
+            indicatorColor: Colors.amber,
+            tabs: [
+              Tab(text: 'ACHIEVEMENTS'),
+              Tab(text: 'MILESTONES'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildAchievementsTab(),
+            _buildMilestonesTab(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAchievementsTab() {
+    var defs = _achManager.definitions;
     if (_selectedCategory != AchievementCategory.all) {
       defs = defs.where((d) => d.category == _selectedCategory).toList();
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF141E2A),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'ACHIEVEMENTS',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
+    return Column(
+      children: [
+        AchievementCategoryTabs(
+          selectedCategory: _selectedCategory,
+          onSelect: (c) => setState(() => _selectedCategory = c),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            itemCount: defs.length,
+            itemBuilder: (context, index) {
+              final def = defs[index];
+              final prog = _achManager.progress[def.achievementId]!;
+              return AchievementCard(definition: def, progress: prog);
+            },
           ),
         ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          AchievementCategoryTabs(
-            selectedCategory: _selectedCategory,
-            onSelect: (c) => setState(() => _selectedCategory = c),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              itemCount: defs.length,
-              itemBuilder: (context, index) {
-                final def = defs[index];
-                final prog = _manager.progress[def.id]!;
-                return AchievementCard(definition: def, progress: prog);
-              },
-            ),
-          ),
-        ],
-      ),
+      ],
+    );
+  }
+
+  Widget _buildMilestonesTab() {
+    final defs = _mileManager.definitions;
+    return ListView.builder(
+      itemCount: defs.length,
+      itemBuilder: (context, index) {
+        final def = defs[index];
+        final prog = _mileManager.progress[def.milestoneId]!;
+        return MilestoneCard(definition: def, progress: prog);
+      },
     );
   }
 }
