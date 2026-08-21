@@ -40,14 +40,16 @@ class _HomeMenuState extends State<HomeMenu> {
 
     final loc = ServiceLocator.instance.localizationManager;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         HomeMenuButton(
-          icon: Icons.map,
+          icon: Icons.map_rounded,
           label: loc.translate('home.map'),
-          onTap: () => Navigator.pushNamed(context, AppRoutes.levelSelect),
+          onTap: () => Navigator.pushNamed(context, AppRoutes.worldMap),
         ),
         Stack(
           alignment: Alignment.topRight,
@@ -78,7 +80,7 @@ class _HomeMenuState extends State<HomeMenu> {
           onTap: () => Navigator.pushNamed(context, AppRoutes.shop),
         ),
         HomeMenuButton(
-          icon: Icons.emoji_events,
+          icon: Icons.military_tech_rounded,
           label: loc.translate('home.achievements'),
           onTap: () => Navigator.pushNamed(context, AppRoutes.achievements),
         ),
@@ -116,6 +118,6 @@ class _HomeMenuState extends State<HomeMenu> {
           onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
         ),
       ],
-    );
+    ));
   }
 }
