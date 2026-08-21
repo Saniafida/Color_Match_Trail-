@@ -5,7 +5,6 @@ import '../trail/trail_input_layer.dart';
 import '../trail/trail_renderer.dart';
 
 /// Renders the static background cell grid.
-/// This widget is const-constructible and will rarely rebuild.
 class _BoardBackground extends StatelessWidget {
   final int rows;
   final int columns;
@@ -32,8 +31,12 @@ class _BoardBackground extends StatelessWidget {
                 width: cellSize,
                 height: cellSize,
                 decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(cellSize * 0.25),
+                  color: Colors.black.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(cellSize * 0.11),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    width: 1,
+                  ),
                 ),
               ),
             ),
@@ -96,8 +99,8 @@ class BoardWidget extends StatelessWidget {
     super.key,
     required this.board,
     required this.trail,
-    this.cellSize = 45.0,
-    this.cellSpacing = 4.0,
+    this.cellSize = 48.0,
+    this.cellSpacing = 3.0,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,
@@ -109,57 +112,79 @@ class BoardWidget extends StatelessWidget {
     final width = board.columns * (cellSize + cellSpacing) - cellSpacing;
     final height = board.rows * (cellSize + cellSpacing) - cellSpacing;
 
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // 1. Static background grid — rarely rebuilds
-          _BoardBackground(
-            rows: board.rows,
-            columns: board.columns,
-            cellSize: cellSize,
-            cellSpacing: cellSpacing,
+    return Container(
+      padding: const EdgeInsets.all(7.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1712), // Deep warm tray bed
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFC7A774), // Golden / wood bezel
+          width: 4.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-
-          // 2. Block layer — rebuilds only when board state changes
-          _BoardBlockLayer(
-            board: board,
-            cellSize: cellSize,
-            cellSpacing: cellSpacing,
+          const BoxShadow(
+            color: Color(0xFFDFC298),
+            blurRadius: 1,
+            offset: Offset(0, -1),
           ),
-
-          // 3. Trail layer — isolated in a RepaintBoundary so it can repaint
-          //    during drag without causing the block layer above to rebuild.
-          Positioned.fill(
-            child: RepaintBoundary(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: TrailRenderer(
-                    trail: trail,
-                    cellSize: cellSize,
-                    cellSpacing: cellSpacing,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 4. Input layer on top
-          Positioned.fill(
-            child: TrailInputLayer(
+        ],
+      ),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 1. Static background grid — rarely rebuilds
+            _BoardBackground(
               rows: board.rows,
               columns: board.columns,
               cellSize: cellSize,
               cellSpacing: cellSpacing,
-              onDragStart: onDragStart,
-              onDragUpdate: onDragUpdate,
-              onDragEnd: onDragEnd,
-              onDragCancel: onDragCancel,
             ),
-          ),
-        ],
+
+            // 2. Block layer — rebuilds only when board state changes
+            _BoardBlockLayer(
+              board: board,
+              cellSize: cellSize,
+              cellSpacing: cellSpacing,
+            ),
+
+            // 3. Trail layer — isolated in a RepaintBoundary
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: TrailRenderer(
+                      trail: trail,
+                      cellSize: cellSize,
+                      cellSpacing: cellSpacing,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 4. Input layer on top
+            Positioned.fill(
+              child: TrailInputLayer(
+                rows: board.rows,
+                columns: board.columns,
+                cellSize: cellSize,
+                cellSpacing: cellSpacing,
+                onDragStart: onDragStart,
+                onDragUpdate: onDragUpdate,
+                onDragEnd: onDragEnd,
+                onDragCancel: onDragCancel,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
