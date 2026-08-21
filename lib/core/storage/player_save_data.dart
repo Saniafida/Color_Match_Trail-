@@ -8,6 +8,7 @@ class PlayerSaveData {
   final Map<String, dynamic> settings;
   final Map<String, dynamic> statistics;
   final Map<String, dynamic> achievements;
+  final Map<String, dynamic> milestones;
   final Map<String, dynamic> onboarding;
   final Map<String, dynamic> scheduledNotifications;
   final Map<String, dynamic> monetization;
@@ -24,6 +25,7 @@ class PlayerSaveData {
     this.settings = const {},
     this.statistics = const {},
     this.achievements = const {},
+    this.milestones = const {},
     this.onboarding = const {},
     this.scheduledNotifications = const {},
     this.monetization = const {},
@@ -41,6 +43,7 @@ class PlayerSaveData {
     Map<String, dynamic>? settings,
     Map<String, dynamic>? statistics,
     Map<String, dynamic>? achievements,
+    Map<String, dynamic>? milestones,
     Map<String, dynamic>? onboarding,
     Map<String, dynamic>? scheduledNotifications,
     Map<String, dynamic>? monetization,
@@ -57,6 +60,7 @@ class PlayerSaveData {
       settings: settings ?? this.settings,
       statistics: statistics ?? this.statistics,
       achievements: achievements ?? this.achievements,
+      milestones: milestones ?? this.milestones,
       onboarding: onboarding ?? this.onboarding,
       scheduledNotifications: scheduledNotifications ?? this.scheduledNotifications,
       monetization: monetization ?? this.monetization,
@@ -76,6 +80,7 @@ class PlayerSaveData {
       'settings': settings,
       'statistics': statistics,
       'achievements': achievements,
+      'milestones': milestones,
       'onboarding': onboarding,
       'scheduledNotifications': scheduledNotifications,
       'monetization': monetization,
@@ -95,6 +100,7 @@ class PlayerSaveData {
       settings: json['settings'] as Map<String, dynamic>? ?? {},
       statistics: json['statistics'] as Map<String, dynamic>? ?? {},
       achievements: json['achievements'] as Map<String, dynamic>? ?? {},
+      milestones: json['milestones'] as Map<String, dynamic>? ?? {},
       onboarding: json['onboarding'] as Map<String, dynamic>? ?? {},
       scheduledNotifications: json['scheduledNotifications'] as Map<String, dynamic>? ?? {},
       monetization: json['monetization'] as Map<String, dynamic>? ?? {},
