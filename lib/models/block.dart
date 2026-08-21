@@ -1,10 +1,56 @@
 import 'position.dart';
+import 'power_up_block.dart';
 
 enum BlockColor { red, green, blue, yellow, purple, orange }
 
 enum BlockType { normal, rocket, bomb, colorBomb, otherSpecial }
 
-enum SpecialBlockType { none, horizontalLine, verticalLine, bomb, colorSpecial }
+enum SpecialBlockType {
+  none,
+  horizontalLine,
+  verticalLine,
+  bomb,
+  colorSpecial,
+  smallArea,
+  crossBlast,
+  megaBomb;
+
+  PowerUpType toPowerUpType() {
+    switch (this) {
+      case SpecialBlockType.smallArea:
+      case SpecialBlockType.horizontalLine:
+      case SpecialBlockType.verticalLine:
+        return PowerUpType.smallArea;
+      case SpecialBlockType.bomb:
+        return PowerUpType.bomb;
+      case SpecialBlockType.crossBlast:
+        return PowerUpType.crossBlast;
+      case SpecialBlockType.colorSpecial:
+        return PowerUpType.colorBomb;
+      case SpecialBlockType.megaBomb:
+        return PowerUpType.megaBomb;
+      case SpecialBlockType.none:
+        return PowerUpType.none;
+    }
+  }
+
+  static SpecialBlockType fromPowerUpType(PowerUpType type) {
+    switch (type) {
+      case PowerUpType.smallArea:
+        return SpecialBlockType.smallArea;
+      case PowerUpType.bomb:
+        return SpecialBlockType.bomb;
+      case PowerUpType.crossBlast:
+        return SpecialBlockType.crossBlast;
+      case PowerUpType.colorBomb:
+        return SpecialBlockType.colorSpecial;
+      case PowerUpType.megaBomb:
+        return SpecialBlockType.megaBomb;
+      case PowerUpType.none:
+        return SpecialBlockType.none;
+    }
+  }
+}
 
 class Block {
   final String id;
@@ -20,6 +66,7 @@ class Block {
   final bool isNew;
   final bool isMatched;
   final bool isBeingDestroyed;
+  final bool isTransforming;
 
   const Block({
     required this.id,
@@ -35,7 +82,10 @@ class Block {
     this.isNew = true,
     this.isMatched = false,
     this.isBeingDestroyed = false,
+    this.isTransforming = false,
   });
+
+  bool get isPowerUp => specialType != SpecialBlockType.none || type != BlockType.normal;
 
   Block copyWith({
     String? id,
@@ -51,6 +101,7 @@ class Block {
     bool? isNew,
     bool? isMatched,
     bool? isBeingDestroyed,
+    bool? isTransforming,
   }) {
     return Block(
       id: id ?? this.id,
@@ -66,6 +117,7 @@ class Block {
       isNew: isNew ?? this.isNew,
       isMatched: isMatched ?? this.isMatched,
       isBeingDestroyed: isBeingDestroyed ?? this.isBeingDestroyed,
+      isTransforming: isTransforming ?? this.isTransforming,
     );
   }
 }
