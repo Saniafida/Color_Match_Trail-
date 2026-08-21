@@ -14,6 +14,7 @@ import '../../game/score/score_controller.dart';
 import '../../game/combo/combo_controller.dart';
 import '../../game/level_result/level_result_system.dart';
 import '../../game/moves/moves.dart';
+import '../../game/achievements/achievement_event.dart';
 import '../../core/services/timer/timer.dart';
 import '../../game/goals/goal_controller.dart';
 import '../../app/routes/routes.dart';
@@ -24,9 +25,9 @@ import 'widgets/gameplay_hud.dart';
 import 'widgets/goal_panel.dart';
 import 'widgets/combo_display.dart';
 import 'widgets/booster_bar.dart';
+import '../tutorial/tutorial_overlay.dart';
+import '../../game/tutorial/tutorial_validator.dart';
 import 'widgets/pause_dialog.dart';
-import 'widgets/win_overlay.dart';
-import 'widgets/lose_overlay.dart';
 import 'widgets/feedback/feedback_layer.dart';
 
 import '../../game/boosters/booster_manager.dart';
@@ -69,7 +70,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   late FeedbackController _feedbackController;
 
   bool _isInitialized = false;
-  int _starsEarned = 0;
+  int _highestCombo = 0;
+  int _largestBlast = 0;
 
   @override
   void initState() {
@@ -142,7 +144,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _matchScanner = BoardMatchScanner(
       boardController: _boardController,
       getBlock: (id) => _blocks[id],
-      minimumConnectionLength: 3,
+      minimumConnectionLength: 2, // Changed to 2
     );
 
     _cascadeController = CascadeController(
@@ -204,6 +206,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
     setState(() {
       _isInitialized = true;
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ServiceLocator.instance.tutorialManager.checkAndStartTutorial(widget.levelId);
+    });
   }
 
   @override
@@ -224,46 +230,36 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   void _onLevelResult(LevelResultEvent event) async {
     if (event.result.status == GameStatus.won || event.result.status == GameStatus.lost) {
-      final isWon = event.result.status == GameStatus.won;
-      
       if (_level.timeLimit != null) {
         _timerController.stop();
       }
 
-      // Save progress if won
-      if (isWon) {
-        // Simple star calculation based on completion
-        final calculatedStars = 3; 
+      ServiceLocator.instance.levelResultManager.processResult(
+        event: event,
+        levelData: _level,
+        highestCombo: _highestCombo,
+        largestBlast: _largestBlast,
+      );
 
-        ServiceLocator.instance.progressionManager.saveLevelResult(
-          levelId: widget.levelId,
-          score: event.result.finalScore,
-          stars: calculatedStars,
-          movesUsed: (_level.movesLimit ?? 0) - event.result.remainingMoves,
-          highestCombo: 0, // Fallback, would need tracking from ComboController
-          completed: true,
-        );
-        
-        // Notify Daily Challenge System
-        ServiceLocator.instance.dailyChallengeManager.incrementProgress(DailyChallengeType.completeLevel, 1);
-        
-        // Notify Event System
-        ServiceLocator.instance.eventManager.incrementProgress(EventType.levelCampaign, 1);
-        
-        // Fetch earned stars for UI
-        _starsEarned = calculatedStars;
-      }
-      
-      _showGameEndOverlay(isWon, event.result.finalScore);
+      // Navigate to LevelResultScreen
+      Navigator.pushReplacementNamed(context, AppRoutes.levelResult, arguments: widget.levelId);
     }
   }
 
   Future<void> _onTrailCompleted(Trail trail) async {
-    const minMatch = 3;
+    const minMatch = 2; // Changed to 2
     if (trail.positions.length < minMatch) {
       return;
     }
     
+    final tutorialManager = ServiceLocator.instance.tutorialManager;
+    if (tutorialManager.isActive) {
+      final step = tutorialManager.currentStep;
+      if (step != null && step.requiredAction == 'connect') {
+        tutorialManager.advanceStep();
+      }
+    }
+
     _levelResultController.setResolving(true);
     _moveController.consumeMove();
 
@@ -279,8 +275,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     // Blast the trail blocks
     final blastResult = await _blastController.processMatch(matchResult);
+    if (blastResult.destroyedPositions.length > _largestBlast) {
+      setState(() => _largestBlast = blastResult.destroyedPositions.length);
+    }
+    
+    // Dispatch Achievement Event
+    final isMega = blastResult.specialCreationHint != SpecialCreationType.none;
+    final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: isMega);
+    ServiceLocator.instance.achievementManager.processEvent(blastEvent);
+    ServiceLocator.instance.milestoneManager.processEvent(blastEvent);
+
     _goalController.onBlastResult(blastResult);
-    _scoreController.processBlast(blastResult);
+    await _scoreController.processBlast(blastResult);
+    if (_scoreController.lastScoreEvent != null) {
+      _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
+    }
     
     final dailyManager = ServiceLocator.instance.dailyChallengeManager;
     final eventManager = ServiceLocator.instance.eventManager;
@@ -296,57 +305,53 @@ class _GameplayScreenState extends State<GameplayScreen> {
     if (blastResult.specialCreationHint != SpecialCreationType.none) {
       dailyManager.incrementProgress(DailyChallengeType.createSpecial, 1);
       eventManager.incrementProgress(EventType.createSpecial, 1);
+      
+      SpecialBlockType specType = SpecialBlockType.none;
+      switch (blastResult.specialCreationHint) {
+        case SpecialCreationType.lineBlast:
+          specType = SpecialBlockType.horizontalLine;
+          break;
+        case SpecialCreationType.bomb:
+          specType = SpecialBlockType.bomb;
+          break;
+        case SpecialCreationType.colorBomb:
+        case SpecialCreationType.megaSpecial:
+          specType = SpecialBlockType.colorSpecial;
+          break;
+        default:
+          specType = SpecialBlockType.none;
+      }
+      _goalController.onSpecialCreation(SpecialCreationResult(
+        created: true,
+        type: specType,
+      ));
     }
     
     // Trigger cascades
     final allowedColors = _level.colorConfig?.availableColors ?? [];
     final cascadeResult = await _cascadeController.startCascade(allowedColors);
     if (cascadeResult.cascadeLevel > 0) {
+      _goalController.onCascadeResult(cascadeResult);
       dailyManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
       dailyManager.updateProgressMax(DailyChallengeType.combo, _comboController.state.level);
       
       eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
       eventManager.updateProgressMax(EventType.combo, _comboController.state.level);
     }
+
+    if (_comboController.state.level > _highestCombo) {
+      setState(() => _highestCombo = _comboController.state.level);
+    }
+    
+    // Dispatch Combo Event
+    final comboEvent = ComboEvent(_comboController.state.level);
+    ServiceLocator.instance.achievementManager.processEvent(comboEvent);
+    ServiceLocator.instance.milestoneManager.processEvent(comboEvent);
     
     _levelResultController.setResolving(false);
   }
 
-  void _showGameEndOverlay(bool won, int finalScore) {
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        if (won) {
-          return WinOverlay(
-            score: finalScore,
-            stars: _starsEarned,
-            onContinue: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Exit to Map
-            },
-            onReplay: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
-            },
-          );
-        } else {
-          return LoseOverlay(
-            onRetry: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
-            },
-            onExit: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Exit to Map
-            },
-          );
-        }
-      },
-    );
-  }
+
 
   void _onPause() {
     if (_level.timeLimit != null) _timerController.stop();
@@ -387,96 +392,100 @@ class _GameplayScreenState extends State<GameplayScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1E2A38),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Top HUD — wrapped in RepaintBoundary so board repaints
-            //    don't cascade upward into HUD widgets
-            RepaintBoundary(
-              child: GameplayHud(
-                levelId: widget.levelId,
-                onPause: _onPause,
-                scoreController: _scoreController,
-                moveController: _moveController,
-                timerController: _timerController,
-                hasTimeLimit: _level.timeLimit != null,
+        child: TutorialOverlay(
+          tutorialManager: ServiceLocator.instance.tutorialManager,
+          child: Column(
+            children: [
+              // 1. Top HUD — wrapped in RepaintBoundary so board repaints
+              //    don't cascade upward into HUD widgets
+              RepaintBoundary(
+                child: GameplayHud(
+                  levelId: widget.levelId,
+                  onPause: _onPause,
+                  scoreController: _scoreController,
+                  moveController: _moveController,
+                  timerController: _timerController,
+                  hasTimeLimit: _level.timeLimit != null,
+                ),
               ),
-            ),
-            
-            // 2. Goal Panel
-            RepaintBoundary(
-              child: GoalPanel(goalController: _goalController),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 3. Game Board + Combo Overlay
-            Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _levelResultController,
-                      _cascadeController,
-                      _trailController,
-                      _gravityController,
-                    ]),
-                    builder: (context, child) {
-                      final isLocked = _levelResultController.status != GameStatus.playing ||
-                                       _cascadeController.inputLocked;
-                      return AbsorbPointer(
-                        absorbing: isLocked,
-                        child: Center(
-                          child: BoardWidget(
-                            board: renderBoard,
-                            trail: _trailController.activeTrail,
-                            cellSize: MediaQuery.of(context).size.width / (_level.boardConfig.columns + 1.5),
-                            cellSpacing: 4.0,
-                            onDragStart: (pos) {
-                              if (_boosterTargetController.isTargeting) {
-                                _boosterTargetController.handleTap(pos);
-                              } else {
-                                _trailController.handleDragStart(pos);
-                              }
-                            },
-                            onDragUpdate: (pos) {
-                              if (!_boosterTargetController.isTargeting) {
-                                _trailController.handleDragUpdate(pos);
-                              }
-                            },
-                            onDragEnd: () => _trailController.handleDragEnd(),
-                            onDragCancel: () => _trailController.handleDragCancel(),
+              
+              // 2. Goal Panel
+              RepaintBoundary(
+                child: GoalPanel(goalController: _goalController),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // 3. Game Board + Combo Overlay
+              Expanded(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedBuilder(
+                      animation: Listenable.merge([
+                        _levelResultController,
+                        _cascadeController,
+                        _trailController,
+                        _gravityController,
+                      ]),
+                      builder: (context, child) {
+                        final isLocked = _levelResultController.status != GameStatus.playing ||
+                                         _cascadeController.inputLocked;
+                        return AbsorbPointer(
+                          absorbing: isLocked,
+                          child: Center(
+                            child: BoardWidget(
+                              board: renderBoard,
+                              trail: _trailController.activeTrail,
+                              cellSize: (MediaQuery.of(context).size.width - 48) / _level.boardConfig.columns,
+                              cellSpacing: 2.0,
+                              onDragStart: (pos) {
+                                if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
+                                if (_boosterTargetController.isTargeting) {
+                                  _boosterTargetController.handleTap(pos);
+                                } else {
+                                  _trailController.handleDragStart(pos);
+                                }
+                              },
+                              onDragUpdate: (pos) {
+                                if (!_boosterTargetController.isTargeting) {
+                                  _trailController.handleDragUpdate(pos);
+                                }
+                              },
+                              onDragEnd: () => _trailController.handleDragEnd(),
+                              onDragCancel: () => _trailController.handleDragCancel(),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  
-                  // Overlay for Feedback effects (particles, text)
-                  Positioned.fill(
-                    child: FeedbackLayer(feedbackController: _feedbackController),
-                  ),
+                        );
+                      },
+                    ),
+                    
+                    // Overlay for Feedback effects (particles, text)
+                    Positioned.fill(
+                      child: FeedbackLayer(feedbackController: _feedbackController),
+                    ),
 
-                  // Overlay for Target Selection mode
-                  Positioned.fill(
-                    child: BoosterTargetOverlay(targetController: _boosterTargetController),
-                  ),
+                    // Overlay for Target Selection mode
+                    Positioned.fill(
+                      child: BoosterTargetOverlay(targetController: _boosterTargetController),
+                    ),
 
-                  // Combo Display overlay
-                  Positioned(
-                    top: 20,
-                    child: ComboDisplay(comboController: _comboController),
-                  ),
-                ],
+                    // Combo Display overlay
+                    Positioned(
+                      top: 20,
+                      child: ComboDisplay(comboController: _comboController),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            
-            // 4. Booster Bar
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24, top: 8),
-              child: BoosterBar(boosterManager: _boosterManager),
-            ),
-          ],
+              
+              // 4. Booster Bar
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24, top: 8),
+                child: BoosterBar(boosterManager: _boosterManager),
+              ),
+            ],
+          ),
         ),
       ),
     );
