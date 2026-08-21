@@ -1,6 +1,6 @@
 import 'position.dart';
 
-enum BlockColor { red, green, blue, yellow, purple }
+enum BlockColor { red, green, blue, yellow, purple, orange }
 
 enum BlockType { normal, rocket, bomb, colorBomb, otherSpecial }
 
