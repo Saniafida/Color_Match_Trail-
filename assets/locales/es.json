@@ -14,9 +14,27 @@
     "sound": "Sonido",
     "music": "Música",
     "haptics": "Vibración",
-    "effects": "Efectos visuales",
+    "effects": "Efectos Visuales",
     "notifications": "Notificaciones",
     "language": "Idioma",
-    "reset": "Restablecer"
-  }
+    "reset": "Restablecer Valores"
+  },
+  "progression": {
+    "level_locked": "Nivel Bloqueado",
+    "level_complete": "Nivel Completado",
+    "world_complete": "Mundo Completado",
+    "continue_level": "Continuar Nivel",
+    "replay_level": "Repetir Nivel",
+    "best_score": "Mejor Puntuación",
+    "best_stars": "Mejores Estrellas",
+    "campaign_complete": "Campaña Completada"
+  },
+  "level_locked": "Nivel Bloqueado",
+  "level_complete": "Nivel Completado",
+  "world_complete": "Mundo Completado",
+  "continue_level": "Continuar Nivel",
+  "replay_level": "Repetir Nivel",
+  "best_score": "Mejor Puntuación",
+  "best_stars": "Mejores Estrellas",
+  "campaign_complete": "Campaña Completada"
 }
