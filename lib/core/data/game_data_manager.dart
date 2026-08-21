@@ -9,6 +9,8 @@ import '../../models/data/world_definition.dart';
 import '../../models/data/challenge_definition.dart';
 import '../../game/events/event_definition.dart';
 import '../../game/shop/shop_item_definition.dart';
+import '../../game/achievements/achievement_definition.dart';
+import '../../game/achievements/milestone_definition.dart';
 import 'game_data_status.dart';
 import 'game_data_validator.dart';
 import 'game_data_migration_manager.dart';
@@ -34,6 +36,8 @@ class GameDataManager extends ChangeNotifier {
   final Map<String, ChallengeDefinition> _challenges = {};
   final Map<String, EventDefinition> _events = {};
   final Map<String, ShopItemDefinition> _shopItems = {};
+  final Map<String, AchievementDefinition> _achievements = {};
+  final Map<String, MilestoneDefinition> _milestones = {};
 
   GameDataValidationResult? _lastValidationResult;
   GameDataValidationResult? get lastValidationResult => _lastValidationResult;
@@ -83,7 +87,19 @@ class GameDataManager extends ChangeNotifier {
         _shopItems[shopItem.id] = shopItem;
       });
 
-      // 5. Check schema migrations (for local saving, though static data rarely needs this unless mapping to saves changes)
+      // 5. Load Achievements
+      await _loadAndParseList('assets/data/achievements/achievements.json', (json) {
+        final ach = AchievementDefinition.fromJson(json);
+        _achievements[ach.achievementId] = ach;
+      });
+
+      // 6. Load Milestones
+      await _loadAndParseList('assets/data/milestones/milestones.json', (json) {
+        final m = MilestoneDefinition.fromJson(json);
+        _milestones[m.milestoneId] = m;
+      });
+
+      // 7. Check schema migrations (for local saving, though static data rarely needs this unless mapping to saves changes)
       for (final level in _levels.values) {
         _migrationManager.checkVersion(1, level.levelId); // Dummy check for architectural completeness
       }
@@ -161,6 +177,12 @@ class GameDataManager extends ChangeNotifier {
 
   ShopItemDefinition? getShopItem(String id) => _shopItems[id];
   List<ShopItemDefinition> getAllShopItems() => _shopItems.values.toList();
+
+  AchievementDefinition? getAchievement(String id) => _achievements[id];
+  List<AchievementDefinition> getAllAchievements() => _achievements.values.toList();
+
+  MilestoneDefinition? getMilestone(String id) => _milestones[id];
+  List<MilestoneDefinition> getAllMilestones() => _milestones.values.toList();
 
   GameBalanceConfig getBalanceConfig() => _balanceConfig;
 
