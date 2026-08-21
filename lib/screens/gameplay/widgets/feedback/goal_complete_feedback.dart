@@ -30,7 +30,7 @@ class _GoalCompleteFeedbackState extends State<GoalCompleteFeedback> with Single
       TweenSequenceItem(tween: Tween(begin: 1.5, end: 1.0), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _opacity = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
