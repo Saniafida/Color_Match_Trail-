@@ -7,7 +7,12 @@ enum AchievementCategory {
   booster,
   challenge,
   event,
-  special
+  special,
+  levels,
+  stars,
+  blasts,
+  boosters,
+  worlds
 }
 
 extension AchievementCategoryExtension on AchievementCategory {
@@ -22,6 +27,11 @@ extension AchievementCategoryExtension on AchievementCategory {
       case AchievementCategory.challenge: return 'Challenge';
       case AchievementCategory.event: return 'Event';
       case AchievementCategory.special: return 'Special';
+      case AchievementCategory.levels: return 'Levels';
+      case AchievementCategory.stars: return 'Stars';
+      case AchievementCategory.blasts: return 'Blasts';
+      case AchievementCategory.boosters: return 'Boosters';
+      case AchievementCategory.worlds: return 'Worlds';
     }
   }
 }
