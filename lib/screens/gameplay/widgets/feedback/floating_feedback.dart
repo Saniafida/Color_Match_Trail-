@@ -39,7 +39,7 @@ class _FloatingFeedbackState extends State<FloatingFeedback> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.2), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _translateY = Tween<double>(begin: 20, end: -50).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
