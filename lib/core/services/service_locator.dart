@@ -1,6 +1,8 @@
 import '../storage/storage.dart';
 import '../../game/levels/level_repository.dart';
 import '../../game/progression/progression_manager.dart';
+import '../../game/balance/game_balance_manager.dart';
+import '../../game/balance/difficulty_manager.dart';
 import 'audio/audio_service.dart';
 import 'audio/audio_manager.dart';
 import 'date_service.dart';
@@ -15,6 +17,7 @@ import '../../game/rewards/reward_claim_store.dart';
 import '../../game/rewards/reward_manager.dart';
 import '../../game/shop/shop_repository.dart';
 import '../../game/shop/shop_manager.dart';
+import '../../game/results/level_result_manager.dart';
 import '../../game/settings/settings_storage.dart';
 import '../../game/settings/settings_manager.dart';
 import '../storage/game_save_manager.dart';
@@ -23,8 +26,10 @@ import '../storage/game_save_manager_storage.dart';
 import '../../game/statistics/statistics_manager.dart';
 import '../../game/achievements/achievement_storage.dart';
 import '../../game/achievements/achievement_manager.dart';
+import '../../game/achievements/milestone_manager.dart';
 import '../../game/onboarding/onboarding_storage.dart';
 import '../../game/onboarding/onboarding_manager.dart';
+import '../../game/tutorial/tutorial_manager.dart';
 import 'notifications/notification_manager.dart';
 import 'notifications/notification_scheduler.dart';
 import 'notifications/notification_service.dart';
@@ -55,7 +60,10 @@ class ServiceLocator {
   late final GameStorage storage;
   late final LevelRepository levelRepository;
   late final ProgressionManager progressionManager;
+  late final LevelResultManager levelResultManager;
   late final AudioManager audioManager;
+  late final GameBalanceManager gameBalanceManager;
+  late final DifficultyManager difficultyManager;
 
   late final DateService dateService;
   late final DailyChallengeStorage dailyChallengeStorage;
@@ -82,9 +90,11 @@ class ServiceLocator {
   late final StatisticsManager statisticsManager;
   late final AchievementStorage achievementStorage;
   late final AchievementManager achievementManager;
+  late final MilestoneManager milestoneManager;
 
   late final OnboardingStorage onboardingStorage;
   late final OnboardingManager onboardingManager;
+  late final TutorialManager tutorialManager;
 
   late final NotificationService notificationService;
   late final NotificationScheduler notificationScheduler;
@@ -180,6 +190,14 @@ class ServiceLocator {
     performanceManager = PerformanceManager(settingsManager: settingsManager);
     performanceManager.initialize();
 
+    analyticsService = StubAnalyticsService();
+    analyticsManager = AnalyticsManager(
+      service: analyticsService,
+      saveManager: gameSaveManager,
+      config: AnalyticsConfig.development(), // Using dev config for now
+    );
+    await analyticsManager.initialize();
+
     errorReportingManager = ErrorReportingManager(analyticsManager: analyticsManager);
     await errorReportingManager.initialize();
 
@@ -191,6 +209,10 @@ class ServiceLocator {
     );
     await audioManager.initialize();
 
+    difficultyManager = const DifficultyManager();
+    gameBalanceManager = GameBalanceManager();
+    await gameBalanceManager.initialize();
+
     // Initialize GameDataManager after levels and error reporting are ready
     gameDataManager = GameDataManager(
       errorReportingManager: errorReportingManager,
@@ -200,8 +222,14 @@ class ServiceLocator {
     progressionManager = ProgressionManager(
       saveManager: gameSaveManager,
       dataManager: gameDataManager,
+      rewardManager: rewardManager,
     );
     progressionManager.initialize();
+
+    levelResultManager = LevelResultManager(
+      progressionManager: progressionManager,
+      rewardManager: rewardManager,
+    );
 
     statisticsManager = StatisticsManager(saveManager: gameSaveManager);
     statisticsManager.initialize();
@@ -209,16 +237,30 @@ class ServiceLocator {
     achievementStorage = AchievementStorage(saveManager: gameSaveManager);
     achievementManager = AchievementManager(
       storage: achievementStorage,
-      statisticsManager: statisticsManager,
       rewardManager: rewardManager,
-      settingsManager: settingsManager,
     );
-    // Passing an empty list or predefined list. Real app would pass a bundled list.
+    // Note: initialization requires gameDataManager, we will do it below
+    
+    milestoneManager = MilestoneManager(
+      saveManager: gameSaveManager,
+      rewardManager: rewardManager,
+    );
+    // Note: initialization requires gameDataManager, we will do it below
     await achievementManager.initialize([]);
+    progressionManager.setDependencies(
+      achievementManager: achievementManager,
+      milestoneManager: milestoneManager,
+    );
 
     onboardingStorage = OnboardingStorage(saveManager: gameSaveManager);
     onboardingManager = OnboardingManager(storage: onboardingStorage);
     onboardingManager.initialize();
+
+    tutorialManager = TutorialManager(
+      saveManager: gameSaveManager,
+      dataManager: gameDataManager,
+    );
+    await tutorialManager.initialize();
 
     notificationService = StubNotificationService();
     notificationScheduler = NotificationScheduler(
@@ -250,13 +292,6 @@ class ServiceLocator {
     );
     await monetizationManager.initialize();
 
-    analyticsService = StubAnalyticsService();
-    analyticsManager = AnalyticsManager(
-      service: analyticsService,
-      saveManager: gameSaveManager,
-      config: AnalyticsConfig.development(), // Using dev config for now
-    );
-    await analyticsManager.initialize();
 
     securityManager = SecurityManager(
       config: securityConfig,
