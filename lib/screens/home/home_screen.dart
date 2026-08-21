@@ -8,6 +8,7 @@ import 'widgets/home_menu.dart';
 import 'widgets/home_loading.dart';
 import 'widgets/home_error.dart';
 import '../achievements/widgets/achievement_unlock_popup.dart';
+import '../achievements/widgets/milestone_unlock_popup.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProgress();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AchievementUnlockOverlay.initialize(context);
+      MilestoneUnlockOverlay.initialize(context);
     });
   }
 
@@ -37,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final progressionManager = ServiceLocator.instance.progressionManager;
-      // Ensure the state is loaded and clean
       progressionManager.initialize();
 
       setState(() {
@@ -95,14 +96,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final progressionManager = ServiceLocator.instance.progressionManager;
     final dataManager = ServiceLocator.instance.gameDataManager;
     
-    final state = progressionManager.state;
     final totalLevels = dataManager.getAllLevels().length;
-    // Calculate highest unlocked for UI representation or fallback to total worlds.
-    final highestUnlocked = state.levels.values.where((l) => l.unlocked).length;
-    int totalStars = 0;
-    for (final level in state.levels.values) {
-      totalStars += level.stars;
-    }
+    final highestUnlocked = progressionManager.unlockedLevels.length;
+    final totalStars = progressionManager.totalStars;
+    final nextLevelId = progressionManager.getNextPlayableLevel();
+    final nextLevelNum = int.tryParse(nextLevelId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    final isCampaignDone = progressionManager.isCampaignCompleted;
 
     return Column(
       children: [
@@ -121,8 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
         
         // 3. Primary CTA
         PlayButton(
-          highestUnlockedLevel: highestUnlocked,
-          onPlay: () => _onPlay(state.currentLevel ?? "level_1"),
+          currentLevelNumber: nextLevelNum,
+          isCampaignCompleted: isCampaignDone,
+          onPlay: () => _onPlay(nextLevelId),
         ),
         
         const Spacer(flex: 2),
