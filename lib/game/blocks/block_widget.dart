@@ -26,11 +26,11 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 140),
+      duration: const Duration(milliseconds: 180),
     );
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
     _style = BlockColorMapper.getStyle(widget.block.color);
@@ -45,13 +45,16 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
       _style = BlockColorMapper.getStyle(widget.block.color);
     }
 
-    if (widget.block.isSelected != oldWidget.block.isSelected) {
+    if (widget.block.isSelected != oldWidget.block.isSelected ||
+        widget.block.isTransforming != oldWidget.block.isTransforming) {
       _updateAnimationState();
     }
   }
 
   void _updateAnimationState() {
-    if (widget.block.isSelected) {
+    if (widget.block.isTransforming) {
+      _controller.forward();
+    } else if (widget.block.isSelected) {
       _controller.forward();
     } else {
       _controller.reverse();
@@ -69,11 +72,20 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
     final size = widget.size;
     final bool isLocked = widget.block.isLocked;
     final bool isSelected = widget.block.isSelected;
+    final bool isTransforming = widget.block.isTransforming;
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
-        final currentScale = widget.block.isBeingDestroyed ? 0.0 : _scaleAnimation.value;
+        double currentScale = 1.0;
+        if (widget.block.isBeingDestroyed) {
+          currentScale = 0.0;
+        } else if (isTransforming) {
+          currentScale = _scaleAnimation.value * 1.08;
+        } else if (isSelected) {
+          currentScale = _scaleAnimation.value;
+        }
+
         return Transform.scale(
           scale: currentScale,
           child: child,
@@ -85,20 +97,21 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 1. Full-size 3D Painted Block Canvas (No inner padding for tight grid)
+            // 1. Full-size 3D Painted Block Canvas
             Positioned.fill(
               child: CustomPaint(
                 painter: _Block3DPainter(
                   style: _style,
                   isLocked: isLocked,
-                  isSelected: isSelected,
+                  isSelected: isSelected || isTransforming,
+                  isPowerUp: widget.block.isPowerUp,
                 ),
               ),
             ),
 
-            // 2. Debossed / Engraved Center Icon
+            // 2. Debossed / Power-Up Center Icon
             Center(
-              child: _buildDebossedIcon(size, isLocked),
+              child: _buildCenterIcon(size, isLocked),
             ),
           ],
         ),
@@ -106,13 +119,12 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
     );
   }
 
-  /// Builds the 3D debossed (engraved / pressed-in) icon
-  Widget _buildDebossedIcon(double size, bool isLocked) {
-    final iconSize = size * 0.48;
+  Widget _buildCenterIcon(double size, bool isLocked) {
+    final iconSize = size * 0.50;
 
-    // Special blocks
-    if (widget.block.type != BlockType.normal) {
-      return _buildSpecialBlockIcon(iconSize, isLocked);
+    // Special / Power-Up block icon
+    if (widget.block.specialType != SpecialBlockType.none || widget.block.type != BlockType.normal) {
+      return _buildPowerUpIcon(iconSize, isLocked);
     }
 
     final iconData = _style.normalIcon;
@@ -123,7 +135,7 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Pass 1: Bottom-Right Rim Highlight (Light catching the lower groove edge)
+          // Rim Highlight
           Transform.translate(
             offset: const Offset(0.0, 1.2),
             child: Icon(
@@ -134,8 +146,7 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
                   : _style.iconHighlight.withValues(alpha: 0.60),
             ),
           ),
-
-          // Pass 2: Top-Left Dark Inset Shadow (Shadow under upper carved edge)
+          // Inset Shadow
           Transform.translate(
             offset: const Offset(-0.4, -0.8),
             child: Icon(
@@ -146,8 +157,7 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
                   : _style.iconShadow.withValues(alpha: 0.80),
             ),
           ),
-
-          // Pass 3: Main Debossed Icon Body (Deep rich tone matching the cube)
+          // Main Body
           Icon(
             iconData,
             size: iconSize,
@@ -160,27 +170,51 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
     );
   }
 
-  /// Builds icons for Special Blocks (Rocket, Bomb, Color Bomb)
-  Widget _buildSpecialBlockIcon(double iconSize, bool isLocked) {
-    IconData specialIcon;
+  Widget _buildPowerUpIcon(double iconSize, bool isLocked) {
+    IconData powerUpIcon;
     Color iconColor;
 
-    switch (widget.block.type) {
-      case BlockType.rocket:
-        specialIcon = Icons.rocket_launch_rounded;
+    switch (widget.block.specialType) {
+      case SpecialBlockType.smallArea:
+      case SpecialBlockType.horizontalLine:
+      case SpecialBlockType.verticalLine:
+        powerUpIcon = Icons.rocket_launch_rounded;
         iconColor = Colors.white;
         break;
-      case BlockType.bomb:
-        specialIcon = Icons.local_fire_department_rounded;
-        iconColor = Colors.amberAccent;
+      case SpecialBlockType.bomb:
+        powerUpIcon = Icons.local_fire_department_rounded;
+        iconColor = const Color(0xFFFFD700);
         break;
-      case BlockType.colorBomb:
-        specialIcon = Icons.auto_awesome;
-        iconColor = Colors.yellowAccent;
+      case SpecialBlockType.crossBlast:
+        powerUpIcon = Icons.control_camera_rounded;
+        iconColor = const Color(0xFF00E5FF);
         break;
-      default:
-        specialIcon = Icons.star_rounded;
-        iconColor = Colors.white;
+      case SpecialBlockType.colorSpecial:
+        powerUpIcon = Icons.auto_awesome;
+        iconColor = const Color(0xFFFF4081);
+        break;
+      case SpecialBlockType.megaBomb:
+        powerUpIcon = Icons.stars_rounded;
+        iconColor = const Color(0xFFFFD700);
+        break;
+      case SpecialBlockType.none:
+        switch (widget.block.type) {
+          case BlockType.rocket:
+            powerUpIcon = Icons.rocket_launch_rounded;
+            iconColor = Colors.white;
+            break;
+          case BlockType.bomb:
+            powerUpIcon = Icons.local_fire_department_rounded;
+            iconColor = const Color(0xFFFFD700);
+            break;
+          case BlockType.colorBomb:
+            powerUpIcon = Icons.auto_awesome;
+            iconColor = const Color(0xFFFF4081);
+            break;
+          default:
+            powerUpIcon = Icons.star_rounded;
+            iconColor = Colors.white;
+        }
     }
 
     return SizedBox(
@@ -190,19 +224,19 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
         alignment: Alignment.center,
         children: [
           Icon(
-            specialIcon,
+            powerUpIcon,
             size: iconSize * 1.15,
             color: Colors.black.withValues(alpha: 0.65),
           ),
           Icon(
-            specialIcon,
+            powerUpIcon,
             size: iconSize,
             color: isLocked ? iconColor.withValues(alpha: 0.5) : iconColor,
-            shadows: [
+            shadows: const [
               Shadow(
-                color: Colors.black.withValues(alpha: 0.8),
+                color: Colors.black87,
                 blurRadius: 4,
-                offset: const Offset(1, 2),
+                offset: Offset(1, 2),
               ),
             ],
           ),
@@ -212,41 +246,42 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
   }
 }
 
-/// Custom 3D Painter creating a Toy / Candy Cube with bevels and cushion lighting
 class _Block3DPainter extends CustomPainter {
   final BlockStyle style;
   final bool isLocked;
   final bool isSelected;
+  final bool isPowerUp;
 
   _Block3DPainter({
     required this.style,
     required this.isLocked,
     required this.isSelected,
+    this.isPowerUp = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final r = w * 0.11; // Subtle corner radius matching screenshot
+    final r = w * 0.12;
     final rect = Rect.fromLTWH(0, 0, w, h);
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(r));
 
-    // 1. Drop shadow behind the cube
+    // 1. Drop shadow
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.5)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
     canvas.drawRRect(rrect.shift(const Offset(0, 2)), shadowPaint);
 
-    // 2. Neon halo glow when selected
-    if (isSelected) {
+    // 2. Power-Up / Selection Glow
+    if (isPowerUp || isSelected) {
       final glowPaint = Paint()
-        ..color = style.glow
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+        ..color = isPowerUp ? const Color(0x99FFD700) : style.glow
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, isPowerUp ? 10.0 : 8.0);
       canvas.drawRRect(rrect, glowPaint);
     }
 
-    // 3. BASE BEVEL (Top-Left Highlight -> Bottom-Right Deep Shadow)
+    // 3. BASE BEVEL
     final basePaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
@@ -260,16 +295,16 @@ class _Block3DPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRRect(rrect, basePaint);
 
-    // 4. 3D BEVEL EDGES (Light top/left rim & Dark bottom/right rim)
+    // 4. 3D BEVEL EDGES
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
+      ..strokeWidth = isPowerUp ? 2.2 : 1.8
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         stops: const [0.0, 0.4, 0.7, 1.0],
         colors: [
-          Colors.white.withValues(alpha: isLocked ? 0.25 : 0.65),
+          isPowerUp ? const Color(0xFFFFF9C4) : Colors.white.withValues(alpha: isLocked ? 0.25 : 0.65),
           Colors.white.withValues(alpha: 0.0),
           Colors.black.withValues(alpha: 0.15),
           Colors.black.withValues(alpha: isLocked ? 0.25 : 0.60),
@@ -277,7 +312,7 @@ class _Block3DPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRRect(rrect.deflate(0.9), rimPaint);
 
-    // 5. INNER CUSHION / PILLOW (Puffed center face)
+    // 5. INNER CUSHION
     final innerInset = w * 0.08;
     final innerRect = Rect.fromLTWH(innerInset, innerInset, w - (innerInset * 2), h - (innerInset * 2));
     final innerRRect = RRect.fromRectAndRadius(innerRect, Radius.circular(r * 0.7));
@@ -297,7 +332,7 @@ class _Block3DPainter extends CustomPainter {
       ).createShader(innerRect);
     canvas.drawRRect(innerRRect, innerPaint);
 
-    // 6. TOP SPECULAR GLOSS (Curved reflection on upper half)
+    // 6. TOP SPECULAR GLOSS
     final glossRect = Rect.fromLTWH(innerInset, innerInset, w - (innerInset * 2), (h - innerInset * 2) * 0.5);
     final glossRRect = RRect.fromRectAndRadius(glossRect, Radius.circular(r * 0.6));
     final glossPaint = Paint()
@@ -311,12 +346,12 @@ class _Block3DPainter extends CustomPainter {
       ).createShader(glossRect);
     canvas.drawRRect(glossRRect, glossPaint);
 
-    // 7. SELECTION OUTLINE
-    if (isSelected) {
+    // 7. SELECTION / POWER-UP OUTLINE
+    if (isSelected || isPowerUp) {
       final selectPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = Colors.white.withValues(alpha: 0.95);
+        ..strokeWidth = isPowerUp ? 2.0 : 2.5
+        ..color = isPowerUp ? const Color(0xFFFFD700).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.95);
       canvas.drawRRect(rrect.deflate(1.2), selectPaint);
     }
   }
@@ -325,6 +360,7 @@ class _Block3DPainter extends CustomPainter {
   bool shouldRepaint(covariant _Block3DPainter oldDelegate) {
     return oldDelegate.style != style ||
         oldDelegate.isLocked != isLocked ||
-        oldDelegate.isSelected != isSelected;
+        oldDelegate.isSelected != isSelected ||
+        oldDelegate.isPowerUp != isPowerUp;
   }
 }
