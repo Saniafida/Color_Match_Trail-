@@ -119,7 +119,7 @@ class _AchievementPopupWidgetState extends State<_AchievementPopupWidget> with S
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            widget.definition.name,
+                            widget.definition.titleKey,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
