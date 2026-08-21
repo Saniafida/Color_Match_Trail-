@@ -18,5 +18,23 @@
     "notifications": "Notifications",
     "language": "Language",
     "reset": "Reset to Defaults"
-  }
+  },
+  "progression": {
+    "level_locked": "Level Locked",
+    "level_complete": "Level Complete",
+    "world_complete": "World Complete",
+    "continue_level": "Continue Level",
+    "replay_level": "Replay Level",
+    "best_score": "Best Score",
+    "best_stars": "Best Stars",
+    "campaign_complete": "Campaign Complete"
+  },
+  "level_locked": "Level Locked",
+  "level_complete": "Level Complete",
+  "world_complete": "World Complete",
+  "continue_level": "Continue Level",
+  "replay_level": "Replay Level",
+  "best_score": "Best Score",
+  "best_stars": "Best Stars",
+  "campaign_complete": "Campaign Complete"
 }
