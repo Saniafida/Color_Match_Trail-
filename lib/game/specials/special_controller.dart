@@ -74,11 +74,6 @@ class SpecialController extends ChangeNotifier {
       }
     }
     
-    // We remove the initial special block from the targets list conceptually for the result,
-    // though the BlastController usually expects all blocks that need destruction to be in the list.
-    // Actually, prompt says: "When a special is activated: The special itself should be consumed."
-    // So keeping it in allTargetIds is correct!
-    
     return SpecialActivationResult(
       success: true,
       specialBlockId: initialRequest.blockId,
@@ -97,37 +92,88 @@ class SpecialController extends ChangeNotifier {
     final cols = boardController.columns;
     final center = request.position;
 
-    if (request.type == SpecialBlockType.horizontalLine) {
-      for (int c = 0; c < cols; c++) {
-        targets.add(Position(center.row, c));
-      }
-    } else if (request.type == SpecialBlockType.verticalLine) {
-      for (int r = 0; r < rows; r++) {
-        targets.add(Position(r, center.column));
-      }
-    } else if (request.type == SpecialBlockType.bomb) {
-      final radius = SpecialConfig.bombRadius;
-      for (int r = center.row - radius; r <= center.row + radius; r++) {
-        for (int c = center.column - radius; c <= center.column + radius; c++) {
-          if (r >= 0 && r < rows && c >= 0 && c < cols) {
-            targets.add(Position(r, c));
+    switch (request.type) {
+      case SpecialBlockType.horizontalLine:
+        for (int c = 0; c < cols; c++) {
+          targets.add(Position(center.row, c));
+        }
+        break;
+
+      case SpecialBlockType.verticalLine:
+        for (int r = 0; r < rows; r++) {
+          targets.add(Position(r, center.column));
+        }
+        break;
+
+      case SpecialBlockType.crossBlast:
+        // Clears entire row + entire column
+        for (int c = 0; c < cols; c++) {
+          targets.add(Position(center.row, c));
+        }
+        for (int r = 0; r < rows; r++) {
+          if (r != center.row) {
+            targets.add(Position(r, center.column));
           }
         }
-      }
-    } else if (request.type == SpecialBlockType.colorSpecial) {
-      // Find all blocks of this color
-      for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {
-          final pos = Position(r, c);
-          final id = boardController.getBlockId(pos);
-          if (id != null) {
-            final block = getBlock(id);
-            if (block != null && block.color == request.color) {
-              targets.add(pos);
+        break;
+
+      case SpecialBlockType.smallArea:
+        // Small area (diamond/cross of radius 1 around center)
+        final neighbors = [
+          Position(center.row - 1, center.column),
+          Position(center.row + 1, center.column),
+          Position(center.row, center.column - 1),
+          Position(center.row, center.column + 1),
+        ];
+        for (final pos in neighbors) {
+          if (pos.row >= 0 && pos.row < rows && pos.column >= 0 && pos.column < cols) {
+            targets.add(pos);
+          }
+        }
+        break;
+
+      case SpecialBlockType.bomb:
+        // Standard 3x3 explosive radius
+        final radius = SpecialConfig.bombRadius;
+        for (int r = center.row - radius; r <= center.row + radius; r++) {
+          for (int c = center.column - radius; c <= center.column + radius; c++) {
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+              targets.add(Position(r, c));
             }
           }
         }
-      }
+        break;
+
+      case SpecialBlockType.megaBomb:
+        // 5x5 Mega Bomb radius
+        final megaRadius = SpecialConfig.megaBombRadius;
+        for (int r = center.row - megaRadius; r <= center.row + megaRadius; r++) {
+          for (int c = center.column - megaRadius; c <= center.column + megaRadius; c++) {
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+              targets.add(Position(r, c));
+            }
+          }
+        }
+        break;
+
+      case SpecialBlockType.colorSpecial:
+        // Find all blocks of this color
+        for (int r = 0; r < rows; r++) {
+          for (int c = 0; c < cols; c++) {
+            final pos = Position(r, c);
+            final id = boardController.getBlockId(pos);
+            if (id != null) {
+              final block = getBlock(id);
+              if (block != null && block.color == request.color) {
+                targets.add(pos);
+              }
+            }
+          }
+        }
+        break;
+
+      case SpecialBlockType.none:
+        break;
     }
     
     return targets;
