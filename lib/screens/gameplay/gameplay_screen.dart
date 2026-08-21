@@ -1,44 +1,48 @@
 import 'package:flutter/material.dart';
-import '../../core/services/service_locator.dart';
 import '../../models/models.dart';
 import '../../game/board/board.dart';
-import '../../game/trail/trail_controller.dart';
-import '../../game/board/board_widget.dart';
-import '../../game/trail/match_result.dart';
-import '../../game/levels/initial_board_generator.dart';
-import '../../game/cascade/cascade.dart';
-import '../../game/gravity/gravity.dart';
-import '../../game/specials/special.dart';
-import '../../game/blast/blast.dart';
+import '../../game/combos/combo_controller.dart';
 import '../../game/score/score_controller.dart';
-import '../../game/combo/combo_controller.dart';
-import '../../game/level_result/level_result_system.dart';
-import '../../game/moves/moves.dart';
-import '../../game/achievements/achievement_event.dart';
-import '../../core/services/timer/timer.dart';
 import '../../game/goals/goal_controller.dart';
-import '../../app/routes/routes.dart';
-import '../../game/feedback/feedback_controller.dart';
-
-// New UI widgets
-import 'widgets/gameplay_hud.dart';
-import 'widgets/goal_panel.dart';
-import 'widgets/combo_display.dart';
-import 'widgets/booster_bar.dart';
-import '../tutorial/tutorial_overlay.dart';
-import '../../game/tutorial/tutorial_validator.dart';
-import 'widgets/pause_dialog.dart';
-import 'widgets/feedback/feedback_layer.dart';
-
+import '../../game/moves/move_controller.dart';
+import '../../game/timer/timer_controller.dart';
+import '../../game/level_result/level_result_system.dart';
+import '../../game/levels/initial_board_generator.dart';
+import '../../game/gravity/gravity_controller.dart';
+import '../../game/specials/special_controller.dart';
+import '../../game/specials/power_up_manager.dart';
+import '../../game/blast/blast_controller.dart';
+import '../../game/blast/blast_result.dart';
+import '../../game/cascade/board_match_scanner.dart';
+import '../../game/cascade/cascade_controller.dart';
+import '../../game/trail/trail_controller.dart';
+import '../../game/trail/match_result.dart';
 import '../../game/boosters/booster_manager.dart';
 import '../../game/boosters/booster_target_controller.dart';
-import 'widgets/booster_target_overlay.dart';
-import '../../game/challenges/daily_challenge_type.dart';
-import '../../game/events/event_type.dart';
+import '../../game/feedback/feedback_controller.dart';
+import '../../game/tutorial/tutorial_validator.dart';
+import '../../game/achievements/achievement_event.dart';
+import '../../game/challenges/daily_challenge_definition.dart';
+import '../../game/events/event_definition.dart';
+import '../../core/services/service_locator.dart';
+import '../../app/routes/routes.dart';
+
+import 'widgets/hud/gameplay_hud.dart';
+import 'widgets/goals/goal_panel.dart';
+import 'widgets/boosters/booster_bar.dart';
+import 'widgets/boosters/booster_target_overlay.dart';
+import 'widgets/combos/combo_display.dart';
+import 'widgets/feedback/feedback_layer.dart';
+import 'widgets/pause/pause_dialog.dart';
+import 'widgets/tutorial/tutorial_overlay.dart';
 
 class GameplayScreen extends StatefulWidget {
   final String levelId;
-  const GameplayScreen({super.key, required this.levelId});
+
+  const GameplayScreen({
+    super.key,
+    required this.levelId,
+  });
 
   @override
   State<GameplayScreen> createState() => _GameplayScreenState();
@@ -61,6 +65,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
   
   late GravityController _gravityController;
   late SpecialController _specialController;
+  late PowerUpManager _powerUpManager;
   late BlastController _blastController;
   late BoardMatchScanner _matchScanner;
   late CascadeController _cascadeController;
@@ -140,11 +145,20 @@ class _GameplayScreenState extends State<GameplayScreen> {
       onRemoveBlock: (id) => setState(() => _blocks.remove(id)),
       specialController: _specialController,
     );
+
+    _powerUpManager = PowerUpManager(
+      boardController: _boardController,
+      getBlock: (id) => _blocks[id],
+      onUpdateBlock: (b) => setState(() => _blocks[b.id] = b),
+      onRemoveBlock: (id) => setState(() => _blocks.remove(id)),
+      specialController: _specialController,
+      blastController: _blastController,
+    );
     
     _matchScanner = BoardMatchScanner(
       boardController: _boardController,
       getBlock: (id) => _blocks[id],
-      minimumConnectionLength: 2, // Changed to 2
+      minimumConnectionLength: 2,
     );
 
     _cascadeController = CascadeController(
@@ -167,9 +181,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
       levelResultController: _levelResultController,
       storage: ServiceLocator.instance.storage,
       getBlock: (id) => _blocks[id],
-      onMoveBlock: (id, pos) {
-        // Not heavily used for basic boosters
-      },
+      onMoveBlock: (id, pos) {},
       specialController: _specialController,
     );
 
@@ -217,6 +229,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _trailController.dispose();
     _cascadeController.dispose();
     _blastController.dispose();
+    _powerUpManager.dispose();
     _levelResultController.dispose();
     _scoreController.dispose();
     _comboController.dispose();
@@ -241,13 +254,26 @@ class _GameplayScreenState extends State<GameplayScreen> {
         largestBlast: _largestBlast,
       );
 
-      // Navigate to LevelResultScreen
       Navigator.pushReplacementNamed(context, AppRoutes.levelResult, arguments: widget.levelId);
     }
   }
 
   Future<void> _onTrailCompleted(Trail trail) async {
-    const minMatch = 2; // Changed to 2
+    // 1. Check Single-Tap on Power-Up Block
+    if (trail.positions.length == 1) {
+      final pos = trail.positions.first;
+      final blockId = _boardController.getBlockId(pos);
+      if (blockId != null) {
+        final block = _blocks[blockId];
+        if (block != null && block.isPowerUp) {
+          await _handlePowerUpTapActivation(pos);
+          return;
+        }
+      }
+      return; // Single tap on normal block does nothing
+    }
+
+    const minMatch = 2;
     if (trail.positions.length < minMatch) {
       return;
     }
@@ -263,99 +289,158 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _levelResultController.setResolving(true);
     _moveController.consumeMove();
 
-    // The Trail is basically a MatchResult
-    final matchResult = MatchResult(
-      isValid: true,
-      length: trail.positions.length,
-      positions: trail.positions,
-      blockIds: trail.blockIds,
-      color: trail.color!,
-      connectionType: ConnectionType.normal,
-    );
+    final count = trail.positions.length;
+    final isPowerUpCreation = count >= 4;
 
-    // Blast the trail blocks
-    final blastResult = await _blastController.processMatch(matchResult);
-    if (blastResult.destroyedPositions.length > _largestBlast) {
-      setState(() => _largestBlast = blastResult.destroyedPositions.length);
-    }
-    
-    // Dispatch Achievement Event
-    final isMega = blastResult.specialCreationHint != SpecialCreationType.none;
-    final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: isMega);
-    ServiceLocator.instance.achievementManager.processEvent(blastEvent);
-    ServiceLocator.instance.milestoneManager.processEvent(blastEvent);
+    if (isPowerUpCreation) {
+      // 2. Power-Up Transformation Flow (Block in group transforms, other blocks vanish into it)
+      final transformResult = await _powerUpManager.processTrailPowerUp(
+        blockIds: trail.blockIds,
+        positions: trail.positions,
+        color: trail.color!,
+      );
 
-    _goalController.onBlastResult(blastResult);
-    await _scoreController.processBlast(blastResult);
-    if (_scoreController.lastScoreEvent != null) {
-      _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
-    }
-    
-    final dailyManager = ServiceLocator.instance.dailyChallengeManager;
-    final eventManager = ServiceLocator.instance.eventManager;
-    
-    dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
-    dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
-    dailyManager.updateProgressMax(DailyChallengeType.combo, _comboController.state.level);
+      final blastResult = BlastResult(
+        success: true,
+        destroyedBlockIds: transformResult.removedBlockIds,
+        destroyedPositions: transformResult.removedPositions,
+        destroyedCount: transformResult.removedPositions.length,
+        color: trail.color,
+        intensity: BlastIntensity.normal,
+        duration: Duration.zero,
+        source: DestructionSource.playerMatch,
+      );
 
-    eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
-    eventManager.incrementProgress(EventType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
-    eventManager.updateProgressMax(EventType.combo, _comboController.state.level);
-
-    if (blastResult.specialCreationHint != SpecialCreationType.none) {
-      dailyManager.incrementProgress(DailyChallengeType.createSpecial, 1);
-      eventManager.incrementProgress(EventType.createSpecial, 1);
-      
-      SpecialBlockType specType = SpecialBlockType.none;
-      switch (blastResult.specialCreationHint) {
-        case SpecialCreationType.lineBlast:
-          specType = SpecialBlockType.horizontalLine;
-          break;
-        case SpecialCreationType.bomb:
-          specType = SpecialBlockType.bomb;
-          break;
-        case SpecialCreationType.colorBomb:
-        case SpecialCreationType.megaSpecial:
-          specType = SpecialBlockType.colorSpecial;
-          break;
-        default:
-          specType = SpecialBlockType.none;
+      if (blastResult.destroyedPositions.length > _largestBlast) {
+        setState(() => _largestBlast = blastResult.destroyedPositions.length);
       }
+
+      final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: count >= 7);
+      ServiceLocator.instance.achievementManager.processEvent(blastEvent);
+      ServiceLocator.instance.milestoneManager.processEvent(blastEvent);
+
+      _goalController.onBlastResult(blastResult);
+      await _scoreController.processBlast(blastResult);
+      if (_scoreController.lastScoreEvent != null) {
+        _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
+      }
+
+      final dailyManager = ServiceLocator.instance.dailyChallengeManager;
+      final eventManager = ServiceLocator.instance.eventManager;
+      dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
+      dailyManager.incrementProgress(DailyChallengeType.createSpecial, 1);
+      eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
+      eventManager.incrementProgress(EventType.createSpecial, 1);
+
       _goalController.onSpecialCreation(SpecialCreationResult(
         created: true,
-        type: specType,
+        type: transformResult.specialType,
       ));
+    } else {
+      // 3. Normal Blast (Length 2-3, no power-up)
+      final matchResult = MatchResult(
+        isValid: true,
+        length: trail.positions.length,
+        positions: trail.positions,
+        blockIds: trail.blockIds,
+        color: trail.color!,
+        connectionType: ConnectionType.normal,
+      );
+
+      final blastResult = await _blastController.processMatch(matchResult);
+      if (blastResult.destroyedPositions.length > _largestBlast) {
+        setState(() => _largestBlast = blastResult.destroyedPositions.length);
+      }
+
+      final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: false);
+      ServiceLocator.instance.achievementManager.processEvent(blastEvent);
+      ServiceLocator.instance.milestoneManager.processEvent(blastEvent);
+
+      _goalController.onBlastResult(blastResult);
+      await _scoreController.processBlast(blastResult);
+      if (_scoreController.lastScoreEvent != null) {
+        _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
+      }
+
+      final dailyManager = ServiceLocator.instance.dailyChallengeManager;
+      final eventManager = ServiceLocator.instance.eventManager;
+      dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
+      dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
+      eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
+      eventManager.incrementProgress(EventType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
     }
-    
-    // Trigger cascades
+
+    // 4. Gravity & Cascades (Transformed power-up drops and settles naturally without disappearing)
     final allowedColors = _level.colorConfig?.availableColors ?? [];
     final cascadeResult = await _cascadeController.startCascade(allowedColors);
     if (cascadeResult.cascadeLevel > 0) {
       _goalController.onCascadeResult(cascadeResult);
-      dailyManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
-      dailyManager.updateProgressMax(DailyChallengeType.combo, _comboController.state.level);
-      
-      eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
-      eventManager.updateProgressMax(EventType.combo, _comboController.state.level);
+      ServiceLocator.instance.dailyChallengeManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
+      ServiceLocator.instance.eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
     }
 
     if (_comboController.state.level > _highestCombo) {
       setState(() => _highestCombo = _comboController.state.level);
     }
     
-    // Dispatch Combo Event
     final comboEvent = ComboEvent(_comboController.state.level);
     ServiceLocator.instance.achievementManager.processEvent(comboEvent);
     ServiceLocator.instance.milestoneManager.processEvent(comboEvent);
-    
+
     _levelResultController.setResolving(false);
   }
 
+  /// Handles direct player tap interaction on an existing power-up block
+  Future<void> _handlePowerUpTapActivation(Position pos) async {
+    _levelResultController.setResolving(true);
+    _moveController.consumeMove();
 
+    final blastResult = await _powerUpManager.activatePowerUpAt(pos);
+
+    if (blastResult.success) {
+      if (blastResult.destroyedPositions.length > _largestBlast) {
+        setState(() => _largestBlast = blastResult.destroyedPositions.length);
+      }
+
+      final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: true);
+      ServiceLocator.instance.achievementManager.processEvent(blastEvent);
+      ServiceLocator.instance.milestoneManager.processEvent(blastEvent);
+
+      _goalController.onBlastResult(blastResult);
+      await _scoreController.processBlast(blastResult);
+      if (_scoreController.lastScoreEvent != null) {
+        _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
+      }
+
+      final dailyManager = ServiceLocator.instance.dailyChallengeManager;
+      final eventManager = ServiceLocator.instance.eventManager;
+      dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
+      dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
+      dailyManager.updateProgressMax(DailyChallengeType.combo, _comboController.state.level);
+      eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
+      eventManager.incrementProgress(EventType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
+      eventManager.updateProgressMax(EventType.combo, _comboController.state.level);
+
+      // Trigger cascades & gravity
+      final allowedColors = _level.colorConfig?.availableColors ?? [];
+      final cascadeResult = await _cascadeController.startCascade(allowedColors);
+      if (cascadeResult.cascadeLevel > 0) {
+        _goalController.onCascadeResult(cascadeResult);
+        dailyManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
+        eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
+      }
+
+      if (_comboController.state.level > _highestCombo) {
+        setState(() => _highestCombo = _comboController.state.level);
+      }
+    }
+
+    _levelResultController.setResolving(false);
+  }
 
   void _onPause() {
     if (_level.timeLimit != null) _timerController.stop();
-    _levelResultController.setResolving(true); // Lock input
+    _levelResultController.setResolving(true);
     
     showDialog(
       context: context,
@@ -370,9 +455,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
           Navigator.pop(context);
           Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
         },
-        onExit: () {
-          Navigator.pop(context); // Close dialog
-          Navigator.pop(context); // Exit to Map
+        onQuit: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
         },
       ),
     );
@@ -396,8 +481,6 @@ class _GameplayScreenState extends State<GameplayScreen> {
           tutorialManager: ServiceLocator.instance.tutorialManager,
           child: Column(
             children: [
-              // 1. Top HUD — wrapped in RepaintBoundary so board repaints
-              //    don't cascade upward into HUD widgets
               RepaintBoundary(
                 child: GameplayHud(
                   levelId: widget.levelId,
@@ -409,14 +492,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 ),
               ),
               
-              // 2. Goal Panel
               RepaintBoundary(
                 child: GoalPanel(goalController: _goalController),
               ),
               
               const SizedBox(height: 16),
               
-              // 3. Game Board + Combo Overlay
               Expanded(
                 child: Stack(
                   alignment: Alignment.center,
@@ -427,6 +508,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                         _cascadeController,
                         _trailController,
                         _gravityController,
+                        _powerUpManager,
                       ]),
                       builder: (context, child) {
                         final isLocked = _levelResultController.status != GameStatus.playing ||
@@ -460,17 +542,14 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       },
                     ),
                     
-                    // Overlay for Feedback effects (particles, text)
                     Positioned.fill(
                       child: FeedbackLayer(feedbackController: _feedbackController),
                     ),
 
-                    // Overlay for Target Selection mode
                     Positioned.fill(
                       child: BoosterTargetOverlay(targetController: _boosterTargetController),
                     ),
 
-                    // Combo Display overlay
                     Positioned(
                       top: 20,
                       child: ComboDisplay(comboController: _comboController),
@@ -479,7 +558,6 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 ),
               ),
               
-              // 4. Booster Bar
               Padding(
                 padding: const EdgeInsets.only(bottom: 24, top: 8),
                 child: BoosterBar(boosterManager: _boosterManager),
