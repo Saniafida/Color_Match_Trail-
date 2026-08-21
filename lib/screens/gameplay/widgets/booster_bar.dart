@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../game/tutorial/tutorial_validator.dart';
 import '../../../game/boosters/booster_manager.dart';
 import '../../../game/boosters/booster_definition.dart';
 import '../../../models/models.dart';
@@ -27,9 +29,12 @@ class BoosterBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: availableBoosters.map((type) {
-              final isSelected = boosterManager.selectedBoosterDef?.type == type;
+              final isSelected = boosterManager.selectedBoosterDef?.type == type ||
+                                 boosterManager.secondBoosterDef?.type == type;
               final count = boosterManager.inventory.getQuantity(type);
-              final isAvailable = boosterManager.canActivateBooster(type);
+              
+              // It's available if we can activate it, or if it's already selected
+              final isAvailable = boosterManager.canActivateBooster(type) || isSelected;
               
               return _buildBoosterIcon(type, isSelected, isAvailable, count);
             }).toList(),
@@ -44,10 +49,16 @@ class BoosterBar extends StatelessWidget {
 
     return GestureDetector(
       onTap: isAvailable ? () {
-        if (boosterManager.selectedBoosterDef?.type == type) {
-          boosterManager.cancelSelection();
-        } else {
-          boosterManager.selectBooster(type);
+        final tutorialManager = ServiceLocator.instance.tutorialManager;
+        if (!TutorialValidator.canUseBooster(tutorialManager, type)) return;
+        
+        boosterManager.selectBooster(type);
+
+        if (tutorialManager.isActive) {
+          final step = tutorialManager.currentStep;
+          if (step != null && step.requiredAction == 'use_booster' && step.targetId == type.name) {
+            tutorialManager.advanceStep();
+          }
         }
       } : null,
       child: Opacity(
