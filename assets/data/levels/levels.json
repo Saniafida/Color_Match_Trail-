@@ -17,7 +17,10 @@
     "boardRows": 6,
     "boardColumns": 6,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 20}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 15},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 15}
+    ],
     "moveLimit": 25,
     "difficulty": "easy",
     "scoreTarget": 2000,
@@ -29,7 +32,10 @@
     "boardRows": 7,
     "boardColumns": 7,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 25}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 20},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 20}
+    ],
     "moveLimit": 28,
     "difficulty": "normal",
     "scoreTarget": 3500,
@@ -41,8 +47,11 @@
     "boardRows": 7,
     "boardColumns": 7,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearBlocks", "targetAmount": 35}],
-    "moveLimit": 30,
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 20},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 20}
+    ],
+    "moveLimit": 28,
     "difficulty": "normal",
     "scoreTarget": 5000,
     "starThresholds": [2500, 3750, 5000]
@@ -53,7 +62,10 @@
     "boardRows": 8,
     "boardColumns": 8,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 30}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 25},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 25}
+    ],
     "moveLimit": 30,
     "difficulty": "hard",
     "scoreTarget": 6000,
@@ -65,7 +77,10 @@
     "boardRows": 7,
     "boardColumns": 7,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 25}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 20},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 20}
+    ],
     "moveLimit": 28,
     "difficulty": "normal",
     "scoreTarget": 5000,
@@ -77,7 +92,10 @@
     "boardRows": 7,
     "boardColumns": 7,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 30}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 25},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 25}
+    ],
     "moveLimit": 30,
     "difficulty": "normal",
     "scoreTarget": 6000,
@@ -89,7 +107,10 @@
     "boardRows": 8,
     "boardColumns": 8,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearColor", "targetAmount": 35}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 30},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 30}
+    ],
     "moveLimit": 32,
     "difficulty": "hard",
     "scoreTarget": 7000,
@@ -101,7 +122,10 @@
     "boardRows": 8,
     "boardColumns": 8,
     "blockTypes": ["normal"],
-    "goals": [{"id": "goal_1", "type": "clearBlocks", "targetAmount": 60}],
+    "goals": [
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 30},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 30}
+    ],
     "moveLimit": 35,
     "difficulty": "hard",
     "scoreTarget": 8500,
@@ -114,8 +138,8 @@
     "boardColumns": 8,
     "blockTypes": ["normal"],
     "goals": [
-      {"id": "goal_1", "type": "clearColor", "targetAmount": 40},
-      {"id": "goal_2", "type": "clearBlocks", "targetAmount": 50}
+      {"id": "goal_1", "type": "clearColor", "targetAmount": 30},
+      {"id": "goal_2", "type": "clearColor", "targetAmount": 30}
     ],
     "moveLimit": 35,
     "difficulty": "expert",
@@ -123,3 +147,4 @@
     "starThresholds": [5000, 7500, 10000]
   }
 ]
+

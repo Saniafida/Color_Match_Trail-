@@ -1,5 +1,6 @@
 import '../booster.dart';
 import '../goal.dart';
+import '../block.dart';
 
 /// Flatter, offline-data-driven LevelDefinition as requested for Module 46.
 class LevelDefinitionData {
@@ -55,6 +56,9 @@ class LevelDefinitionData {
       id: json['id'] as String? ?? 'goal',
       type: GoalType.values.firstWhere((e) => e.name == json['type'], orElse: () => GoalType.clearColor),
       targetAmount: json['targetAmount'] as int? ?? json['target'] as int? ?? 1,
+      color: json['color'] != null
+          ? BlockColor.values.firstWhere((e) => e.name == json['color'], orElse: () => BlockColor.red)
+          : null,
     );
   }
 }

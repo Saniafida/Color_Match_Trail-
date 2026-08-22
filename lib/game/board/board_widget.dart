@@ -31,12 +31,8 @@ class _BoardBackground extends StatelessWidget {
                 width: cellSize,
                 height: cellSize,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(cellSize * 0.11),
-                  border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    width: 1,
-                  ),
+                  color: Colors.black.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(cellSize * 0.15),
                 ),
               ),
             ),
@@ -100,7 +96,7 @@ class BoardWidget extends StatelessWidget {
     required this.board,
     required this.trail,
     this.cellSize = 48.0,
-    this.cellSpacing = 3.0,
+    this.cellSpacing = 0.0,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,

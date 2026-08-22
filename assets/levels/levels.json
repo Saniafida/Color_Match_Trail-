@@ -50,13 +50,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 20,
+        "target": 15,
         "color": "blue"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 2000
+        "type": "clearColor",
+        "target": 15,
+        "color": "yellow"
       }
     ],
     "specials": {
@@ -78,7 +79,7 @@
       "rows": 7,
       "columns": 7
     },
-    "movesLimit": 30,
+    "movesLimit": 28,
     "colors": [
       "red",
       "blue",
@@ -90,13 +91,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 25,
+        "target": 20,
         "color": "green"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 4000
+        "type": "clearColor",
+        "target": 20,
+        "color": "red"
       }
     ],
     "specials": {
@@ -119,7 +121,7 @@
       "rows": 7,
       "columns": 7
     },
-    "timeLimit": 75,
+    "movesLimit": 28,
     "colors": [
       "red",
       "blue",
@@ -130,13 +132,15 @@
     "goals": [
       {
         "id": "goal_1",
-        "type": "clearBlocks",
-        "target": 35
+        "type": "clearColor",
+        "target": 20,
+        "color": "purple"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 5000
+        "type": "clearColor",
+        "target": 20,
+        "color": "blue"
       }
     ],
     "specials": {
@@ -172,13 +176,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 30,
+        "target": 25,
         "color": "yellow"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 6000
+        "type": "clearColor",
+        "target": 25,
+        "color": "orange"
       }
     ],
     "specials": {
@@ -222,13 +227,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 25,
+        "target": 20,
         "color": "orange"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 5000
+        "type": "clearColor",
+        "target": 20,
+        "color": "green"
       }
     ],
     "specials": {
@@ -264,13 +270,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 30,
+        "target": 25,
         "color": "purple"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 6000
+        "type": "clearColor",
+        "target": 25,
+        "color": "yellow"
       }
     ],
     "specials": {
@@ -306,13 +313,13 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 35,
+        "target": 30,
         "color": "red"
       },
       {
         "id": "goal_2",
         "type": "clearColor",
-        "target": 35,
+        "target": 30,
         "color": "green"
       }
     ],
@@ -348,13 +355,15 @@
     "goals": [
       {
         "id": "goal_1",
-        "type": "clearBlocks",
-        "target": 60
+        "type": "clearColor",
+        "target": 30,
+        "color": "blue"
       },
       {
         "id": "goal_2",
-        "type": "score",
-        "target": 8000
+        "type": "clearColor",
+        "target": 30,
+        "color": "orange"
       }
     ],
     "specials": {
@@ -390,19 +399,14 @@
       {
         "id": "goal_1",
         "type": "clearColor",
-        "target": 40,
+        "target": 30,
         "color": "orange"
       },
       {
         "id": "goal_2",
         "type": "clearColor",
-        "target": 40,
+        "target": 30,
         "color": "blue"
-      },
-      {
-        "id": "goal_3",
-        "type": "score",
-        "target": 10000
       }
     ],
     "specials": {
@@ -427,3 +431,4 @@
     }
   }
 ]
+

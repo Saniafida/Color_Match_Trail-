@@ -329,6 +329,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       final dailyManager = ServiceLocator.instance.dailyChallengeManager;
       final eventManager = ServiceLocator.instance.eventManager;
+      dailyManager.onColorBlocksCleared(trail.color!, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.createSpecial, 1);
       eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
@@ -366,6 +367,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       final dailyManager = ServiceLocator.instance.dailyChallengeManager;
       final eventManager = ServiceLocator.instance.eventManager;
+      dailyManager.onColorBlocksCleared(trail.color!, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
       eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
@@ -521,8 +523,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
                             child: BoardWidget(
                               board: renderBoard,
                               trail: _trailController.activeTrail,
-                              cellSize: (MediaQuery.of(context).size.width - 48) / _level.boardConfig.columns,
-                              cellSpacing: 2.0,
+                              cellSize: (MediaQuery.of(context).size.width - 32) / _level.boardConfig.columns,
+                              cellSpacing: 0.0,
                               onDragStart: (pos) {
                                 if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
                                 if (_boosterTargetController.isTargeting) {

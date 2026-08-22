@@ -1,8 +1,10 @@
 enum DailyChallengeType {
-  score,
+  twoColors,
   clearBlocks,
   createSpecial,
   cascade,
   combo,
-  completeLevel
+  completeLevel,
+  score,
 }
+
