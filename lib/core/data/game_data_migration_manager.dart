@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 /// Handles data version compatibility checks and provides migration hooks.
 ///
 /// Currently a pass-through (v1 to v1 = no migration needed).
-/// Add migration steps here as data schemas evolve across app versions.
 class GameDataMigrationManager {
   static const int currentDataVersion = 1;
 
