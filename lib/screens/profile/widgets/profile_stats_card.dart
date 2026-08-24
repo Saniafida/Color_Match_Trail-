@@ -4,7 +4,7 @@ import '../../../game/profile/player_statistics.dart';
 class ProfileStatsCard extends StatelessWidget {
   final PlayerStatistics stats;
 
-  const ProfileStatsCard({Key? key, required this.stats}) : super(key: key);
+  const ProfileStatsCard({super.key, required this.stats});
 
   @override
   Widget build(BuildContext context) {
