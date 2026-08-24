@@ -7,7 +7,7 @@ import 'edit_profile_screen.dart';
 class ProfileScreen extends StatelessWidget {
   final PlayerProfileManager manager;
 
-  const ProfileScreen({Key? key, required this.manager}) : super(key: key);
+  const ProfileScreen({super.key, required this.manager});
 
   @override
   Widget build(BuildContext context) {
