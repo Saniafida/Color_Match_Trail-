@@ -8,11 +8,11 @@ class ProfileHeader extends StatelessWidget {
   final VoidCallback onEditPressed;
 
   const ProfileHeader({
-    Key? key,
+    super.key,
     required this.profile,
     required this.avatar,
     required this.onEditPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
