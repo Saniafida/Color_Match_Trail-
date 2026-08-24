@@ -12,7 +12,7 @@ class PlayerXPManager {
     if (level > _maxLevel) return getXpRequiredForLevel(_maxLevel);
     
     // Simple exponential curve: Total XP = Base * (Multiplier ^ (Level - 1))
-    double req = _baseXpRequirement * (pow(_xpMultiplier, level - 2) as num).toDouble();
+    double req = _baseXpRequirement * pow(_xpMultiplier, level - 2).toDouble();
     // Add previous levels requirement to make it cumulative
     return getXpRequiredForLevel(level - 1) + req.round();
   }
