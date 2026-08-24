@@ -4,10 +4,9 @@ import '../../core/services/service_locator.dart';
 import '../../game/progression/progression_manager.dart';
 import '../../game/progression/level_progress.dart';
 import '../../core/data/game_data_manager.dart';
-import '../../game/settings/settings_manager.dart';
-import 'widgets/world_header.dart';
-import 'widgets/world_progress.dart';
-import 'widgets/world_navigation.dart';
+import '../../widgets/common/game_top_bar.dart';
+import '../../widgets/common/wood_sign_header.dart';
+import '../../widgets/buttons/glossy_button.dart';
 import 'widgets/level_node.dart';
 import 'widgets/level_path.dart';
 
@@ -21,7 +20,6 @@ class WorldMapScreen extends StatefulWidget {
 class _WorldMapScreenState extends State<WorldMapScreen> {
   late final ProgressionManager _progressionManager;
   late final GameDataManager _dataManager;
-  late final SettingsManager _settingsManager;
 
   int _selectedWorldIndex = 0;
 
@@ -30,11 +28,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     super.initState();
     _progressionManager = ServiceLocator.instance.progressionManager;
     _dataManager = ServiceLocator.instance.gameDataManager;
-    _settingsManager = ServiceLocator.instance.settingsManager;
 
     _progressionManager.addListener(_onProgressionUpdated);
-
-    // Default to the world containing the current playable level
     _findInitialWorld();
   }
 
@@ -74,23 +69,29 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF5D3A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFFFD54F), width: 2.5),
+        ),
         title: const Row(
           children: [
-            Icon(Icons.lock_rounded, color: Color(0xFFFF9800)),
+            Icon(Icons.lock_rounded, color: Color(0xFFFFD54F)),
             SizedBox(width: 8),
-            Text('Level Locked', style: TextStyle(color: Colors.white)),
+            Text('Level Locked', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white70),
+          style: const TextStyle(color: Color(0xFFFFF9EC), fontSize: 16),
         ),
         actions: [
-          TextButton(
+          GlossyButton(
+            text: 'OK',
+            color: GlossyButtonColor.green,
+            height: 44,
+            fontSize: 16,
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Color(0xFF38BDF8))),
           ),
         ],
       ),
@@ -108,19 +109,24 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
         return Container(
           padding: const EdgeInsets.all(24),
           decoration: const BoxDecoration(
-            color: Color(0xFF1E293B),
+            color: Color(0xFF5D3A1A),
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(
+              top: BorderSide(color: Color(0xFFFFD54F), width: 3),
+              left: BorderSide(color: Color(0xFFFFD54F), width: 3),
+              right: BorderSide(color: Color(0xFFFFD54F), width: 3),
+            ),
           ),
           child: SafeArea(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40,
-                  height: 4,
+                  width: 44,
+                  height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
+                    color: const Color(0xFFFFD54F),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -128,19 +134,27 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                   'Level $levelNumber',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(color: Colors.black, offset: Offset(1, 2), blurRadius: 2),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(3, (index) {
                     final earned = index < progress.bestStars;
-                    return Icon(
-                      Icons.star_rounded,
-                      size: 28,
-                      color: earned ? const Color(0xFFFFD700) : Colors.white24,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Image.asset(
+                        'assets/images/icons/icon_star_gold.png',
+                        width: 32,
+                        height: 32,
+                        color: earned ? null : Colors.black45,
+                        colorBlendMode: earned ? null : BlendMode.srcATop,
+                      ),
                     );
                   }),
                 ),
@@ -148,35 +162,31 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                 if (progress.completed) ...[
                   Text(
                     'Best Score: ${progress.bestScore}',
-                    style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      color: Color(0xFFFFD700),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                   const SizedBox(height: 4),
                 ],
                 if (levelData != null) ...[
                   Text(
                     'Moves: ${levelData.moveLimit}  •  Target: ${levelData.scoreTarget}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    style: const TextStyle(color: Color(0xFFFFF9EC), fontSize: 15, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                 ],
-                SizedBox(
+                GlossyButton(
+                  text: progress.completed ? 'Replay Level' : 'Play Level',
+                  color: GlossyButtonColor.green,
+                  height: 54,
+                  fontSize: 20,
                   width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF38BDF8),
-                      foregroundColor: const Color(0xFF0F172A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _playLevel(levelId);
-                    },
-                    child: Text(
-                      progress.completed ? 'Replay Level' : 'Play Level',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _playLevel(levelId);
+                  },
                 ),
               ],
             ),
@@ -195,163 +205,103 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   Widget build(BuildContext context) {
     final worlds = _dataManager.getAllWorlds();
     final state = _progressionManager.state;
-    final totalCampaignStars = _progressionManager.totalStars;
-    final reducedMotion = _settingsManager.state.reducedEffects;
 
     if (worlds.isEmpty) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F172A),
-        body: Center(child: Text('No worlds available', style: TextStyle(color: Colors.white))),
+        body: Center(child: Text('No worlds available')),
       );
     }
 
     final currentWorld = worlds[_selectedWorldIndex.clamp(0, worlds.length - 1)];
-    final worldProgress = _progressionManager.getWorldProgress(currentWorld.worldId);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1120),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Text('World Map', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          // Level Select Grid shortcut
-          IconButton(
-            icon: const Icon(Icons.grid_view_rounded),
-            tooltip: 'Level Select',
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.levelSelect);
-            },
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Illustrated Map Background
+          Image.asset(
+            'assets/images/backgrounds/bg_world_map.jpg',
+            fit: BoxFit.cover,
           ),
-          // Total Stars badge
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD700).withAlpha(120)),
+
+          // 2. Main Content
+          SafeArea(
+            child: Column(
+              children: [
+                // Top Status Bar (Hearts, Coins, Gems, Settings)
+                const GameTopBar(
+                  showProfile: false,
+                  showSettings: true,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$totalCampaignStars',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                  ],
+
+                // Wood Sign Header: "World Map"
+                WoodSignHeader(
+                  title: 'World Map',
+                  onBack: () => Navigator.pop(context),
                 ),
-              ),
+
+                // Interactive Level Nodes Map Trail
+                Expanded(
+                  child: _buildTrailMap(currentWorld.levelIds, state),
+                ),
+
+                // Bottom World Selector Tabs ("World 1", "World 2 🔒", "World 3 🔒")
+                _buildBottomWorldTabs(worlds),
+              ],
             ),
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: _getWorldGradient(currentWorld.worldId),
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 1. World Navigation Selector
-              WorldNavigation(
-                worlds: worlds,
-                selectedIndex: _selectedWorldIndex,
-                onWorldSelected: (idx) {
-                  final targetWorld = worlds[idx];
-                  final check = _progressionManager.validateWorldAccess(targetWorld.worldId);
-                  if (!check.isUnlocked) {
-                    _showLockedDialog(check.message ?? 'This world is locked.');
-                  } else {
-                    setState(() {
-                      _selectedWorldIndex = idx;
-                    });
-                  }
-                },
-                getWorldProgress: (id) => _progressionManager.getWorldProgress(id),
-              ),
-
-              // 2. World Header Info
-              WorldHeader(
-                world: currentWorld,
-                progress: worldProgress,
-                totalCampaignStars: totalCampaignStars,
-              ),
-
-              // 3. World Progress Bar
-              WorldProgressWidget(progress: worldProgress),
-
-              const SizedBox(height: 8),
-
-              // 4. Interactive Level Map Trail
-              Expanded(
-                child: _buildTrailMap(currentWorld.levelIds, state, reducedMotion),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildTrailMap(List<String> levelIds, dynamic state, bool reducedMotion) {
+  Widget _buildTrailMap(List<String> levelIds, dynamic state) {
     if (levelIds.isEmpty) {
-      return const Center(child: Text('No levels in this world', style: TextStyle(color: Colors.white70)));
+      return const Center(
+        child: Text('No levels in this world', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      );
     }
 
-    final double nodeHeight = 110.0;
+    final double nodeHeight = 90.0;
     final int count = levelIds.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
-        final double totalHeight = count * nodeHeight + 80;
+        final double totalHeight = count * nodeHeight + 60;
 
-        // Calculate zigzag offsets for each node
         final List<Offset> positions = [];
         final List<bool> unlockedStates = [];
 
         for (int i = 0; i < count; i++) {
           final levelId = levelIds[i];
-          final progress = state.levels[levelId] ?? LevelProgress.locked(levelId);
+          final progress = state.levels[levelId] ?? (i == 0 ? LevelProgress.unlocked(levelId) : LevelProgress.locked(levelId));
           unlockedStates.add(progress.unlocked);
 
-          // Alternating X positions: center, left, center, right...
+          // S-curve winding positions
           double xOffset;
           if (i % 4 == 0) {
             xOffset = width * 0.5;
           } else if (i % 4 == 1) {
-            xOffset = width * 0.25;
+            xOffset = width * 0.28;
           } else if (i % 4 == 2) {
             xOffset = width * 0.5;
           } else {
-            xOffset = width * 0.75;
+            xOffset = width * 0.72;
           }
 
-          final yOffset = 40 + i * nodeHeight + 38; // center of node
+          final yOffset = 30 + i * nodeHeight + 36;
           positions.add(Offset(xOffset, yOffset));
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 40),
+          padding: const EdgeInsets.only(bottom: 20),
           child: SizedBox(
             height: totalHeight,
             width: width,
             child: Stack(
               children: [
-                // 1. Trail Path
+                // 1. Path Line
                 CustomPaint(
                   size: Size(width, totalHeight),
                   painter: LevelPathPainter(
@@ -363,8 +313,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                 // 2. Level Nodes
                 for (int i = 0; i < count; i++) ...[
                   Positioned(
-                    left: positions[i].dx - 38,
-                    top: positions[i].dy - 38,
+                    left: positions[i].dx - 36,
+                    top: positions[i].dy - 36,
                     child: Builder(
                       builder: (context) {
                         final levelId = levelIds[i];
@@ -374,7 +324,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                         return LevelNode(
                           progress: progress,
                           isCurrent: isCurrent,
-                          reducedMotion: reducedMotion,
+                          reducedMotion: false,
                           onTap: () => _onNodeTapped(levelId, progress),
                         );
                       },
@@ -389,10 +339,71 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     );
   }
 
-  List<Color> _getWorldGradient(String worldId) {
-    if (worldId.contains('2')) {
-      return const [Color(0xFF1E1B4B), Color(0xFF0F172A), Color(0xFF020617)];
-    }
-    return const [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF020617)];
+  Widget _buildBottomWorldTabs(List<dynamic> worlds) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.black.withAlpha(90),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(worlds.length.clamp(1, 3), (index) {
+          final isSelected = index == _selectedWorldIndex;
+          final isUnlocked = index == 0; // World 1 unlocked by default
+
+          return GestureDetector(
+            onTap: () {
+              if (!isUnlocked) {
+                _showLockedDialog('Complete World 1 to unlock World ${index + 1}!');
+              } else {
+                setState(() => _selectedWorldIndex = index);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFF8CE03E), Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF6D4222), Color(0xFF4E2A0E)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFFFD54F) : const Color(0xFF8D6E63),
+                  width: 2.0,
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 4),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isUnlocked) ...[
+                    const Icon(Icons.lock_rounded, color: Color(0xFFFFCA28), size: 14),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    'World ${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFFD7CCC8),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      shadows: isSelected
+                          ? const [Shadow(color: Colors.black, offset: Offset(1, 1), blurRadius: 2)]
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }
