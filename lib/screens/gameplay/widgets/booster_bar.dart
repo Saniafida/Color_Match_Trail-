@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/services/service_locator.dart';
 import '../../../game/tutorial/tutorial_validator.dart';
 import '../../../game/boosters/booster_manager.dart';
-import '../../../game/boosters/booster_definition.dart';
 import '../../../models/models.dart';
 
 class BoosterBar extends StatelessWidget {
@@ -13,30 +12,61 @@ class BoosterBar extends StatelessWidget {
     required this.boosterManager,
   });
 
+  String _getBoosterAsset(BoosterType type) {
+    switch (type) {
+      case BoosterType.hammer:
+        return 'assets/images/boosters/hammer.png';
+      case BoosterType.areaBlast:
+      case BoosterType.rowClear:
+        return 'assets/images/boosters/bomb.png';
+      case BoosterType.colorClear:
+        return 'assets/images/boosters/color_bomb.png';
+      case BoosterType.shuffle:
+        return 'assets/images/boosters/shuffle.png';
+      case BoosterType.extraMoves:
+        return 'assets/images/boosters/extra_moves.png';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: boosterManager,
       builder: (context, child) {
-        final availableBoosters = BoosterType.values;
+        // Display the 5 main booster types from the reference
+        const displayTypes = [
+          BoosterType.hammer,
+          BoosterType.areaBlast,
+          BoosterType.colorClear,
+          BoosterType.shuffle,
+          BoosterType.extraMoves,
+        ];
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: const Color(0xFF3E200C).withAlpha(220),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: const Border(
+              top: BorderSide(color: Color(0xFFFFD54F), width: 2.5),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black45,
+                offset: Offset(0, -3),
+                blurRadius: 6,
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: availableBoosters.map((type) {
+            children: displayTypes.map((type) {
               final isSelected = boosterManager.selectedBoosterDef?.type == type ||
-                                 boosterManager.secondBoosterDef?.type == type;
+                  boosterManager.secondBoosterDef?.type == type;
               final count = boosterManager.inventory.getQuantity(type);
-              
-              // It's available if we can activate it, or if it's already selected
               final isAvailable = boosterManager.canActivateBooster(type) || isSelected;
-              
-              return _buildBoosterIcon(type, isSelected, isAvailable, count);
+
+              return _buildBoosterButton(type, isSelected, isAvailable, count);
             }).toList(),
           ),
         );
@@ -44,59 +74,98 @@ class BoosterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildBoosterIcon(BoosterType type, bool isSelected, bool isAvailable, int count) {
-    final def = BoosterDefinition.registry[type]!;
+  Widget _buildBoosterButton(BoosterType type, bool isSelected, bool isAvailable, int count) {
+    final assetPath = _getBoosterAsset(type);
 
     return GestureDetector(
-      onTap: isAvailable ? () {
-        final tutorialManager = ServiceLocator.instance.tutorialManager;
-        if (!TutorialValidator.canUseBooster(tutorialManager, type)) return;
-        
-        boosterManager.selectBooster(type);
+      onTap: isAvailable
+          ? () {
+              final tutorialManager = ServiceLocator.instance.tutorialManager;
+              if (!TutorialValidator.canUseBooster(tutorialManager, type)) return;
 
-        if (tutorialManager.isActive) {
-          final step = tutorialManager.currentStep;
-          if (step != null && step.requiredAction == 'use_booster' && step.targetId == type.name) {
-            tutorialManager.advanceStep();
-          }
-        }
-      } : null,
-      child: Opacity(
-        opacity: isAvailable ? 1.0 : 0.4,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.amber.withValues(alpha: 0.3) : Colors.white24,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSelected ? Colors.amber : Colors.white54,
-              width: isSelected ? 3 : 1,
+              boosterManager.selectBooster(type);
+
+              if (tutorialManager.isActive) {
+                final step = tutorialManager.currentStep;
+                if (step != null && step.requiredAction == 'use_booster' && step.targetId == type.name) {
+                  tutorialManager.advanceStep();
+                }
+              }
+            }
+          : null,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Wooden / Gold Circular Container
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: isSelected
+                  ? const LinearGradient(
+                      colors: [Color(0xFFFFEE58), Color(0xFFFFB300)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    )
+                  : const LinearGradient(
+                      colors: [Color(0xFF8D582A), Color(0xFF5D3512)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+              border: Border.all(
+                color: isSelected ? Colors.white : const Color(0xFFFFD54F),
+                width: isSelected ? 3.0 : 2.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected ? const Color(0xFFFFD700).withAlpha(180) : Colors.black45,
+                  blurRadius: isSelected ? 8 : 4,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ClipOval(
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(def.icon, color: isAvailable ? Colors.white : Colors.grey, size: 24),
-              if (count > 0)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
+
+          // Count Badge (Red / Coral Pill)
+          Positioned(
+            bottom: -2,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE53935),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 1.2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black45,
+                    offset: Offset(0, 1),
+                    blurRadius: 2,
                   ),
+                ],
+              ),
+              child: Text(
+                count > 0 ? '$count' : '0',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
                 ),
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
