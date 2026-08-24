@@ -15,7 +15,6 @@ class AchievementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isUnlocked = progress.completed;
-    final bool isHidden = false;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -31,14 +30,14 @@ class AchievementCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildIcon(isUnlocked, isHidden),
+          _buildIcon(isUnlocked),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHidden ? '???' : definition.titleKey,
+                  definition.titleKey,
                   style: TextStyle(
                     color: isUnlocked ? Colors.amber : Colors.white,
                     fontSize: 16,
@@ -47,14 +46,14 @@ class AchievementCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isHidden ? 'Keep playing to discover this achievement' : definition.descriptionKey,
+                  definition.descriptionKey,
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (!isUnlocked && !isHidden) _buildProgressBar(),
+                if (!isUnlocked) _buildProgressBar(),
                 if (isUnlocked) _buildRewardClaimedLabel(),
               ],
             ),
@@ -64,7 +63,7 @@ class AchievementCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(bool isUnlocked, bool isHidden) {
+  Widget _buildIcon(bool isUnlocked) {
     return Container(
       width: 50,
       height: 50,
@@ -77,11 +76,9 @@ class AchievementCard extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: isHidden
-            ? const Icon(Icons.help_outline, color: Colors.white54)
-            : isUnlocked
-                ? const Icon(Icons.emoji_events, color: Colors.amber)
-                : const Icon(Icons.lock, color: Colors.white54, size: 20),
+        child: isUnlocked
+            ? const Icon(Icons.emoji_events, color: Colors.amber)
+            : const Icon(Icons.lock, color: Colors.white54, size: 20),
       ),
     );
   }
