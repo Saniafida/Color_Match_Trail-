@@ -7,11 +7,11 @@ class AvatarSelector extends StatelessWidget {
   final Function(String) onAvatarSelected;
 
   const AvatarSelector({
-    Key? key,
+    super.key,
     required this.availableAvatars,
     required this.currentAvatarId,
     required this.onAvatarSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,36 +27,23 @@ class AvatarSelector extends StatelessWidget {
       itemBuilder: (context, index) {
         final avatar = availableAvatars[index];
         final isSelected = avatar.avatarId == currentAvatarId;
-        
-        // In a real app, this logic would consult the unlock progression system
-        // For now, we assume all provided in availableAvatars list are selectable.
-        final bool isLocked = false; 
 
         return GestureDetector(
-          onTap: () {
-            if (!isLocked) {
-              onAvatarSelected(avatar.avatarId);
-            }
-          },
+          onTap: () => onAvatarSelected(avatar.avatarId),
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: isSelected 
                   ? Border.all(color: Colors.amber, width: 3) 
                   : Border.all(color: Colors.transparent, width: 3),
-              color: isLocked ? Colors.grey[800] : Colors.white24,
+              color: Colors.white24,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.person,
-                  size: 48,
-                  color: isLocked ? Colors.white24 : Colors.white,
-                ),
-                if (isLocked)
-                  const Icon(Icons.lock, color: Colors.white, size: 24),
-              ],
+            child: const Center(
+              child: Icon(
+                Icons.person,
+                size: 48,
+                color: Colors.white,
+              ),
             ),
           ),
         );
