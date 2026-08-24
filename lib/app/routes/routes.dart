@@ -15,6 +15,9 @@ import '../../screens/achievements/achievements_screen.dart';
 import '../../screens/statistics/statistics_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 
+import '../../screens/settings/theme_screen.dart';
+import '../../screens/mini_games/tile_sort_screen.dart';
+
 class AppRoutes {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
@@ -29,8 +32,10 @@ class AppRoutes {
   static const String shop = '/shop';
   static const String rewards = '/rewards';
   static const String settings = '/settings';
+  static const String themes = '/themes';
   static const String achievements = '/achievements';
   static const String statistics = '/statistics';
+  static const String tileSort = '/tile_sort';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     switch (routeSettings.name) {
@@ -63,10 +68,14 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const RewardsScreen());
       case settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case themes:
+        return MaterialPageRoute(builder: (_) => const ThemeScreen());
       case achievements:
         return MaterialPageRoute(builder: (_) => const AchievementsScreen());
       case statistics:
         return MaterialPageRoute(builder: (_) => const StatisticsScreen());
+      case tileSort:
+        return MaterialPageRoute(builder: (_) => const TileSortScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
