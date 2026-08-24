@@ -7,10 +7,14 @@ import '../../game/basket_collect/basket_collect_level_model.dart';
 import '../../game/basket_collect/basket_collect_level_generator.dart';
 import '../../core/services/service_locator.dart';
 
+// ─────────────────────────────────────────────
+// DATA MODELS
+// ─────────────────────────────────────────────
+
 class FallingBlock {
   final int id;
-  double x; // 0.0 to 1.0 relative screen width
-  double y; // 0.0 to 1.0 relative screen height
+  double x; // 0.0–1.0 relative screen width
+  double y; // 0.0–1.0 relative screen height
   final BlockColor color;
   final double speed;
   double rotation;
@@ -43,12 +47,36 @@ class CaughtBlockItem {
   });
 }
 
+// ─────────────────────────────────────────────
+// CUSTOM CLIPPER — bottom N% of an image
+// Used to paint the basket's front rim ON TOP of
+// caught blocks, creating a true 3-D depth illusion
+// ─────────────────────────────────────────────
+class _BottomFractionClipper extends CustomClipper<Rect> {
+  final double fraction; // 0.0–1.0; e.g. 0.38 = bottom 38%
+
+  const _BottomFractionClipper(this.fraction);
+
+  @override
+  Rect getClip(Size size) {
+    final top = size.height * (1.0 - fraction);
+    return Rect.fromLTWH(0, top, size.width, size.height * fraction);
+  }
+
+  @override
+  bool shouldReclip(_BottomFractionClipper old) => old.fraction != fraction;
+}
+
+// ─────────────────────────────────────────────
+// SCREEN WIDGET
+// ─────────────────────────────────────────────
+
 class TileStackScreen extends StatefulWidget {
   final int startingLevel;
 
   const TileStackScreen({
     super.key,
-    this.startingLevel = 5,
+    this.startingLevel = 1,
   });
 
   @override
@@ -56,55 +84,128 @@ class TileStackScreen extends StatefulWidget {
 }
 
 class _TileStackScreenState extends State<TileStackScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  // ── Level ──────────────────────────────────
   late int currentLevelNumber;
   late BasketCollectLevel currentLevel;
 
-  // Game Stats
+  // ── Stats ──────────────────────────────────
   late int movesRemaining;
   int currentCoins = 1250;
-  int currentScore = 2350;
-  late int collectedGoalCount;
+  int currentScore = 0;
 
-  // Basket Horizontal Position (-1.0 to 1.0)
-  double basketX = 0.0;
-  final double basketWidthFraction = 0.58;
+  // ── Per-color goal tracking ────────────────
+  late Map<BlockColor, int> _caughtPerColor;
 
-  // Falling Blocks Engine
+  // ── Lives / miss system ────────────────────
+  late int livesRemaining;
+  int _lifeAnimatingIndex = -1; // which heart is animating away
+
+  // ── Basket ─────────────────────────────────
+  double basketX = 0.0; // –1.0 → +1.0
+  final double _baseBasketWidthFraction = 0.58;
+
+  // ── Falling blocks engine ──────────────────
   final List<FallingBlock> _fallingBlocks = [];
   final List<BlockColor> _upcomingQueue = [];
   final List<CaughtBlockItem> _caughtPile = [];
   int _blockIdCounter = 0;
 
-  // Boosters
+  // ── Boosters ───────────────────────────────
   int hammerCount = 3;
   int bombCount = 3;
   int colorBombCount = 3;
   int hintCount = 1;
   bool isMagnetActive = false;
 
-  // Combo System
+  // ── Combo ──────────────────────────────────
   int comboStreak = 0;
   String? comboText;
   Timer? _comboTimer;
 
-  // Game Loop Ticker
+  // ── Game loop ──────────────────────────────
   late AnimationController _gameTicker;
   DateTime? _lastTickTime;
   DateTime? _lastSpawnTime;
 
-  // Win State & Animations
+  // ── Flow flags ─────────────────────────────
   bool _isLevelComplete = false;
+  bool _isGameOver = false;
+  bool _isGameFrozen = false;
+
+  // ── Basket bounce ──────────────────────────
   bool _isBasketBouncing = false;
+
+  // ── Catch sparkle ──────────────────────────
+  late AnimationController _sparkleController;
+  late Animation<double> _sparkleOpacity;
+  BlockColor? _lastCaughtColor;
+
+  // ── Screen shake (on miss) ─────────────────
+  late AnimationController _shakeController;
+  late Animation<double> _shakeOffset;
+
+  // ── Red flash overlay (on miss) ────────────
+  late AnimationController _flashController;
+  late Animation<double> _flashOpacity;
+
+  // ── Win confetti ───────────────────────────
+  late AnimationController _confettiController;
+  final List<_ConfettiParticle> _confettiParticles = [];
+
+  // ─────────────────────────────────────────────
+  // LIFECYCLE
+  // ─────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     currentLevelNumber = widget.startingLevel;
+
+    // Game loop ticker (60 fps)
     _gameTicker = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     )..addListener(_onGameLoopTick);
+
+    // Catch sparkle
+    _sparkleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _sparkleOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 70),
+    ]).animate(CurvedAnimation(parent: _sparkleController, curve: Curves.easeOut));
+
+    // Screen shake
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _shakeOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -8.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 8.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 8.0, end: -6.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -6.0, end: 6.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 6.0, end: 0.0), weight: 25),
+    ]).animate(CurvedAnimation(parent: _shakeController, curve: Curves.linear));
+
+    // Red flash
+    _flashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _flashOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.35), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.35, end: 0.0), weight: 70),
+    ]).animate(CurvedAnimation(parent: _flashController, curve: Curves.easeOut));
+
+    // Confetti
+    _confettiController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
 
     _loadLevel(currentLevelNumber);
   }
@@ -112,31 +213,55 @@ class _TileStackScreenState extends State<TileStackScreen>
   @override
   void dispose() {
     _gameTicker.dispose();
+    _sparkleController.dispose();
+    _shakeController.dispose();
+    _flashController.dispose();
+    _confettiController.dispose();
     _comboTimer?.cancel();
     super.dispose();
   }
+
+  // ─────────────────────────────────────────────
+  // LEVEL MANAGEMENT
+  // ─────────────────────────────────────────────
 
   void _loadLevel(int levelNum) {
     currentLevelNumber = levelNum;
     currentLevel = BasketCollectLevelGenerator.getLevel(levelNum);
 
     movesRemaining = currentLevel.moves;
-    collectedGoalCount = 0;
+    livesRemaining = currentLevel.maxMisses;
+    currentScore = 0;
+    _isLevelComplete = false;
+    _isGameOver = false;
+    _isGameFrozen = false;
+
+    // Init per-color counters
+    _caughtPerColor = {
+      for (final color in currentLevel.targetRequirements.keys) color: 0,
+    };
+
     _fallingBlocks.clear();
     _caughtPile.clear();
     _upcomingQueue.clear();
-    _isLevelComplete = false;
+    _confettiParticles.clear();
+    _lifeAnimatingIndex = -1;
     isMagnetActive = false;
     comboStreak = 0;
     comboText = null;
 
-    // Fill initial upcoming queue
+    // Fill upcoming queue
     for (int i = 0; i < 6; i++) {
       _upcomingQueue.add(BasketCollectLevelGenerator.getRandomColor(currentLevel));
     }
 
     _lastTickTime = DateTime.now();
     _lastSpawnTime = DateTime.now();
+
+    _sparkleController.reset();
+    _shakeController.reset();
+    _flashController.reset();
+    _confettiController.reset();
 
     if (!_gameTicker.isAnimating) {
       _gameTicker.repeat();
@@ -145,11 +270,12 @@ class _TileStackScreenState extends State<TileStackScreen>
     if (mounted) setState(() {});
   }
 
-  // ==========================================
-  // 🕹️ 60 FPS GAME LOOP & PHYSICS
-  // ==========================================
+  // ─────────────────────────────────────────────
+  // GAME LOOP (60 FPS)
+  // ─────────────────────────────────────────────
+
   void _onGameLoopTick() {
-    if (_isLevelComplete) return;
+    if (_isLevelComplete || _isGameOver || _isGameFrozen) return;
 
     final now = DateTime.now();
     if (_lastTickTime == null) {
@@ -157,37 +283,43 @@ class _TileStackScreenState extends State<TileStackScreen>
       return;
     }
 
-    final double dt = (now.difference(_lastTickTime!).inMicroseconds) / 1000000.0;
+    final double dt =
+        (now.difference(_lastTickTime!).inMicroseconds) / 1_000_000.0;
     _lastTickTime = now;
 
-    // 1. Spawning New Blocks
+    // 1. Spawn new block
     if (_lastSpawnTime == null ||
-        now.difference(_lastSpawnTime!).inMilliseconds >= currentLevel.spawnIntervalMs) {
-      _spawnNextBlock();
-      _lastSpawnTime = now;
+        now.difference(_lastSpawnTime!).inMilliseconds >=
+            currentLevel.spawnIntervalMs) {
+      // Only one block on screen at a time (per spec)
+      if (_fallingBlocks.isEmpty) {
+        _spawnNextBlock();
+        _lastSpawnTime = now;
+      }
     }
 
-    // 2. Updating Falling Blocks
-    const double basketTopY = 0.68;
+    // 2. Update falling blocks
+    const double basketTopY = 0.715;
     const double basketBottomY = 0.76;
+
+    final double basketCenterX = (basketX + 1.0) / 2.0;
+    final double basketHalfW =
+        (_baseBasketWidthFraction * currentLevel.basketWidthFactor) / 2.0;
+    final double basketLeft = basketCenterX - basketHalfW + 0.04;
+    final double basketRight = basketCenterX + basketHalfW - 0.04;
 
     for (int i = _fallingBlocks.length - 1; i >= 0; i--) {
       final block = _fallingBlocks[i];
 
-      // Magnet effect if active: pull toward basket
+      // Magnet pull
       if (isMagnetActive) {
-        final double targetX = (basketX + 1.0) / 2.0;
-        block.x += (targetX - block.x) * dt * 4.0;
+        block.x += (basketCenterX - block.x) * dt * 4.0;
       }
 
-      // Normal falling motion
       block.y += block.speed * dt;
-      block.rotation += 0.4 * dt;
+      block.rotation += 0.35 * dt;
 
-      // 3. Collision Detection with Basket
-      final double basketLeft = (basketX + 1.0) / 2.0 - (basketWidthFraction / 2.0) + 0.05;
-      final double basketRight = (basketX + 1.0) / 2.0 + (basketWidthFraction / 2.0) - 0.05;
-
+      // Collision with basket opening
       if (!block.isCaught && !block.isMissed) {
         if (block.y >= basketTopY && block.y <= basketBottomY) {
           if (block.x >= basketLeft && block.x <= basketRight) {
@@ -198,8 +330,8 @@ class _TileStackScreenState extends State<TileStackScreen>
         }
       }
 
-      // 4. Missed block fell past screen
-      if (block.y > 0.88) {
+      // Block missed — fell below screen
+      if (block.y > 0.92) {
         _fallingBlocks.removeAt(i);
         _onBlockMissed(block);
       }
@@ -216,90 +348,159 @@ class _TileStackScreenState extends State<TileStackScreen>
     _upcomingQueue.add(BasketCollectLevelGenerator.getRandomColor(currentLevel));
 
     final rng = Random();
-    final double randomX = 0.15 + (rng.nextDouble() * 0.70); // Centered horizontal range
-    final double baseSpeed = 0.28 * currentLevel.fallSpeedMultiplier;
+    final double randomX = 0.12 + (rng.nextDouble() * 0.76);
+    final double baseSpeed = 0.26 * currentLevel.fallSpeedMultiplier;
 
-    _fallingBlocks.add(
-      FallingBlock(
-        id: _blockIdCounter++,
-        x: randomX,
-        y: -0.05,
-        color: color,
-        speed: baseSpeed + (rng.nextDouble() * 0.06),
-        rotation: (rng.nextDouble() - 0.5) * 0.4,
-      ),
-    );
+    _fallingBlocks.add(FallingBlock(
+      id: _blockIdCounter++,
+      x: randomX,
+      y: -0.06,
+      color: color,
+      speed: baseSpeed + (rng.nextDouble() * 0.04),
+      rotation: (rng.nextDouble() - 0.5) * 0.3,
+    ));
   }
+
+  // ─────────────────────────────────────────────
+  // CATCH
+  // ─────────────────────────────────────────────
 
   void _catchBlock(FallingBlock block) {
     block.isCaught = true;
-    collectedGoalCount++;
-    currentScore += 100 + (comboStreak * 25);
+    _lastCaughtColor = block.color;
     comboStreak++;
+    currentScore += 100 + (comboStreak * 25);
+    movesRemaining--;
+    if (movesRemaining < 0) movesRemaining = 0;
 
-    // Trigger basket bounce
-    setState(() {
-      _isBasketBouncing = true;
-    });
-    Future.delayed(const Duration(milliseconds: 140), () {
-      if (mounted) setState(() => _isBasketBouncing = false);
-    });
-
-    // Add to visually rendered pile in basket
-    final rng = Random();
-    if (_caughtPile.length < 18) {
-      _caughtPile.add(
-        CaughtBlockItem(
-          color: block.color,
-          relativeOffsetX: (rng.nextDouble() - 0.5) * 100,
-          relativeOffsetY: (rng.nextDouble() - 0.5) * 35,
-          rotation: (rng.nextDouble() - 0.5) * 0.35,
-        ),
-      );
+    // Per-color counting
+    if (currentLevel.targetRequirements.containsKey(block.color)) {
+      _caughtPerColor[block.color] =
+          (_caughtPerColor[block.color] ?? 0) + 1;
     }
 
-    // Combo text banner
+    // Basket bounce
+    setState(() => _isBasketBouncing = true);
+    Future.delayed(const Duration(milliseconds: 150),
+        () { if (mounted) setState(() => _isBasketBouncing = false); });
+
+    // Sparkle
+    _sparkleController.forward(from: 0);
+
+    // Add to pile (max 6 visible)
+    final rng = Random();
+    if (_caughtPile.length >= 6) {
+      _caughtPile.removeAt(0);
+    }
+    _caughtPile.add(CaughtBlockItem(
+      color: block.color,
+      relativeOffsetX: (rng.nextDouble() - 0.5) * 70,
+      relativeOffsetY: (rng.nextDouble() - 0.5) * 22,
+      rotation: (rng.nextDouble() - 0.5) * 0.30,
+    ));
+
+    // Combo banner
     if (comboStreak >= 3) {
       _comboTimer?.cancel();
-      setState(() {
-        comboText = 'COMBO x$comboStreak!';
-      });
-      _comboTimer = Timer(const Duration(milliseconds: 800), () {
-        if (mounted) setState(() => comboText = null);
-      });
+      setState(() => comboText = 'COMBO ×$comboStreak!');
+      _comboTimer = Timer(const Duration(milliseconds: 900),
+          () { if (mounted) setState(() => comboText = null); });
     }
 
-    // Check Win Condition
-    if (collectedGoalCount >= currentLevel.goalTotal) {
-      _triggerLevelComplete();
+    // Win check
+    _checkWinCondition();
+
+    // Moves-out check
+    if (!_isLevelComplete && movesRemaining <= 0) {
+      _triggerGameOver();
     }
   }
+
+  void _checkWinCondition() {
+    final allDone = currentLevel.targetRequirements.entries.every(
+      (e) => (_caughtPerColor[e.key] ?? 0) >= e.value,
+    );
+    if (allDone) _triggerLevelComplete();
+  }
+
+  // ─────────────────────────────────────────────
+  // MISS
+  // ─────────────────────────────────────────────
 
   void _onBlockMissed(FallingBlock block) {
     comboStreak = 0;
+    movesRemaining--;
+    if (movesRemaining < 0) movesRemaining = 0;
+    final lostIndex = livesRemaining - 1;
+    livesRemaining--;
+    if (livesRemaining < 0) livesRemaining = 0;
+
+    setState(() => _lifeAnimatingIndex = lostIndex);
+    _flashController.forward(from: 0);
+    _shakeController.forward(from: 0);
+
+    Future.delayed(const Duration(milliseconds: 600),
+        () { if (mounted) setState(() => _lifeAnimatingIndex = -1); });
+
+    if (livesRemaining <= 0 || movesRemaining <= 0) {
+      // Brief freeze before game-over panel
+      setState(() => _isGameFrozen = true);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _triggerGameOver();
+      });
+    }
   }
+
+  // ─────────────────────────────────────────────
+  // WIN / LOSE
+  // ─────────────────────────────────────────────
 
   void _triggerLevelComplete() {
     _gameTicker.stop();
-    setState(() {
-      _isLevelComplete = true;
-      currentScore += 1500 + (movesRemaining * 50);
-      currentCoins += 250;
-    });
-    try {
-      ServiceLocator.instance.coinManager.addCoins(250);
-    } catch (_) {}
+    currentScore += 1500 + (movesRemaining * 50);
+    try { ServiceLocator.instance.coinManager.addCoins(250); } catch (_) {}
+    currentCoins += 250;
+
+    // Generate confetti
+    final rng = Random();
+    for (int i = 0; i < 20; i++) {
+      _confettiParticles.add(_ConfettiParticle(
+        x: rng.nextDouble(),
+        color: [
+          const Color(0xFFFFD700),
+          const Color(0xFFFF5252),
+          const Color(0xFF69F0AE),
+          const Color(0xFF40C4FF),
+          const Color(0xFFFF40FB),
+        ][rng.nextInt(5)],
+        speed: 0.3 + rng.nextDouble() * 0.5,
+        size: 6 + rng.nextDouble() * 8,
+        rotationSpeed: (rng.nextDouble() - 0.5) * 6,
+      ));
+    }
+
+    setState(() => _isLevelComplete = true);
+    _confettiController.forward();
   }
 
-  // ==========================================
-  // 💣 BOOSTER ACTIONS
-  // ==========================================
+  void _triggerGameOver() {
+    _gameTicker.stop();
+    _shakeController.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _isGameOver = true);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // BOOSTERS
+  // ─────────────────────────────────────────────
+
   void _onUseHammer() {
     if (hammerCount <= 0 || _fallingBlocks.isEmpty) return;
     setState(() {
       hammerCount--;
       _fallingBlocks.removeAt(0);
-      currentScore += 150;
+      currentScore += 50;
     });
   }
 
@@ -308,7 +509,7 @@ class _TileStackScreenState extends State<TileStackScreen>
     setState(() {
       bombCount--;
       _fallingBlocks.clear();
-      currentScore += 300;
+      currentScore += 150;
     });
   }
 
@@ -318,317 +519,365 @@ class _TileStackScreenState extends State<TileStackScreen>
       colorBombCount--;
       isMagnetActive = true;
     });
-    Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => isMagnetActive = false);
-    });
+    Timer(const Duration(seconds: 4),
+        () { if (mounted) setState(() => isMagnetActive = false); });
   }
 
   void _onUseHint() {
     if (hintCount <= 0 || _fallingBlocks.isEmpty) return;
     setState(() {
       hintCount--;
-      // Magnet nearest falling block
       final first = _fallingBlocks.first;
       basketX = (first.x * 2.0) - 1.0;
     });
   }
 
+  // ─────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────
+
+  int get _totalGoal => currentLevel.targetRequirements.values
+      .fold(0, (a, b) => a + b);
+
+  int get _totalCaught => _caughtPerColor.values.fold(0, (a, b) => a + b);
+
+  Color _blockColor(BlockColor c) => BlockColorMapper.getStyle(c).main;
+
+  IconData _blockIcon(BlockColor c) =>
+      BlockColorMapper.getStyle(c).normalIcon;
+
+  // ─────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Fullscreen Sunny Enchanted Garden Background
-          Image.asset(
-            'assets/images/backgrounds/bg_garden.jpg',
-            fit: BoxFit.cover,
+    return AnimatedBuilder(
+      animation: Listenable.merge([_shakeOffset, _flashOpacity]),
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_shakeOffset.value, 0),
+          child: Stack(
+            children: [
+              child!,
+              // Red flash overlay on miss
+              if (_flashOpacity.value > 0)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.red.withValues(alpha: _flashOpacity.value),
+                    ),
+                  ),
+                ),
+            ],
           ),
+        );
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Background
+            Image.asset('assets/images/backgrounds/bg_garden.jpg',
+                fit: BoxFit.cover),
 
-          // 2. Subtle Vignette
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withAlpha(30),
-                  Colors.transparent,
-                  Colors.black.withAlpha(60),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+            // 2. Vignette
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withAlpha(30),
+                    Colors.transparent,
+                    Colors.black.withAlpha(70),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
-          ),
 
-          // 3. Falling Blocks Canvas Layer
-          _buildFallingBlocksLayer(),
+            // 3. Falling blocks canvas
+            _buildFallingBlocksLayer(),
 
-          // 4. Interactive Touch Canvas for Basket Dragging
-          GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              setState(() {
-                basketX += (details.delta.dx / screenWidth) * 2.2;
-                basketX = basketX.clamp(-0.85, 0.85);
-              });
-            },
-            child: Container(color: Colors.transparent),
-          ),
 
-          // 5. Main Screen HUD & UI
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 4),
 
-                // TOP HUD: Coins, Goal Banner, Moves, Pause
-                _buildTopHud(),
+            // 5. Catch sparkle overlay
+            if (_sparkleController.isAnimating || _sparkleController.value > 0)
+              _buildCatchSparkle(),
 
-                const SizedBox(height: 6),
+            // 6. Confetti layer (win)
+            if (_isLevelComplete) _buildConfettiLayer(),
 
-                // RIGHT SIDE UPCOMING QUEUE ("NEXT" box)
-                Align(
-                  alignment: Alignment.topRight,
-                  child: _buildUpcomingQueuePanel(),
-                ),
-
-                const Spacer(),
-
-                // COMBO BANNER (Floating if active)
-                if (comboText != null) _buildComboBanner(),
-
-                // BASKET AT BOTTOM
-                _buildPlayerBasketArea(),
-
-                const SizedBox(height: 4),
-
-                // INSTRUCTION PILL: "Catch the blocks! Collect and reach the goal!"
-                _buildInstructionPill(),
-
-                const SizedBox(height: 6),
-
-                // BOTTOM BOOSTER CONTROLS: Pause, Hammer, Bomb, Rainbow Pinwheel, Hint
-                _buildBottomBoostersBar(),
-
-                const SizedBox(height: 8),
-              ],
+            // 7. Main HUD + basket
+            SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 4),
+                  _buildTopHud(),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: _buildUpcomingQueuePanel(),
+                  ),
+                  const Spacer(),
+                  if (comboText != null) _buildComboBanner(),
+                  _buildPlayerBasketArea(),
+                  const SizedBox(height: 4),
+                  _buildBottomBoostersBar(),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-          ),
 
-          // 6. LEVEL COMPLETE CELEBRATION OVERLAY
-          if (_isLevelComplete) _buildLevelCompleteOverlay(),
-        ],
+            // 8. Game Over overlay
+            if (_isGameOver) _buildGameOverOverlay(),
+
+            // 9. Level Complete overlay
+            if (_isLevelComplete) _buildLevelCompleteOverlay(),
+          ],
+        ),
       ),
     );
   }
 
-  // ==========================================
-  // 🏆 TOP HUD
-  // ==========================================
-  Widget _buildTopHud() {
-    final double progress = (collectedGoalCount / currentLevel.goalTotal).clamp(0.0, 1.0);
+  // ─────────────────────────────────────────────
+  // TOP HUD
+  // ─────────────────────────────────────────────
 
+  Widget _buildTopHud() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Coins Capsule: 🪙 1,250 (+)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8D5325), Color(0xFF5D3312)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 2), blurRadius: 0),
-              ],
-            ),
-            child: Row(
-              children: [
-                Image.asset('assets/images/icons/icon_coin.png', width: 22, height: 22),
-                const SizedBox(width: 4),
-                Text(
-                  '$currentCoins',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.all(1.5),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 10),
-                ),
-              ],
-            ),
-          ),
+          // Coins
+          _buildCoinsCapsule(),
+          const SizedBox(width: 8),
 
-          // 2. Center Hanging Goal Banner: "GOAL 60" + Progress Bar & 3 Stars
-          Container(
-            width: 140,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFE082), Color(0xFFFFB300), Color(0xFFFFA000)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFFFF9EC), width: 2.0),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF8D5325), offset: Offset(0, 3), blurRadius: 0),
-                BoxShadow(color: Colors.black26, offset: Offset(0, 3), blurRadius: 4),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'GOAL',
-                  style: TextStyle(
-                    color: Color(0xFF5D3312),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                Text(
-                  '${currentLevel.goalTotal - collectedGoalCount}',
-                  style: const TextStyle(
-                    color: Color(0xFF3E200C),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                // Progress Bar with 3 Stars
-                Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      height: 7,
-                      width: 110,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8D5325),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: progress,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF69F0AE), Color(0xFF00E676)],
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(3, (i) {
-                        final reached = progress >= ((i + 1) / 3.0);
-                        return Icon(
-                          Icons.star_rounded,
-                          color: reached ? const Color(0xFFFFD700) : const Color(0xFFBCAAA4),
-                          size: 13,
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          // Center: Per-color goals
+          Expanded(child: _buildGoalPanel()),
 
-          // 3. Moves Box: "MOVES 25" + Pause Button
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF9EC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFF8D5325), offset: Offset(0, 2), blurRadius: 0),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'MOVES',
-                      style: TextStyle(
-                        color: Color(0xFF7A4E24),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '$movesRemaining',
-                      style: const TextStyle(
-                        color: Color(0xFF3E200C),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 5),
-              _buildPurpleCircleBtn(
-                icon: Icons.pause_rounded,
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
+          const SizedBox(width: 8),
+
+          // Right: Moves + Lives
+          _buildMovesAndLivesPanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoinsCapsule() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8D5325), Color(0xFF5D3312)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 2), blurRadius: 0),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset('assets/images/icons/icon_coin.png', width: 20, height: 20),
+          const SizedBox(width: 4),
+          Text(
+            '$currentCoins',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPurpleCircleBtn({required IconData icon, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFFAB47BC), Color(0xFF7B1FA2), Color(0xFF4A148C)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+  Widget _buildGoalPanel() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFE082), Color(0xFFFFB300), Color(0xFFFFA000)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFF9EC), width: 2.0),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF8D5325), offset: Offset(0, 3), blurRadius: 0),
+          BoxShadow(color: Colors.black26, offset: Offset(0, 3), blurRadius: 4),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'GOAL',
+            style: TextStyle(
+              color: Color(0xFF5D3312),
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
           ),
-          border: Border.all(color: const Color(0xFFE1BEE7), width: 1.8),
-          boxShadow: const [
-            BoxShadow(color: Color(0xFF2A0040), offset: Offset(0, 2), blurRadius: 0),
-          ],
-        ),
-        child: Center(
-          child: Icon(icon, color: Colors.white, size: 19),
-        ),
+          const SizedBox(height: 3),
+          // Per-color rows
+          ...currentLevel.targetRequirements.entries.map((e) {
+            final caught = _caughtPerColor[e.key] ?? 0;
+            final needed = e.value;
+            final done = caught >= needed;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1.5),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _blockIcon(e.key),
+                    color: done
+                        ? const Color(0xFF2E7D32)
+                        : _blockColor(e.key),
+                    size: 13,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$caught / $needed',
+                    style: TextStyle(
+                      color: done
+                          ? const Color(0xFF1B5E20)
+                          : const Color(0xFF3E200C),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (done)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 3),
+                      child: Icon(Icons.check_circle_rounded,
+                          color: Color(0xFF2E7D32), size: 11),
+                    ),
+                ],
+              ),
+            );
+          }),
+          // Overall mini progress bar
+          const SizedBox(height: 3),
+          SizedBox(
+            width: double.infinity,
+            height: 5,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: (_totalCaught / _totalGoal).clamp(0.0, 1.0),
+                backgroundColor: const Color(0xFF8D5325),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF69F0AE)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ==========================================
-  // 📦 UPCOMING QUEUE ("NEXT" BOX)
-  // ==========================================
+  Widget _buildMovesAndLivesPanel() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF9EC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF8D5325), offset: Offset(0, 2), blurRadius: 0),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Moves
+          const Text(
+            'MOVES',
+            style: TextStyle(
+              color: Color(0xFF7A4E24),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            '$movesRemaining',
+            style: TextStyle(
+              color: movesRemaining <= 3
+                  ? const Color(0xFFD32F2F)
+                  : const Color(0xFF3E200C),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          // Lives hearts
+          const Text(
+            'LIVES',
+            style: TextStyle(
+              color: Color(0xFF7A4E24),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(currentLevel.maxMisses, (i) {
+              final isAlive = i < livesRemaining;
+              final isAnimatingOut = i == _lifeAnimatingIndex;
+              return AnimatedScale(
+                scale: isAnimatingOut ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInBack,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1.0),
+                  child: Icon(
+                    isAlive ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isAlive
+                        ? const Color(0xFFE53935)
+                        : const Color(0xFFBCAAA4),
+                    size: 14,
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 3),
+          // Pause button
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFAB47BC), Color(0xFF6A1B9A)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.pause_rounded,
+                  color: Colors.white, size: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // UPCOMING QUEUE
+  // ─────────────────────────────────────────────
+
   Widget _buildUpcomingQueuePanel() {
     return Container(
       margin: const EdgeInsets.only(right: 10),
@@ -662,8 +911,8 @@ class _TileStackScreenState extends State<TileStackScreen>
                 borderRadius: BorderRadius.circular(6),
                 child: Image.asset(
                   BlockColorMapper.getAssetPath(_upcomingQueue[i]),
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -676,16 +925,17 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
   }
 
-  // ==========================================
-  // ✨ FALLING BLOCKS CANVAS LAYER
-  // ==========================================
+  // ─────────────────────────────────────────────
+  // FALLING BLOCKS CANVAS
+  // ─────────────────────────────────────────────
+
   Widget _buildFallingBlocksLayer() {
     final size = MediaQuery.of(context).size;
 
     return IgnorePointer(
       child: Stack(
         children: _fallingBlocks.map((block) {
-          final posX = block.x * size.width - 24;
+          final posX = block.x * size.width - 28;
           final posY = block.y * size.height;
 
           return Positioned(
@@ -696,31 +946,38 @@ class _TileStackScreenState extends State<TileStackScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Vertical Light Beam Glow Trail
+                  // Glow trail above block
                   Container(
-                    width: 4,
-                    height: 22,
+                    width: 3,
+                    height: 18,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           Colors.white.withAlpha(0),
-                          Colors.white.withAlpha(160),
+                          Colors.white.withAlpha(140),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
-                  // 3D Block
+                  // 3D block PNG
                   Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
+                          color: BlockColorMapper.getStyle(block.color)
+                              .glow
+                              .withValues(alpha: 0.5),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                        const BoxShadow(
                           color: Colors.black26,
-                          offset: Offset(0, 4),
-                          blurRadius: 4,
+                          offset: Offset(0, 5),
+                          blurRadius: 5,
                         ),
                       ],
                     ),
@@ -741,98 +998,147 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
   }
 
-  // ==========================================
-  // 🧺 PLAYER BASKET AT BOTTOM
-  // ==========================================
+  // ─────────────────────────────────────────────
+  // PLAYER BASKET (3D DEPTH ILLUSION)
+  // ─────────────────────────────────────────────
+
   Widget _buildPlayerBasketArea() {
     final size = MediaQuery.of(context).size;
+    final double effectiveBasketWidth =
+        size.width * _baseBasketWidthFraction * currentLevel.basketWidthFactor;
+    final double effectiveBasketWidth2 =
+        effectiveBasketWidth.clamp(0.0, size.width * 0.85);
     final basketPixelX = (basketX * (size.width / 2.4));
 
     return Transform.translate(
       offset: Offset(basketPixelX, 0),
       child: AnimatedScale(
-        scale: _isBasketBouncing ? 1.08 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: SizedBox(
-          width: size.width * basketWidthFraction,
-          height: 140,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              // Directional Left & Right Glowing Orange Arrows
-              Positioned(
-                left: -32,
-                child: _buildDirectionalArrow(isLeft: true),
-              ),
-              Positioned(
-                right: -32,
-                child: _buildDirectionalArrow(isLeft: false),
-              ),
-
-              // 3D Woven Basket Asset
-              Image.asset(
-                'assets/images/home_screen/basket_woven.png',
-                fit: BoxFit.contain,
-              ),
-
-              // Collected Blocks Heap Inside Basket
-              Positioned(
-                bottom: 35,
-                child: SizedBox(
-                  width: 140,
-                  height: 60,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: _caughtPile.map((item) {
-                      return Transform.translate(
-                        offset: Offset(item.relativeOffsetX, item.relativeOffsetY),
-                        child: Transform.rotate(
-                          angle: item.rotation,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.asset(
-                              BlockColorMapper.getAssetPath(item.color),
-                              width: 26,
-                              height: 26,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+        scale: _isBasketBouncing ? 1.07 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutBack,
+        // ── GestureDetector wraps the basket directly ──
+        // Drag only activates when finger is ON the basket widget.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (details) {
+            final sw = MediaQuery.of(context).size.width;
+            setState(() {
+              basketX += (details.delta.dx / sw) * 2.0;
+              basketX = basketX.clamp(-0.82, 0.82);
+            });
+          },
+          child: SizedBox(
+            width: effectiveBasketWidth2,
+            height: 148,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                // ── LAYER 1: Full basket image (back) ──────────────
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/home_screen/basket_woven.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
-              ),
-            ],
+
+                // ── LAYER 2: Caught blocks pile (inside basket) ────
+                Positioned(
+                  bottom: 30,
+                  left: effectiveBasketWidth2 * 0.10,
+                  right: effectiveBasketWidth2 * 0.10,
+                  height: 62,
+                  child: ClipRect(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: _caughtPile.map((item) {
+                        return Transform.translate(
+                          offset: Offset(item.relativeOffsetX, item.relativeOffsetY),
+                          child: Transform.rotate(
+                            angle: item.rotation,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    offset: Offset(0, 2),
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.asset(
+                                  BlockColorMapper.getAssetPath(item.color),
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+
+                // ── LAYER 3: Front rim overlay ─────────────────────
+                // Bottom 36% of basket image painted ON TOP so blocks
+                // appear physically INSIDE the basket (depth illusion)
+                Positioned.fill(
+                  child: ClipRect(
+                    clipper: const _BottomFractionClipper(0.36),
+                    child: Image.asset(
+                      'assets/images/home_screen/basket_woven.png',
+                      fit: BoxFit.contain,
+                      alignment: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDirectionalArrow({required bool isLeft}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!isLeft) const SizedBox(width: 4),
-        Icon(
-          isLeft ? Icons.arrow_left_rounded : Icons.arrow_right_rounded,
-          color: const Color(0xFFFFB300),
-          size: 32,
-          shadows: const [
-            Shadow(color: Color(0xFFE65100), offset: Offset(0, 2), blurRadius: 3),
-          ],
-        ),
-        if (isLeft) const SizedBox(width: 4),
-      ],
+
+
+  // ─────────────────────────────────────────────
+  // CATCH SPARKLE OVERLAY
+  // ─────────────────────────────────────────────
+
+  Widget _buildCatchSparkle() {
+    return AnimatedBuilder(
+      animation: _sparkleOpacity,
+      builder: (ctx, _) {
+        return IgnorePointer(
+          child: Positioned.fill(
+            child: CustomPaint(
+              painter: _SparklePainter(
+                opacity: _sparkleOpacity.value,
+                color: _lastCaughtColor != null
+                    ? BlockColorMapper.getStyle(_lastCaughtColor!).glow
+                    : const Color(0xFFFFD700),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+
+  // ─────────────────────────────────────────────
+  // COMBO BANNER
+  // ─────────────────────────────────────────────
 
   Widget _buildComboBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFFFD54F), Color(0xFFFF6D00)],
@@ -858,47 +1164,10 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
   }
 
-  // ==========================================
-  // 💡 INSTRUCTION PILL
-  // ==========================================
-  Widget _buildInstructionPill() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF311B92).withAlpha(220),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBA68C8), width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black45, offset: Offset(0, 2), blurRadius: 4),
-        ],
-      ),
-      child: const Column(
-        children: [
-          Text(
-            'Catch the blocks!',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          Text(
-            'Collect and reach the goal!',
-            style: TextStyle(
-              color: Color(0xFFFFD54F),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ─────────────────────────────────────────────
+  // BOTTOM BOOSTERS BAR
+  // ─────────────────────────────────────────────
 
-  // ==========================================
-  // 💣 BOTTOM BOOSTERS BAR
-  // ==========================================
   Widget _buildBottomBoostersBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -919,34 +1188,24 @@ class _TileStackScreenState extends State<TileStackScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // 1. Pause Button (Bottom left)
-          _buildPurpleCircleBtn(
-            icon: Icons.pause_rounded,
-            onTap: () => Navigator.pop(context),
-          ),
-
-          // 2. Hammer Booster
           _buildBoosterButton(
             assetPath: 'assets/images/boosters/hammer.png',
             count: hammerCount,
             onTap: _onUseHammer,
+            label: 'Skip',
           ),
-
-          // 3. Bomb Booster
           _buildBoosterButton(
             assetPath: 'assets/images/boosters/bomb.png',
             count: bombCount,
             onTap: _onUseBomb,
+            label: 'Clear',
           ),
-
-          // 4. Rainbow Pinwheel / Color Bomb Booster
           _buildBoosterButton(
             assetPath: 'assets/images/boosters/color_bomb.png',
             count: colorBombCount,
             onTap: _onUseColorBomb,
+            label: 'Magnet',
           ),
-
-          // 5. Golden Glowing Lightbulb Hint Booster
           _buildHintLightbulbButton(),
         ],
       ),
@@ -957,58 +1216,76 @@ class _TileStackScreenState extends State<TileStackScreen>
     required String assetPath,
     required int count,
     required VoidCallback onTap,
+    required String label,
   }) {
+    final bool disabled = count <= 0;
     return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF9C27B0), Color(0xFF6A1B9A), Color(0xFF4A148C)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              border: Border.all(color: const Color(0xFFE1BEE7), width: 2.0),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF1A0033), offset: Offset(0, 2), blurRadius: 0),
-              ],
-            ),
-            child: Center(
-              child: Image.asset(assetPath, width: 30, height: 30, fit: BoxFit.contain),
-            ),
-          ),
-          Positioned(
-            bottom: -2,
-            right: -2,
-            child: Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF81C784), Color(0xFF388E3C)],
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.2),
-              ),
-              child: Center(
-                child: Text(
-                  '$count',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w900,
+      onTap: disabled ? null : onTap,
+      child: Opacity(
+        opacity: disabled ? 0.45 : 1.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF9C27B0), Color(0xFF6A1B9A), Color(0xFF4A148C)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: const Color(0xFFE1BEE7), width: 2.0),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0xFF1A0033), offset: Offset(0, 2), blurRadius: 0),
+                    ],
+                  ),
+                  child: Center(
+                    child: Image.asset(assetPath,
+                        width: 28, height: 28, fit: BoxFit.contain),
                   ),
                 ),
+                Positioned(
+                  bottom: -2,
+                  right: -2,
+                  child: Container(
+                    width: 17,
+                    height: 17,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF81C784), Color(0xFF388E3C)]),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFFFE082),
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1016,54 +1293,67 @@ class _TileStackScreenState extends State<TileStackScreen>
   Widget _buildHintLightbulbButton() {
     return GestureDetector(
       onTap: _onUseHint,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFD54F), Color(0xFFFF9800), Color(0xFFE65100)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              border: Border.all(color: const Color(0xFFFFF9EC), width: 2.5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0xFFFFB300),
-                  blurRadius: 8,
-                  spreadRadius: 1,
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD54F), Color(0xFFFF9800), Color(0xFFE65100)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  border: Border.all(color: const Color(0xFFFFF9EC), width: 2.5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFFFFB300),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(Icons.lightbulb_rounded, color: Colors.white, size: 30),
-            ),
-          ),
-          Positioned(
-            bottom: -2,
-            right: -2,
-            child: Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: const Color(0xFF8E24AA),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.2),
+                child: const Center(
+                  child: Icon(Icons.lightbulb_rounded, color: Colors.white, size: 28),
+                ),
               ),
-              child: Center(
-                child: Text(
-                  '$hintCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w900,
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  width: 17,
+                  height: 17,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8E24AA),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$hintCount',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Aim',
+            style: TextStyle(
+              color: Color(0xFFFFE082),
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -1071,169 +1361,483 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
   }
 
-  // ==========================================
-  // 🎉 LEVEL COMPLETE OVERLAY
-  // ==========================================
-  Widget _buildLevelCompleteOverlay() {
-    return Container(
-      color: Colors.black.withAlpha(180),
-      child: Center(
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF633A18),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF8D5325), width: 5),
-            boxShadow: const [
-              BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 8), blurRadius: 0),
-              BoxShadow(color: Colors.black54, offset: Offset(0, 12), blurRadius: 16),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Banner: LEVEL COMPLETE!
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8CE03E), Color(0xFF439906)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+  // ─────────────────────────────────────────────
+  // CONFETTI LAYER
+  // ─────────────────────────────────────────────
+
+  Widget _buildConfettiLayer() {
+    return AnimatedBuilder(
+      animation: _confettiController,
+      builder: (ctx, _) {
+        final size = MediaQuery.of(ctx).size;
+        final t = _confettiController.value;
+        return IgnorePointer(
+          child: Stack(
+            children: _confettiParticles.map((p) {
+              final y = -0.1 + (t * p.speed * size.height);
+              final x = p.x * size.width;
+              return Positioned(
+                left: x,
+                top: y,
+                child: Transform.rotate(
+                  angle: t * p.rotationSpeed,
+                  child: Container(
+                    width: p.size,
+                    height: p.size * 0.55,
+                    decoration: BoxDecoration(
+                      color: p.color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFA5F062), width: 2),
                 ),
-                child: Text(
-                  'LEVEL $currentLevelNumber COMPLETE!',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    shadows: [
-                      Shadow(color: Color(0xFF1E5002), offset: Offset(0, 2), blurRadius: 3),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // GAME OVER OVERLAY
+  // ─────────────────────────────────────────────
+
+  Widget _buildGameOverOverlay() {
+    final progress = '$_totalCaught / $_totalGoal';
+
+    return Container(
+      color: Colors.black.withAlpha(170),
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutBack,
+          builder: (ctx, v, child) =>
+              Transform.scale(scale: v, child: child),
+          child: Container(
+            width: 290,
+            padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF633A18), Color(0xFF4A2710)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF8D5325), width: 5),
+              boxShadow: const [
+                BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 8), blurRadius: 0),
+                BoxShadow(color: Colors.black54, offset: Offset(0, 12), blurRadius: 16),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Title
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF5350), Color(0xFFB71C1C)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFFF8A80), width: 2),
+                  ),
+                  child: const Text(
+                    'GAME OVER',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      shadows: [
+                        Shadow(color: Color(0xFF7F0000), offset: Offset(0, 2), blurRadius: 3),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Goal progress
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9EC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Goal Progress',
+                        style: TextStyle(
+                          color: Color(0xFF7A4E24),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...currentLevel.targetRequirements.entries.map((e) {
+                        final caught = _caughtPerColor[e.key] ?? 0;
+                        final done = caught >= e.value;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(_blockIcon(e.key),
+                                  color: _blockColor(e.key), size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                '$caught / ${e.value}',
+                                style: TextStyle(
+                                  color: done
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFF3E200C),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (done)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4),
+                                  child: Icon(Icons.check_circle_rounded,
+                                      color: Color(0xFF2E7D32), size: 13),
+                                ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Total: $progress',
+                        style: const TextStyle(
+                          color: Color(0xFF5D3312),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
-              // 3 Stars
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (i) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 40),
-                  );
-                }),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Score & Reward Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF9EC),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFFD54F), width: 2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                // Buttons
+                Row(
                   children: [
-                    Column(
-                      children: [
-                        const Text(
-                          'SCORE',
-                          style: TextStyle(color: Color(0xFF7A4E24), fontSize: 11, fontWeight: FontWeight.w900),
-                        ),
-                        Text(
-                          '$currentScore',
-                          style: const TextStyle(color: Color(0xFF3E200C), fontSize: 18, fontWeight: FontWeight.w900),
-                        ),
-                      ],
+                    Expanded(
+                      child: _buildDialogButton(
+                        label: 'RETRY',
+                        colors: [const Color(0xFF42A5F5), const Color(0xFF1565C0)],
+                        borderColor: const Color(0xFF90CAF9),
+                        shadowColor: const Color(0xFF0D47A1),
+                        onTap: () => _loadLevel(currentLevelNumber),
+                      ),
                     ),
-                    Row(
-                      children: [
-                        Image.asset('assets/images/icons/icon_coin.png', width: 24, height: 24),
-                        const SizedBox(width: 4),
-                        const Text(
-                          '+250',
-                          style: TextStyle(color: Color(0xFF3E200C), fontSize: 16, fontWeight: FontWeight.w900),
-                        ),
-                      ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildDialogButton(
+                        label: 'HOME',
+                        colors: [const Color(0xFFEF9A9A), const Color(0xFFC62828)],
+                        borderColor: const Color(0xFFEF5350),
+                        shadowColor: const Color(0xFF7F0000),
+                        onTap: () => Navigator.pop(context),
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Action Buttons: REPLAY & NEXT LEVEL
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _loadLevel(currentLevelNumber),
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF90CAF9), width: 1.8),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0xFF0D47A1), offset: Offset(0, 3), blurRadius: 0),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'REPLAY',
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _loadLevel(currentLevelNumber + 1),
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8CE03E), Color(0xFF439906)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFA5F062), width: 1.8),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0xFF286403), offset: Offset(0, 3), blurRadius: 0),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'NEXT LEVEL',
-                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  // ─────────────────────────────────────────────
+  // LEVEL COMPLETE OVERLAY
+  // ─────────────────────────────────────────────
+
+  Widget _buildLevelCompleteOverlay() {
+    return Container(
+      color: Colors.black.withAlpha(160),
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.elasticOut,
+          builder: (ctx, v, child) =>
+              Transform.scale(scale: v, child: child),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF633A18), Color(0xFF4A2710)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF8D5325), width: 5),
+              boxShadow: const [
+                BoxShadow(color: Color(0x99FFD700), blurRadius: 24, spreadRadius: 2),
+                BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 8), blurRadius: 0),
+                BoxShadow(color: Colors.black54, offset: Offset(0, 12), blurRadius: 16),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Banner
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8CE03E), Color(0xFF439906)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFA5F062), width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Color(0x88FFD700), blurRadius: 12, spreadRadius: 1),
+                    ],
+                  ),
+                  child: Text(
+                    'LEVEL $currentLevelNumber COMPLETE!',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
+                      shadows: [
+                        Shadow(
+                            color: Color(0xFF1E5002),
+                            offset: Offset(0, 2),
+                            blurRadius: 3),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // 3 Stars
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(3, (i) {
+                    return TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: Duration(milliseconds: 300 + i * 120),
+                      curve: Curves.elasticOut,
+                      builder: (ctx, v, _) => Transform.scale(
+                        scale: v,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4.0),
+                          child: Icon(Icons.star_rounded,
+                              color: Color(0xFFFFD700), size: 44),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Score & Coins
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9EC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFFFD54F), width: 2),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          const Text('SCORE',
+                              style: TextStyle(
+                                  color: Color(0xFF7A4E24),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900)),
+                          Text('$currentScore',
+                              style: const TextStyle(
+                                  color: Color(0xFF3E200C),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Image.asset('assets/images/icons/icon_coin.png',
+                              width: 24, height: 24),
+                          const SizedBox(width: 4),
+                          const Text('+250',
+                              style: TextStyle(
+                                  color: Color(0xFF3E200C),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDialogButton(
+                        label: 'REPLAY',
+                        colors: [const Color(0xFF42A5F5), const Color(0xFF1565C0)],
+                        borderColor: const Color(0xFF90CAF9),
+                        shadowColor: const Color(0xFF0D47A1),
+                        onTap: () => _loadLevel(currentLevelNumber),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildDialogButton(
+                        label: 'NEXT LEVEL',
+                        colors: [const Color(0xFF8CE03E), const Color(0xFF439906)],
+                        borderColor: const Color(0xFFA5F062),
+                        shadowColor: const Color(0xFF286403),
+                        onTap: () => _loadLevel(currentLevelNumber + 1),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // SHARED DIALOG BUTTON
+  // ─────────────────────────────────────────────
+
+  Widget _buildDialogButton({
+    required String label,
+    required List<Color> colors,
+    required Color borderColor,
+    required Color shadowColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 1.8),
+          boxShadow: [
+            BoxShadow(color: shadowColor, offset: const Offset(0, 3), blurRadius: 0),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(color: Colors.black38, offset: Offset(0, 1), blurRadius: 2),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// CONFETTI PARTICLE DATA
+// ─────────────────────────────────────────────
+
+class _ConfettiParticle {
+  final double x;
+  final Color color;
+  final double speed;
+  final double size;
+  final double rotationSpeed;
+
+  _ConfettiParticle({
+    required this.x,
+    required this.color,
+    required this.speed,
+    required this.size,
+    required this.rotationSpeed,
+  });
+}
+
+// ─────────────────────────────────────────────
+// CATCH SPARKLE PAINTER
+// Renders a starburst of short radiating lines around the basket
+// ─────────────────────────────────────────────
+
+class _SparklePainter extends CustomPainter {
+  final double opacity;
+  final Color color;
+
+  _SparklePainter({required this.opacity, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (opacity <= 0) return;
+
+    final paint = Paint()
+      ..color = color.withValues(alpha: opacity * 0.85)
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Draw 8 radiating lines at the basket catch zone
+    final cx = size.width / 2.0;
+    final cy = size.height * 0.735;
+    const len = 22.0;
+    const shortLen = 12.0;
+
+    for (int i = 0; i < 8; i++) {
+      final angle = (i / 8.0) * 2 * pi;
+      final isLong = i % 2 == 0;
+      final endLen = isLong ? len : shortLen;
+      final startDist = isLong ? 14.0 : 10.0;
+
+      canvas.drawLine(
+        Offset(cx + cos(angle) * startDist, cy + sin(angle) * startDist),
+        Offset(cx + cos(angle) * (startDist + endLen),
+            cy + sin(angle) * (startDist + endLen)),
+        paint,
+      );
+    }
+
+    // Small glowing circle
+    final circlePaint = Paint()
+      ..color = Colors.white.withValues(alpha: opacity * 0.6)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), 6 * opacity, circlePaint);
+  }
+
+  @override
+  bool shouldRepaint(_SparklePainter old) =>
+      old.opacity != opacity || old.color != color;
 }
