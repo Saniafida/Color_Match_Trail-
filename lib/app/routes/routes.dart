@@ -17,6 +17,7 @@ import '../../screens/onboarding/onboarding_screen.dart';
 
 import '../../screens/settings/theme_screen.dart';
 import '../../screens/mini_games/tile_sort_screen.dart';
+import '../../screens/mini_games/tile_stack_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String achievements = '/achievements';
   static const String statistics = '/statistics';
   static const String tileSort = '/tile_sort';
+  static const String tileStack = '/tile_stack';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     switch (routeSettings.name) {
@@ -76,6 +78,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const StatisticsScreen());
       case tileSort:
         return MaterialPageRoute(builder: (_) => const TileSortScreen());
+      case tileStack:
+        return MaterialPageRoute(builder: (_) => const TileStackScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
