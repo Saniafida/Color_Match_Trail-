@@ -479,11 +479,23 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final renderBoard = _boardController.board.copyWith(blocks: _blocks);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E2A38),
-      body: SafeArea(
-        child: TutorialOverlay(
-          tutorialManager: ServiceLocator.instance.tutorialManager,
-          child: Column(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Garden background
+          Image.asset(
+            'assets/images/backgrounds/bg_garden.jpg',
+            fit: BoxFit.cover,
+          ),
+          // 2. Dark board contrast overlay
+          Container(
+            color: const Color(0xFF1E2A38).withAlpha(220),
+          ),
+          // 3. Gameplay Content
+          SafeArea(
+            child: TutorialOverlay(
+              tutorialManager: ServiceLocator.instance.tutorialManager,
+              child: Column(
             children: [
               RepaintBoundary(
                 child: GameplayHud(
@@ -569,6 +581,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
