@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/services/service_locator.dart';
-import '../../game/shop/shop_category.dart';
 import '../../game/shop/shop_item_definition.dart';
-import '../../game/shop/purchase_result.dart';
-import '../../models/booster.dart';
-import '../../widgets/rewards/reward_popup.dart';
-import '../../game/rewards/reward_definition.dart';
-import 'widgets/shop_header.dart';
-import 'widgets/shop_category_tabs.dart';
-import 'widgets/shop_item_card.dart';
-import 'widgets/purchase_dialog.dart';
+import '../../widgets/common/game_top_bar.dart';
+import '../../widgets/common/wood_sign_header.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -22,7 +15,8 @@ class _ShopScreenState extends State<ShopScreen> {
   final _shopManager = ServiceLocator.instance.shopManager;
   final _inventoryManager = ServiceLocator.instance.inventoryManager;
 
-  ShopCategory _selectedCategory = ShopCategory.boosters;
+  int _selectedTabIndex = 0;
+  final List<String> _tabs = ['Boosters', 'Coins', 'Items', 'Themes'];
 
   @override
   void initState() {
@@ -46,52 +40,30 @@ class _ShopScreenState extends State<ShopScreen> {
     if (mounted) setState(() {});
   }
 
-  int _getCurrentInventory(ShopItemDefinition item) {
-    if (item.itemType == ItemType.booster) {
-      final type = BoosterType.values.firstWhere(
-        (e) => e.name == item.itemId,
-        orElse: () => BoosterType.hammer,
-      );
-      return _inventoryManager.getQuantity(type);
-    }
-    return 0;
+  String _getBoosterAsset(String itemId) {
+    if (itemId.contains('hammer')) return 'assets/images/boosters/hammer.png';
+    if (itemId.contains('color')) return 'assets/images/boosters/color_bomb.png';
+    if (itemId.contains('shuffle')) return 'assets/images/boosters/shuffle.png';
+    if (itemId.contains('extra') || itemId.contains('move')) return 'assets/images/boosters/extra_moves.png';
+    return 'assets/images/boosters/bomb.png';
   }
 
-  Future<void> _handlePurchase(ShopItemDefinition item) async {
-    // Show confirmation if it's an expensive item or a multi-pack
-    if (item.price >= 200 || item.quantity > 1) {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => PurchaseDialog(item: item),
-      );
-      if (confirm != true) return;
-    }
-
+  Future<void> _handleBuy(ShopItemDefinition item) async {
     final result = await _shopManager.purchaseItem(item);
-
     if (!mounted) return;
 
     if (result.isSuccess) {
-      // Use existing RewardPopup to celebrate
-      final rewardDef = RewardDefinition(
-        id: 'purchase_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
-        type: RewardType.booster, // Fallback since special is not in enum
-        amount: item.quantity,
-        itemId: item.itemId,
-        source: 'shop',
-      );
-      RewardPopup.show(context, [rewardDef]);
-    } else {
-      // Show error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            result.status == PurchaseResultStatus.insufficientFunds
-                ? 'Not enough coins!'
-                : result.status == PurchaseResultStatus.inventoryFull
-                    ? 'Inventory is full!'
-                    : result.message ?? 'Purchase failed.',
-          ),
+          content: Text('Purchased ${item.name}!'),
+          backgroundColor: const Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message ?? 'Not enough coins!'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -101,53 +73,195 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _shopManager.items.where((i) => i.category == _selectedCategory).toList();
+    final filteredItems = _shopManager.items;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141E2A),
-      appBar: const ShopHeader(),
-      body: _shopManager.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.amber))
-          : Column(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Garden Background
+          Image.asset(
+            'assets/images/backgrounds/bg_garden.jpg',
+            fit: BoxFit.cover,
+          ),
+
+          // 2. Overlay
+          Container(
+            color: Colors.black.withAlpha(50),
+          ),
+
+          // 3. Content
+          SafeArea(
+            child: Column(
               children: [
-                ShopCategoryTabs(
-                  selectedCategory: _selectedCategory,
-                  onCategorySelected: (cat) {
-                    setState(() {
-                      _selectedCategory = cat;
-                    });
-                  },
+                // Top Bar (Hearts, Coins, Gems, Settings)
+                const GameTopBar(
+                  showProfile: false,
+                  showSettings: true,
                 ),
+
+                // Wood Sign Header: "Shop"
+                WoodSignHeader(
+                  title: 'Shop',
+                  onBack: () => Navigator.pop(context),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Category Tabs: Boosters, Coins, Items, Themes
+                _buildCategoryTabs(),
+
+                const SizedBox(height: 8),
+
+                // Shop Items List
                 Expanded(
-                  child: filteredItems.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No items available.',
-                            style: TextStyle(color: Colors.white54, fontSize: 16),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF9EC), // Inner cream board canvas
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFFFD54F), width: 2.5),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black38, offset: Offset(0, 4), blurRadius: 6),
+                      ],
+                    ),
+                    child: ListView.separated(
+                      itemCount: filteredItems.length,
+                      separatorBuilder: (context, index) => const Divider(color: Color(0xFFE2CCAE), thickness: 1),
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        final assetPath = _getBoosterAsset(item.itemId);
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Row(
+                            children: [
+                              // Icon image
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(assetPath, fit: BoxFit.cover),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Name & Description
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: const TextStyle(
+                                        color: Color(0xFF3E200C),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    Text(
+                                      item.description,
+                                      style: const TextStyle(
+                                        color: Color(0xFF8D6E63),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Green Price Buy Button
+                              GestureDetector(
+                                onTap: () => _handleBuy(item),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF8CE03E), Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.white70, width: 1.5),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0xFF1B5E20), offset: Offset(0, 2), blurRadius: 0),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset('assets/images/icons/icon_coin.png', width: 18, height: 18),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${item.price}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: filteredItems.length,
-                          itemBuilder: (context, index) {
-                            final item = filteredItems[index];
-                            return ShopItemCard(
-                              item: item,
-                              currentInventory: _getCurrentInventory(item),
-                              onBuyPressed: () => _handlePurchase(item),
-                              isPurchasing: false, // _shopManager.isPurchasing is not exposed globally by design to avoid rebuilding whole list, but we could!
-                            );
-                          },
-                        ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryTabs() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF5D3A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+      ),
+      child: Row(
+        children: List.generate(_tabs.length, (index) {
+          final isSelected = index == _selectedTabIndex;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTabIndex = index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFE53935) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isSelected ? Border.all(color: Colors.white70, width: 1.2) : null,
+                ),
+                child: Center(
+                  child: Text(
+                    _tabs[index],
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFFD7CCC8),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
