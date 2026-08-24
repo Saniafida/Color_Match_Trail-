@@ -24,7 +24,7 @@ class BasketCollectLevelGenerator {
             BlockColor.red: 5,
           },
           maxMisses: 3,
-          basketWidthFactor: 1.25,
+          basketWidthFactor: 1.15,
         );
 
       // ══════════════════════════════════════════════
@@ -43,7 +43,7 @@ class BasketCollectLevelGenerator {
             BlockColor.yellow: 3,
           },
           maxMisses: 3,
-          basketWidthFactor: 1.15,
+          basketWidthFactor: 1.10,
         );
 
       // ══════════════════════════════════════════════
@@ -63,7 +63,7 @@ class BasketCollectLevelGenerator {
             BlockColor.blue: 3,
           },
           maxMisses: 3,
-          basketWidthFactor: 1.1,
+          basketWidthFactor: 1.05,
         );
 
       // ══════════════════════════════════════════════
@@ -83,7 +83,7 @@ class BasketCollectLevelGenerator {
             BlockColor.blue: 4,
           },
           maxMisses: 3,
-          basketWidthFactor: 1.05,
+          basketWidthFactor: 1.0,
         );
 
       // ══════════════════════════════════════════════

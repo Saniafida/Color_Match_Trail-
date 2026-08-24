@@ -103,7 +103,7 @@ class _TileStackScreenState extends State<TileStackScreen>
 
   // ── Basket ─────────────────────────────────
   double basketX = 0.0; // –1.0 → +1.0
-  final double _baseBasketWidthFraction = 0.58;
+  final double _baseBasketWidthFraction = 0.45;
 
   // ── Falling blocks engine ──────────────────
   final List<FallingBlock> _fallingBlocks = [];
@@ -299,14 +299,26 @@ class _TileStackScreenState extends State<TileStackScreen>
     }
 
     // 2. Update falling blocks
-    const double basketTopY = 0.715;
-    const double basketBottomY = 0.76;
+    // Calculate basket mouth position dynamically from screen size
+    // so it always matches the basket's actual rendered position.
+    final double sh = MediaQuery.of(context).size.height;
+    final double sw = MediaQuery.of(context).size.width;
 
-    final double basketCenterX = (basketX + 1.0) / 2.0;
-    final double basketHalfW =
-        (_baseBasketWidthFraction * currentLevel.basketWidthFactor) / 2.0;
-    final double basketLeft = basketCenterX - basketHalfW + 0.04;
-    final double basketRight = basketCenterX + basketHalfW - 0.04;
+    // Center of basket in screen fraction (0.0 to 1.0)
+    final double basketCenterX = 0.5 + basketX / 2.4;
+
+    // Basket top edge (the back rim opening) in 0–1 screen Y fraction:
+    // basket top = screen_height - _basketBottomOffset - _basketHeight
+    final double basketTopY =
+        1.0 - (_basketBottomOffset + _basketHeight) / sh;
+    // Catch zone: block enters through the top mouth opening into the interior cavity
+    final double catchMouthY = basketTopY + (_basketHeight * 0.18) / sh;
+    final double catchDeepY = basketTopY + (_basketHeight * 0.52) / sh;
+
+    // Basket X bounds (fraction of screen width)
+    final double bwFrac = _basketWidth(sw) / sw;
+    final double basketLeftFrac = basketCenterX - (bwFrac / 2.0) + 0.035;
+    final double basketRightFrac = basketCenterX + (bwFrac / 2.0) - 0.035;
 
     for (int i = _fallingBlocks.length - 1; i >= 0; i--) {
       final block = _fallingBlocks[i];
@@ -321,8 +333,8 @@ class _TileStackScreenState extends State<TileStackScreen>
 
       // Collision with basket opening
       if (!block.isCaught && !block.isMissed) {
-        if (block.y >= basketTopY && block.y <= basketBottomY) {
-          if (block.x >= basketLeft && block.x <= basketRight) {
+        if (block.y >= catchMouthY && block.y <= catchDeepY) {
+          if (block.x >= basketLeftFrac && block.x <= basketRightFrac) {
             _catchBlock(block);
             _fallingBlocks.removeAt(i);
             continue;
@@ -330,8 +342,8 @@ class _TileStackScreenState extends State<TileStackScreen>
         }
       }
 
-      // Block missed — fell below screen
-      if (block.y > 0.92) {
+      // Block missed — fell past catch zone without being caught
+      if (block.y > catchDeepY + 0.03) {
         _fallingBlocks.removeAt(i);
         _onBlockMissed(block);
       }
@@ -387,16 +399,36 @@ class _TileStackScreenState extends State<TileStackScreen>
     // Sparkle
     _sparkleController.forward(from: 0);
 
-    // Add to pile (max 6 visible)
+    // Add to pile (max 12 visible) — structured pyramid heap filling the basket mouth
     final rng = Random();
-    if (_caughtPile.length >= 6) {
+    if (_caughtPile.length >= 12) {
       _caughtPile.removeAt(0);
     }
+    const List<Offset> pileSlots = [
+      // Base layer inside the rim
+      Offset(-28, 14),
+      Offset(-10, 16),
+      Offset(10, 16),
+      Offset(28, 14),
+      // Middle layer in the mouth
+      Offset(-18, 0),
+      Offset(0, 2),
+      Offset(18, 0),
+      // Upper pyramid peak
+      Offset(-11, -14),
+      Offset(11, -14),
+      Offset(0, -26),
+      // Extra fill
+      Offset(-22, -9),
+      Offset(22, -9),
+    ];
+    final int idx = _caughtPile.length % pileSlots.length;
+    final baseOffset = pileSlots[idx];
     _caughtPile.add(CaughtBlockItem(
       color: block.color,
-      relativeOffsetX: (rng.nextDouble() - 0.5) * 70,
-      relativeOffsetY: (rng.nextDouble() - 0.5) * 22,
-      rotation: (rng.nextDouble() - 0.5) * 0.30,
+      relativeOffsetX: baseOffset.dx + (rng.nextDouble() - 0.5) * 3.5,
+      relativeOffsetY: baseOffset.dy + (rng.nextDouble() - 0.5) * 3.0,
+      rotation: (rng.nextDouble() - 0.5) * 0.18,
     ));
 
     // Combo banner
@@ -577,18 +609,22 @@ class _TileStackScreenState extends State<TileStackScreen>
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Background
+            // ── 1. Garden background ────────────────────────────────────────
             Image.asset('assets/images/backgrounds/bg_garden.jpg',
                 fit: BoxFit.cover),
 
-            // 2. Vignette
+            // ── 2. Background Dimming & Vignette Overlay ───────────────────
+            // Soft dark tint ensures bright colorful blocks pop with clear visibility
+            Container(
+              color: Colors.black.withValues(alpha: 0.32),
+            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withAlpha(30),
+                    Colors.black.withValues(alpha: 0.40),
                     Colors.transparent,
-                    Colors.black.withAlpha(70),
+                    Colors.black.withValues(alpha: 0.50),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -596,19 +632,36 @@ class _TileStackScreenState extends State<TileStackScreen>
               ),
             ),
 
-            // 3. Falling blocks canvas
+            // ── 3. BASKET BACK WALL (behind falling blocks) ─────────────────
+            // The upper portion of the basket image rendered below blocks,
+            // so blocks appear to fall IN FRONT of it toward the mouth.
+            _buildBasketBackLayer(),
+
+            // ── 4. Falling blocks canvas ─────────────────────────────────────
+            // Blocks travel between the back wall (below) and front rim (above),
+            // giving the true visual of entering the basket opening.
             _buildFallingBlocksLayer(),
 
+            // ── 5. Caught pile inside basket (behind front rim) ──────────────
+            _buildBasketCaughtPile(),
 
+            // ── 6. BASKET FRONT RIM (in front of falling blocks) ────────────
+            // The lower woven lip painted ON TOP of blocks — creates the
+            // illusion that blocks physically sit INSIDE the basket.
+            _buildBasketFrontRimLayer(),
 
-            // 5. Catch sparkle overlay
+            // ── 7. Basket drag zone ──────────────────────────────────────────
+            _buildBasketDragZone(),
+
+            // ── 8. Catch sparkle ─────────────────────────────────────────────
             if (_sparkleController.isAnimating || _sparkleController.value > 0)
               _buildCatchSparkle(),
 
-            // 6. Confetti layer (win)
+            // ── 9. Confetti (win) ────────────────────────────────────────────
             if (_isLevelComplete) _buildConfettiLayer(),
 
-            // 7. Main HUD + basket
+            // ── 10. HUD (top bar + upcoming queue + boosters) ────────────────
+            // Basket is no longer in this column — it lives as absolute layers.
             SafeArea(
               child: Column(
                 children: [
@@ -621,24 +674,26 @@ class _TileStackScreenState extends State<TileStackScreen>
                   ),
                   const Spacer(),
                   if (comboText != null) _buildComboBanner(),
-                  _buildPlayerBasketArea(),
-                  const SizedBox(height: 4),
+                  // Reserve space equal to basket height so booster bar
+                  // doesn't overlap the basket.
+                  const SizedBox(height: 140),
                   _buildBottomBoostersBar(),
                   const SizedBox(height: 8),
                 ],
               ),
             ),
 
-            // 8. Game Over overlay
+            // ── 11. Game Over overlay ────────────────────────────────────────
             if (_isGameOver) _buildGameOverOverlay(),
 
-            // 9. Level Complete overlay
+            // ── 12. Level Complete overlay ───────────────────────────────────
             if (_isLevelComplete) _buildLevelCompleteOverlay(),
           ],
         ),
       ),
     );
   }
+
 
   // ─────────────────────────────────────────────
   // TOP HUD
@@ -970,14 +1025,14 @@ class _TileStackScreenState extends State<TileStackScreen>
                         BoxShadow(
                           color: BlockColorMapper.getStyle(block.color)
                               .glow
-                              .withValues(alpha: 0.5),
-                          blurRadius: 12,
+                              .withValues(alpha: 0.65),
+                          blurRadius: 14,
                           spreadRadius: 2,
                         ),
                         const BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 5),
-                          blurRadius: 5,
+                          color: Colors.black45,
+                          offset: Offset(0, 6),
+                          blurRadius: 7,
                         ),
                       ],
                     ),
@@ -999,105 +1054,180 @@ class _TileStackScreenState extends State<TileStackScreen>
   }
 
   // ─────────────────────────────────────────────
-  // PLAYER BASKET (3D DEPTH ILLUSION)
+  // BASKET HELPERS — shared geometry
   // ─────────────────────────────────────────────
 
-  Widget _buildPlayerBasketArea() {
-    final size = MediaQuery.of(context).size;
-    final double effectiveBasketWidth =
-        size.width * _baseBasketWidthFraction * currentLevel.basketWidthFactor;
-    final double effectiveBasketWidth2 =
-        effectiveBasketWidth.clamp(0.0, size.width * 0.85);
-    final basketPixelX = (basketX * (size.width / 2.4));
+  double _basketWidth(double sw) =>
+      (sw * _baseBasketWidthFraction * currentLevel.basketWidthFactor)
+          .clamp(0.0, sw * 0.85);
 
-    return Transform.translate(
-      offset: Offset(basketPixelX, 0),
-      child: AnimatedScale(
-        scale: _isBasketBouncing ? 1.07 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutBack,
-        // ── GestureDetector wraps the basket directly ──
-        // Drag only activates when finger is ON the basket widget.
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (details) {
-            final sw = MediaQuery.of(context).size.width;
-            setState(() {
-              basketX += (details.delta.dx / sw) * 2.0;
-              basketX = basketX.clamp(-0.82, 0.82);
-            });
-          },
-          child: SizedBox(
-            width: effectiveBasketWidth2,
-            height: 148,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                // ── LAYER 1: Full basket image (back) ──────────────
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/home_screen/basket_woven.png',
-                    fit: BoxFit.contain,
-                  ),
+  double _basketPixelX(double sw) =>
+      sw / 2.0 + basketX * (sw / 2.4) - _basketWidth(sw) / 2.0;
+
+  // Pixels from screen bottom where basket sits.
+  // SizedBox(height: 140) in the HUD column reserves this space.
+  static const double _basketBottomOffset = 90.0;
+  static const double _basketHeight = 126.0;
+
+  // ── 3. Basket BACK WALL & SIDE ARROWS (behind falling blocks) ───
+  Widget _buildBasketBackLayer() {
+    final sw = MediaQuery.of(context).size.width;
+    final bw = _basketWidth(sw);
+    final bx = _basketPixelX(sw);
+    final scale = _isBasketBouncing ? 1.07 : 1.0;
+
+    return Positioned(
+      left: bx - 30,
+      bottom: _basketBottomOffset,
+      width: bw + 60,
+      height: _basketHeight,
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.bottomCenter,
+        child: IgnorePointer(
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // Left directional arrow
+              Positioned(
+                left: 0,
+                child: _buildPulsingArrow(isLeft: true),
+              ),
+              // Right directional arrow
+              Positioned(
+                right: 0,
+                child: _buildPulsingArrow(isLeft: false),
+              ),
+              // Full Basket texture
+              Positioned(
+                left: 30,
+                right: 30,
+                top: 0,
+                bottom: 0,
+                child: Image.asset(
+                  'assets/images/home_screen/basket_woven.png',
+                  fit: BoxFit.fill,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                // ── LAYER 2: Caught blocks pile (inside basket) ────
-                Positioned(
-                  bottom: 30,
-                  left: effectiveBasketWidth2 * 0.10,
-                  right: effectiveBasketWidth2 * 0.10,
-                  height: 62,
-                  child: ClipRect(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: _caughtPile.map((item) {
-                        return Transform.translate(
-                          offset: Offset(item.relativeOffsetX, item.relativeOffsetY),
-                          child: Transform.rotate(
-                            angle: item.rotation,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    offset: Offset(0, 2),
-                                    blurRadius: 3,
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.asset(
-                                  BlockColorMapper.getAssetPath(item.color),
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+  Widget _buildPulsingArrow({required bool isLeft}) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFB300).withValues(alpha: 0.5),
+            blurRadius: 7,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Icon(
+        isLeft ? Icons.arrow_left_rounded : Icons.arrow_right_rounded,
+        color: const Color(0xFFFFD54F),
+        size: 34,
+        shadows: const [
+          Shadow(color: Color(0xFFE65100), offset: Offset(0, 2), blurRadius: 3),
+        ],
+      ),
+    );
+  }
+
+  // ── 5. Caught pile — inside basket mouth, forming a rich heap ───
+  Widget _buildBasketCaughtPile() {
+    final sw = MediaQuery.of(context).size.width;
+    final bw = _basketWidth(sw);
+    final bx = _basketPixelX(sw);
+    // The pile sits prominently inside the basket mouth opening
+    final pileLeft = bx + bw * 0.05;
+    final pileWidth = bw * 0.90;
+    final pileBottom = _basketBottomOffset + _basketHeight * 0.38;
+    final scale = _isBasketBouncing ? 1.07 : 1.0;
+
+    return Positioned(
+      left: pileLeft,
+      bottom: pileBottom,
+      width: pileWidth,
+      height: 84,
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.bottomCenter,
+        child: IgnorePointer(
+          child: Stack(
+            alignment: Alignment.center,
+            children: _caughtPile.map((item) {
+              return Transform.translate(
+                offset: Offset(item.relativeOffsetX, item.relativeOffsetY),
+                child: Transform.rotate(
+                  angle: item.rotation,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(7),
+                      boxShadow: [
+                        BoxShadow(
+                          color: BlockColorMapper.getStyle(item.color)
+                              .glow
+                              .withValues(alpha: 0.4),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        ),
+                        const BoxShadow(
+                          color: Colors.black45,
+                          offset: Offset(0, 2),
+                          blurRadius: 3,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.asset(
+                        BlockColorMapper.getAssetPath(item.color),
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
 
-                // ── LAYER 3: Front rim overlay ─────────────────────
-                // Bottom 36% of basket image painted ON TOP so blocks
-                // appear physically INSIDE the basket (depth illusion)
-                Positioned.fill(
-                  child: ClipRect(
-                    clipper: const _BottomFractionClipper(0.36),
-                    child: Image.asset(
-                      'assets/images/home_screen/basket_woven.png',
-                      fit: BoxFit.contain,
-                      alignment: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-              ],
+  // ── 6. Basket FRONT RIM (covers only lower front wall) ──────────
+  Widget _buildBasketFrontRimLayer() {
+    final sw = MediaQuery.of(context).size.width;
+    final bw = _basketWidth(sw);
+    final bx = _basketPixelX(sw);
+    final scale = _isBasketBouncing ? 1.07 : 1.0;
+
+    return Positioned(
+      left: bx,
+      bottom: _basketBottomOffset,
+      width: bw,
+      height: _basketHeight,
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.bottomCenter,
+        child: IgnorePointer(
+          child: ClipRect(
+            clipper: const _BottomFractionClipper(0.44),
+            child: Image.asset(
+              'assets/images/home_screen/basket_woven.png',
+              width: bw,
+              height: _basketHeight,
+              fit: BoxFit.fill,
+              alignment: Alignment.bottomCenter,
             ),
           ),
         ),
@@ -1105,29 +1235,58 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
   }
 
+  // ── 7. Drag zone — covers basket and side arrows ─────────────────
+  Widget _buildBasketDragZone() {
+    final sw = MediaQuery.of(context).size.width;
+    final bw = _basketWidth(sw);
+    final bx = _basketPixelX(sw);
 
+    return Positioned(
+      left: bx - 30,
+      bottom: _basketBottomOffset,
+      width: bw + 60,
+      height: _basketHeight,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (details) {
+          setState(() {
+            basketX += (details.delta.dx / sw) * 2.0;
+            basketX = basketX.clamp(-0.82, 0.82);
+          });
+        },
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
 
   // ─────────────────────────────────────────────
   // CATCH SPARKLE OVERLAY
   // ─────────────────────────────────────────────
 
   Widget _buildCatchSparkle() {
-    return AnimatedBuilder(
-      animation: _sparkleOpacity,
-      builder: (ctx, _) {
-        return IgnorePointer(
-          child: Positioned.fill(
-            child: CustomPaint(
+    final sw = MediaQuery.of(context).size.width;
+    final sh = MediaQuery.of(context).size.height;
+    final bx = _basketPixelX(sw) + _basketWidth(sw) / 2.0;
+    final by = sh - _basketBottomOffset - _basketHeight * 0.70;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _sparkleOpacity,
+          builder: (ctx, _) {
+            return CustomPaint(
               painter: _SparklePainter(
                 opacity: _sparkleOpacity.value,
                 color: _lastCaughtColor != null
                     ? BlockColorMapper.getStyle(_lastCaughtColor!).glow
                     : const Color(0xFFFFD700),
+                centerX: bx,
+                centerY: by,
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -1797,8 +1956,15 @@ class _ConfettiParticle {
 class _SparklePainter extends CustomPainter {
   final double opacity;
   final Color color;
+  final double centerX;
+  final double centerY;
 
-  _SparklePainter({required this.opacity, required this.color});
+  _SparklePainter({
+    required this.opacity,
+    required this.color,
+    required this.centerX,
+    required this.centerY,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1810,17 +1976,16 @@ class _SparklePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    // Draw 8 radiating lines at the basket catch zone
-    final cx = size.width / 2.0;
-    final cy = size.height * 0.735;
-    const len = 22.0;
-    const shortLen = 12.0;
+    final cx = centerX;
+    final cy = centerY;
+    const len = 24.0;
+    const shortLen = 14.0;
 
     for (int i = 0; i < 8; i++) {
       final angle = (i / 8.0) * 2 * pi;
       final isLong = i % 2 == 0;
       final endLen = isLong ? len : shortLen;
-      final startDist = isLong ? 14.0 : 10.0;
+      final startDist = isLong ? 16.0 : 12.0;
 
       canvas.drawLine(
         Offset(cx + cos(angle) * startDist, cy + sin(angle) * startDist),
@@ -1832,12 +1997,15 @@ class _SparklePainter extends CustomPainter {
 
     // Small glowing circle
     final circlePaint = Paint()
-      ..color = Colors.white.withValues(alpha: opacity * 0.6)
+      ..color = Colors.white.withValues(alpha: opacity * 0.7)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(cx, cy), 6 * opacity, circlePaint);
+    canvas.drawCircle(Offset(cx, cy), 7 * opacity, circlePaint);
   }
 
   @override
   bool shouldRepaint(_SparklePainter old) =>
-      old.opacity != opacity || old.color != color;
+      old.opacity != opacity ||
+      old.color != color ||
+      old.centerX != centerX ||
+      old.centerY != centerY;
 }

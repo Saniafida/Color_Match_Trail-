@@ -18,6 +18,8 @@ import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/settings/theme_screen.dart';
 import '../../screens/mini_games/tile_sort_screen.dart';
 import '../../screens/mini_games/tile_stack_screen.dart';
+import '../../screens/mini_games/tile_drop_screen.dart';
+import '../../screens/mini_games/tile_swap_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -38,6 +40,8 @@ class AppRoutes {
   static const String statistics = '/statistics';
   static const String tileSort = '/tile_sort';
   static const String tileStack = '/tile_stack';
+  static const String tileDrop = '/tile_drop';
+  static const String tileSwap = '/tile_swap';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     switch (routeSettings.name) {
@@ -80,6 +84,16 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const TileSortScreen());
       case tileStack:
         return MaterialPageRoute(builder: (_) => const TileStackScreen());
+      case tileDrop:
+        final initialLvl = routeSettings.arguments as int? ?? 1;
+        return MaterialPageRoute(
+          builder: (_) => TileDropScreen(initialLevel: initialLvl),
+        );
+      case tileSwap:
+        final initialLvl = routeSettings.arguments as int? ?? 1;
+        return MaterialPageRoute(
+          builder: (_) => TileSwapScreen(startingLevel: initialLvl),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
