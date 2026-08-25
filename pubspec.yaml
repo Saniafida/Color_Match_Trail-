@@ -38,6 +38,7 @@ dependencies:
   shared_preferences: ^2.5.5
   uuid: ^4.6.0
   crypto: ^3.0.7
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +82,16 @@ flutter:
     - assets/data/game_config/
     - assets/data/achievements/
     - assets/levels/
+    - assets/sounds/
+    - assets/sounds/ui/
+    - assets/sounds/gameplay/
+    - assets/sounds/blocks/
+    - assets/sounds/blast/
+    - assets/sounds/combo/
+    - assets/sounds/boosters/
+    - assets/sounds/minigames/
+    - assets/sounds/events/
+    - assets/sounds/music/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

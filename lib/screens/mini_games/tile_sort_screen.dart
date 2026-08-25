@@ -58,6 +58,9 @@ class _TileSortScreenState extends State<TileSortScreen>
       duration: const Duration(milliseconds: 350),
     );
     _loadLevel(currentLevelNumber);
+    try {
+      ServiceLocator.instance.audioManager.playMiniGamesBgm();
+    } catch (_) {}
   }
 
   @override

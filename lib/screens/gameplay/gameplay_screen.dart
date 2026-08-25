@@ -217,6 +217,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
       _timerController.start();
     }
 
+    try {
+      ServiceLocator.instance.audioManager.playGameplayBgm();
+    } catch (_) {}
+
     setState(() {
       _isInitialized = true;
     });

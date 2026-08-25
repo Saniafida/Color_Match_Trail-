@@ -7,6 +7,7 @@ import '../../game/blocks/block_color_mapper.dart';
 import '../../game/tile_drop/tile_drop_level_model.dart';
 import '../../game/tile_drop/tile_drop_level_generator.dart';
 import '../../models/models.dart';
+import '../../core/services/service_locator.dart';
 
 enum _DropBooster { none, hammer, bomb, colorBomb }
 
@@ -112,6 +113,9 @@ class _TileDropScreenState extends State<TileDropScreen>
     );
 
     _loadLevel(currentLevelNumber);
+    try {
+      ServiceLocator.instance.audioManager.playMiniGamesBgm();
+    } catch (_) {}
   }
 
   @override

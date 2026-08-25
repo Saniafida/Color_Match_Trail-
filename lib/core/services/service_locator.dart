@@ -3,7 +3,7 @@ import '../../game/levels/level_repository.dart';
 import '../../game/progression/progression_manager.dart';
 import '../../game/balance/game_balance_manager.dart';
 import '../../game/balance/difficulty_manager.dart';
-import 'audio/audio_service.dart';
+import 'audio/flutter_audio_service.dart';
 import 'audio/audio_manager.dart';
 import 'date_service.dart';
 import '../../game/challenges/daily_challenge_storage.dart';
@@ -202,7 +202,7 @@ class ServiceLocator {
     await errorReportingManager.initialize();
 
     audioManager = AudioManager(
-      service: MockAudioService(),
+      service: FlutterAudioService(),
       settingsManager: settingsManager,
       performanceManager: performanceManager,
       errorReportingManager: errorReportingManager,

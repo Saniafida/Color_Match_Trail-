@@ -208,6 +208,9 @@ class _TileStackScreenState extends State<TileStackScreen>
     );
 
     _loadLevel(currentLevelNumber);
+    try {
+      ServiceLocator.instance.audioManager.playMiniGamesBgm();
+    } catch (_) {}
   }
 
   @override

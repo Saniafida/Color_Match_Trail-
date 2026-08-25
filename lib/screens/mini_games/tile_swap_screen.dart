@@ -110,6 +110,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
     _loadUserCoins();
     _loadLevel(currentLevelNumber);
+    try {
+      ServiceLocator.instance.audioManager.playMiniGamesBgm();
+    } catch (_) {}
   }
 
   @override
@@ -301,6 +304,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
     });
 
     HapticFeedback.lightImpact();
+    try {
+      ServiceLocator.instance.audioManager.playSwapSlide();
+    } catch (_) {}
 
     // 1. Forward swap animation
     await _swapAnimController.forward(from: 0);
@@ -331,6 +337,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
     } else {
       // Invalid Swap -> Revert back with gentle shake
       HapticFeedback.mediumImpact();
+      try {
+        ServiceLocator.instance.audioManager.playSwapInvalid();
+      } catch (_) {}
 
       await _swapAnimController.reverse();
 
@@ -552,6 +561,15 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
       // 1. Highlight phase
       HapticFeedback.lightImpact();
+      try {
+        if (comboStreak > 1) {
+          ServiceLocator.instance.audioManager.playCombo(comboStreak);
+        } else {
+          ServiceLocator.instance.audioManager.playMatch(allMatchedPoints.length);
+        }
+        ServiceLocator.instance.audioManager.playBlast(isLarge: allMatchedPoints.length >= 5);
+      } catch (_) {}
+
       setState(() {
         _highlightedCells = allMatchedPoints;
       });
@@ -689,6 +707,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
   void _triggerWin() {
     if (isLevelComplete || isGameOver) return;
     HapticFeedback.heavyImpact();
+    try {
+      ServiceLocator.instance.audioManager.playLevelComplete();
+    } catch (_) {}
 
     final bonusCoins = 100 + (movesRemaining * 10);
     userCoins += bonusCoins;
@@ -706,6 +727,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
   void _triggerGameOver() {
     if (isLevelComplete || isGameOver) return;
     HapticFeedback.heavyImpact();
+    try {
+      ServiceLocator.instance.audioManager.playLevelFail();
+    } catch (_) {}
 
     setState(() {
       isGameOver = true;
@@ -730,6 +754,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
     if (activeBooster != null) {
       HapticFeedback.selectionClick();
+      try {
+        ServiceLocator.instance.audioManager.playButtonClick();
+      } catch (_) {}
       _showBanner(
         activeBooster == _SwapBooster.hammer
             ? 'Tap a tile to smash!'
@@ -755,6 +782,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
         if (hammerCount <= 0) return;
         setState(() => hammerCount--);
         HapticFeedback.heavyImpact();
+        try {
+          ServiceLocator.instance.audioManager.playHammer();
+        } catch (_) {}
         _spawnParticlesAt(r, c, cell.color);
         if (collectedGoals.containsKey(cell.color)) {
           collectedGoals[cell.color] = (collectedGoals[cell.color]! + 1);
@@ -769,6 +799,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
         if (bombCount <= 0) return;
         setState(() => bombCount--);
         HapticFeedback.heavyImpact();
+        try {
+          ServiceLocator.instance.audioManager.playBomb();
+        } catch (_) {}
         final points = <Point<int>>{};
         for (int dr = -1; dr <= 1; dr++) {
           for (int dc = -1; dc <= 1; dc++) {
@@ -786,6 +819,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
         if (colorBombCount <= 0) return;
         setState(() => colorBombCount--);
         HapticFeedback.heavyImpact();
+        try {
+          ServiceLocator.instance.audioManager.playColorBomb();
+        } catch (_) {}
         _triggerColorBombBlast(Point(r, c), cell.color);
         break;
     }
@@ -803,6 +839,9 @@ class _TileSwapScreenState extends State<TileSwapScreen>
     });
 
     HapticFeedback.mediumImpact();
+    try {
+      ServiceLocator.instance.audioManager.playShuffle();
+    } catch (_) {}
     _showBanner('SHUFFLE!', const Color(0xFF64B5F6));
 
     final rows = currentLevel.rows;

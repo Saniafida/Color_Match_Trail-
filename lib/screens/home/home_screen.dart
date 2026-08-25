@@ -16,6 +16,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProgress();
+    try {
+      ServiceLocator.instance.audioManager.playHomeBgm();
+    } catch (_) {}
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AchievementUnlockOverlay.initialize(context);
       MilestoneUnlockOverlay.initialize(context);
