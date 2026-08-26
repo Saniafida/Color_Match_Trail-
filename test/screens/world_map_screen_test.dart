@@ -172,7 +172,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('World Map'), findsOneWidget);
+      expect(find.text('ADVENTURE'), findsOneWidget);
       expect(find.byType(LevelNode), findsWidgets);
     });
 

@@ -16,6 +16,7 @@ import 'game_data_validator.dart';
 import 'game_data_migration_manager.dart';
 import 'game_balance_config.dart';
 import 'data_environment.dart';
+import '../../game/levels/adventure_level_generator.dart';
 
 /// Central data gateway for the completely offline game.
 /// Loads data directly from bundled JSON assets in assets/data/
@@ -63,11 +64,23 @@ class GameDataManager extends ChangeNotifier {
         _worlds[world.worldId] = world;
       });
 
+      // Ensure all 147 adventure levels are mapped across worlds
+      final adventureWorlds = AdventureLevelGenerator.generateAllWorlds();
+      for (final w in adventureWorlds) {
+        _worlds.putIfAbsent(w.worldId, () => w);
+      }
+
       // 2. Load Levels
       await _loadAndParseList('assets/data/levels/levels.json', (json) {
         final level = LevelDefinitionData.fromJson(json);
         _levels[level.levelId] = level;
       });
+
+      // Populate procedural data for all 147 levels
+      for (int i = 1; i <= AdventureLevelGenerator.totalAdventureLevels; i++) {
+        final lvlId = 'level_$i';
+        _levels.putIfAbsent(lvlId, () => AdventureLevelGenerator.generateData(i));
+      }
 
       // 2. Load Challenges
       await _loadAndParseList('assets/data/challenges/challenges.json', (json) {
@@ -163,10 +176,38 @@ class GameDataManager extends ChangeNotifier {
     }
   }
 
-  WorldDefinition? getWorld(String id) => _worlds[id];
-  List<WorldDefinition> getAllWorlds() => _worlds.values.toList();
+  WorldDefinition? getWorld(String id) {
+    if (_worlds.containsKey(id)) return _worlds[id];
+    final all = AdventureLevelGenerator.generateAllWorlds();
+    for (final w in all) {
+      if (w.worldId == id) {
+        _worlds[id] = w;
+        return w;
+      }
+    }
+    return null;
+  }
 
-  LevelDefinitionData? getLevel(String levelId) => _levels[levelId];
+  List<WorldDefinition> getAllWorlds() {
+    if (_worlds.isEmpty) {
+      final all = AdventureLevelGenerator.generateAllWorlds();
+      for (final w in all) {
+        _worlds[w.worldId] = w;
+      }
+    }
+    return _worlds.values.toList();
+  }
+
+  LevelDefinitionData? getLevel(String levelId) {
+    if (_levels.containsKey(levelId)) return _levels[levelId];
+    final num = int.tryParse(levelId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (num != null && num >= 1) {
+      final generated = AdventureLevelGenerator.generateData(num);
+      _levels[levelId] = generated;
+      return generated;
+    }
+    return null;
+  }
   List<LevelDefinitionData> getAllLevels() => _levels.values.toList();
   
   ChallengeDefinition? getChallenge(String id) => _challenges[id];

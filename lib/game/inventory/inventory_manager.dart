@@ -20,17 +20,17 @@ class InventoryManager extends ChangeNotifier {
       } catch (e) {
         // Handle gracefully, remain default
       }
-    } else {
-      // Default starting inventory
-      _inventory = const BoosterInventory(quantities: {
-        BoosterType.hammer: 3,
-        BoosterType.shuffle: 2,
-        BoosterType.extraMoves: 1,
-        BoosterType.colorClear: 1,
-        BoosterType.rowClear: 1,
-      });
-      await _save();
     }
+    
+    // Ensure all 6 boosters are available with a healthy starting supply
+    final updatedMap = Map<BoosterType, int>.from(_inventory.quantities);
+    for (final type in BoosterType.values) {
+      if ((updatedMap[type] ?? 0) < 5) {
+        updatedMap[type] = 5;
+      }
+    }
+    _inventory = BoosterInventory(quantities: updatedMap);
+    await _save();
     notifyListeners();
   }
 

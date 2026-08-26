@@ -14,6 +14,8 @@ class LevelNode extends StatefulWidget {
   final LevelProgress progress;
   final bool isCurrent;
   final bool reducedMotion;
+  final double width;
+  final double height;
   final VoidCallback onTap;
 
   const LevelNode({
@@ -21,6 +23,8 @@ class LevelNode extends StatefulWidget {
     required this.progress,
     required this.isCurrent,
     this.reducedMotion = false,
+    this.width = 34.0,
+    this.height = 38.0,
     required this.onTap,
   });
 
@@ -37,10 +41,10 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
     );
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
@@ -69,11 +73,11 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
   }
 
   LevelNodeVisualState get _visualState {
-    if (!widget.progress.unlocked) return LevelNodeVisualState.locked;
-    if (widget.progress.stars >= 3) return LevelNodeVisualState.perfect;
-    if (widget.progress.completed) return LevelNodeVisualState.completed;
     if (widget.isCurrent) return LevelNodeVisualState.current;
-    return LevelNodeVisualState.unlocked;
+    if (widget.progress.completed && widget.progress.bestStars >= 3) return LevelNodeVisualState.perfect;
+    if (widget.progress.completed) return LevelNodeVisualState.completed;
+    if (widget.progress.unlocked) return LevelNodeVisualState.unlocked;
+    return LevelNodeVisualState.locked;
   }
 
   @override
@@ -99,95 +103,137 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
             HapticFeedback.selectionClick();
             widget.onTap();
           },
-          child: Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: _getGradient(state),
-              border: Border.all(
-                color: _getBorderColor(state),
-                width: widget.isCurrent ? 3.5 : 2.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _getGlowColor(state),
-                  blurRadius: widget.isCurrent ? 12 : 6,
-                  spreadRadius: widget.isCurrent ? 2 : 0,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Inner Content
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (state == LevelNodeVisualState.locked) ...[
-                      const Icon(Icons.lock_rounded, color: Colors.white60, size: 28),
-                    ] else ...[
-                      Text(
-                        levelNumber,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          shadows: const [
-                            Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2)),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // Golden Crown above current active level
+              if (state == LevelNodeVisualState.current)
+                Positioned(
+                  top: -9,
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: Color(0xFFFFB300),
+                    size: 13,
+                    shadows: [
+                      Shadow(color: Color(0x99FF8F00), blurRadius: 4, offset: Offset(0, 1)),
+                    ],
+                  ),
+                ),
+
+              // Main Rounded Tile Box
+              Container(
+                width: widget.width,
+                height: widget.height,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  gradient: _getGradient(state),
+                  border: Border.all(
+                    color: _getBorderColor(state),
+                    width: widget.isCurrent ? 1.8 : 1.2,
+                  ),
+                  boxShadow: [
+                    // Deep drop shadow
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: widget.isCurrent ? 0.35 : 0.2),
+                      blurRadius: widget.isCurrent ? 6 : 3,
+                      offset: const Offset(0, 2),
+                    ),
+                    // Current tile golden glow
+                    if (widget.isCurrent)
+                      const BoxShadow(
+                        color: Color(0x66FFB300),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: Stack(
+                    children: [
+                      // Top Gloss highlight
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: widget.height * 0.42,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white.withValues(alpha: state == LevelNodeVisualState.locked ? 0.15 : 0.4),
+                                Colors.white.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Content Column (Number + 3 Stars)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.5),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Level Number
+                            Flexible(
+                              child: Text(
+                                levelNumber,
+                                style: TextStyle(
+                                  color: _getTextColor(state),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: widget.width * 0.38,
+                                  height: 1.05,
+                                  shadows: _getTextShadows(state),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            // 3 Stars row
+                            _buildStars(widget.progress.bestStars, state),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      _buildStars(widget.progress.bestStars),
                     ],
-                  ],
+                  ),
                 ),
-                // Completed Checkmark Badge
-                if (widget.progress.completed && state != LevelNodeVisualState.perfect)
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF4CAF50),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 12),
-                    ),
-                  ),
-                // Perfect Crown Badge
-                if (state == LevelNodeVisualState.perfect)
-                  Positioned(
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.star, color: Colors.deepOrange, size: 12),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStars(int stars) {
+  Widget _buildStars(int stars, LevelNodeVisualState state) {
+    final isCompleted = state == LevelNodeVisualState.completed || state == LevelNodeVisualState.perfect;
+    final isCurrent = state == LevelNodeVisualState.current;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(3, (index) {
-        final earned = index < stars;
-        return Icon(
-          Icons.star_rounded,
-          size: 13,
-          color: earned ? const Color(0xFFFFD700) : Colors.white24,
+        final earned = (index < stars) || isCompleted || (isCurrent && index < 3);
+        final starSize = (widget.width * 0.22).clamp(6.0, 9.0);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.3),
+          child: Icon(
+            Icons.star_rounded,
+            size: starSize,
+            color: earned
+                ? const Color(0xFFFFD54F)
+                : const Color(0xFFBCAAA4).withValues(alpha: 0.75),
+            shadows: earned
+                ? const [
+                    Shadow(color: Color(0x66E65100), blurRadius: 1.5, offset: Offset(0, 0.8)),
+                  ]
+                : null,
+          ),
         );
       }),
     );
@@ -195,66 +241,91 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
 
   LinearGradient _getGradient(LevelNodeVisualState state) {
     switch (state) {
-      case LevelNodeVisualState.locked:
-        return const LinearGradient(
-          colors: [Color(0xFF424242), Color(0xFF212121)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case LevelNodeVisualState.unlocked:
-        return const LinearGradient(
-          colors: [Color(0xFF29B6F6), Color(0xFF0288D1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case LevelNodeVisualState.current:
-        return const LinearGradient(
-          colors: [Color(0xFFFF7043), Color(0xFFF4511E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
       case LevelNodeVisualState.completed:
-        return const LinearGradient(
-          colors: [Color(0xFF26A69A), Color(0xFF00897B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
       case LevelNodeVisualState.perfect:
+        // Glossy vibrant green gradient
         return const LinearGradient(
-          colors: [Color(0xFFFFCA28), Color(0xFFFFA000)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF66C82B),
+            Color(0xFF439818),
+            Color(0xFF33790F),
+          ],
+          stops: [0.0, 0.6, 1.0],
+        );
+
+      case LevelNodeVisualState.current:
+        // Glowing warm golden amber gradient
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFFFCA28),
+            Color(0xFFFFA000),
+            Color(0xFFFF8F00),
+          ],
+          stops: [0.0, 0.6, 1.0],
+        );
+
+      case LevelNodeVisualState.unlocked:
+      case LevelNodeVisualState.locked:
+        // Soft warm parchment / tan beige
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFF3E7D0),
+            Color(0xFFE5D2B4),
+            Color(0xFFD6BE9B),
+          ],
+          stops: [0.0, 0.5, 1.0],
         );
     }
   }
 
   Color _getBorderColor(LevelNodeVisualState state) {
     switch (state) {
-      case LevelNodeVisualState.locked:
-        return Colors.white24;
-      case LevelNodeVisualState.unlocked:
-        return Colors.white70;
-      case LevelNodeVisualState.current:
-        return Colors.white;
       case LevelNodeVisualState.completed:
-        return const Color(0xFF80CBC4);
       case LevelNodeVisualState.perfect:
-        return const Color(0xFFFFF9C4);
+        return const Color(0xFF2E6E0B);
+      case LevelNodeVisualState.current:
+        return const Color(0xFFFFE082);
+      case LevelNodeVisualState.unlocked:
+      case LevelNodeVisualState.locked:
+        return const Color(0xFFC3AC87);
     }
   }
 
-  Color _getGlowColor(LevelNodeVisualState state) {
+  Color _getTextColor(LevelNodeVisualState state) {
     switch (state) {
-      case LevelNodeVisualState.locked:
-        return Colors.transparent;
-      case LevelNodeVisualState.unlocked:
-        return const Color(0x660288D1);
-      case LevelNodeVisualState.current:
-        return const Color(0x99F4511E);
       case LevelNodeVisualState.completed:
-        return const Color(0x6600897B);
       case LevelNodeVisualState.perfect:
-        return const Color(0x80FFA000);
+        return Colors.white;
+      case LevelNodeVisualState.current:
+        return Colors.white;
+      case LevelNodeVisualState.unlocked:
+      case LevelNodeVisualState.locked:
+        return const Color(0xFF5D4037);
+    }
+  }
+
+  List<Shadow>? _getTextShadows(LevelNodeVisualState state) {
+    switch (state) {
+      case LevelNodeVisualState.completed:
+      case LevelNodeVisualState.perfect:
+        return const [
+          Shadow(color: Color(0x991B5E20), blurRadius: 2, offset: Offset(0, 1)),
+        ];
+      case LevelNodeVisualState.current:
+        return const [
+          Shadow(color: Color(0x99BF360C), blurRadius: 2, offset: Offset(0, 1)),
+        ];
+      case LevelNodeVisualState.unlocked:
+      case LevelNodeVisualState.locked:
+        return const [
+          Shadow(color: Color(0x40FFFFFF), blurRadius: 1, offset: Offset(0, 1)),
+        ];
     }
   }
 }

@@ -15,71 +15,61 @@ class BoosterTargetOverlay extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final booster = targetController.currentBooster;
-        
         return Stack(
           children: [
-            // Darken background slightly to indicate mode
-            Container(
-              color: Colors.black.withValues(alpha: 0.3),
-            ),
-            
-            // Instruction Text
-            Positioned(
-              top: 150, // Below HUD
-              left: 0,
-              right: 0,
-              child: Center(
+            // 1. Subtle glowing ambient border to indicate targeting mode (IgnorePointer so board receives all taps)
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: true,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.amber, width: 2),
-                  ),
-                  child: Text(
-                    "Select Target for ${booster?.name ?? 'Booster'}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    border: Border.all(
+                      color: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+                      width: 3.5,
                     ),
-                  ),
-                ),
-              ),
-            ),
-            
-            // Cancel Button
-            Positioned(
-              bottom: 120, // Above Booster Bar
-              left: 0,
-              right: 0,
-              child: Center(
-                child: ElevatedButton.icon(
-                  onPressed: () => targetController.cancel(),
-                  icon: const Icon(Icons.close),
-                  label: const Text("CANCEL"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFB300).withValues(alpha: 0.25),
+                        blurRadius: 20,
+                        spreadRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
 
-            // Gesture interceptor for the board
-            Positioned.fill(
+            // 2. Icon-only Cancel floating button (No text)
+            Positioned(
+              top: 16,
+              right: 16,
               child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTapDown: (details) {
-                  // In a real grid, we'd translate global position to board Position.
-                  // Since the BoardWidget already translates taps, it's easier to let the BoardWidget intercept if we want precise Row/Col.
-                  // Wait, the BoardWidget handles drag, not tap.
-                  // For the sake of this module, we will just let TrailController ignore inputs when targeting is active,
-                  // and we will modify BoardWidget to emit onTapDown if targeting.
-                  // Alternatively, we can just wrap the BoardWidget in GameplayScreen.
-                },
+                onTap: () => targetController.cancel(),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE53935), Color(0xFFC62828)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: Colors.white, width: 2.0),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
               ),
             ),
           ],

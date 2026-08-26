@@ -86,6 +86,7 @@ class BoardWidget extends StatelessWidget {
   final Trail trail;
   final double cellSize;
   final double cellSpacing;
+  final Widget? fxOverlay;
   final void Function(Position) onDragStart;
   final void Function(Position) onDragUpdate;
   final VoidCallback onDragEnd;
@@ -97,6 +98,7 @@ class BoardWidget extends StatelessWidget {
     required this.trail,
     this.cellSize = 48.0,
     this.cellSpacing = 0.0,
+    this.fxOverlay,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,
@@ -130,56 +132,67 @@ class BoardWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // 1. Static background grid — rarely rebuilds
-            _BoardBackground(
-              rows: board.rows,
-              columns: board.columns,
-              cellSize: cellSize,
-              cellSpacing: cellSpacing,
-            ),
-
-            // 2. Block layer — rebuilds only when board state changes
-            _BoardBlockLayer(
-              board: board,
-              cellSize: cellSize,
-              cellSpacing: cellSpacing,
-            ),
-
-            // 3. Trail layer — isolated in a RepaintBoundary
-            Positioned.fill(
-              child: RepaintBoundary(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: TrailRenderer(
-                      trail: trail,
-                      cellSize: cellSize,
-                      cellSpacing: cellSpacing,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // 4. Input layer on top
-            Positioned.fill(
-              child: TrailInputLayer(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              // 1. Static background grid — rarely rebuilds
+              _BoardBackground(
                 rows: board.rows,
                 columns: board.columns,
                 cellSize: cellSize,
                 cellSpacing: cellSpacing,
-                onDragStart: onDragStart,
-                onDragUpdate: onDragUpdate,
-                onDragEnd: onDragEnd,
-                onDragCancel: onDragCancel,
               ),
-            ),
-          ],
+
+              // 2. Block layer — rebuilds only when board state changes
+              _BoardBlockLayer(
+                board: board,
+                cellSize: cellSize,
+                cellSpacing: cellSpacing,
+              ),
+
+              // 3. FX Visual layer (particles, shockwaves, streaks)
+              if (fxOverlay != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: fxOverlay!,
+                  ),
+                ),
+
+              // 4. Trail layer — isolated in a RepaintBoundary
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: TrailRenderer(
+                        trail: trail,
+                        cellSize: cellSize,
+                        cellSpacing: cellSpacing,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 5. Input layer on top
+              Positioned.fill(
+                child: TrailInputLayer(
+                  rows: board.rows,
+                  columns: board.columns,
+                  cellSize: cellSize,
+                  cellSpacing: cellSpacing,
+                  onDragStart: onDragStart,
+                  onDragUpdate: onDragUpdate,
+                  onDragEnd: onDragEnd,
+                  onDragCancel: onDragCancel,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -16,11 +16,12 @@ class BoosterBar extends StatelessWidget {
     switch (type) {
       case BoosterType.hammer:
         return 'assets/images/boosters/hammer.png';
-      case BoosterType.areaBlast:
       case BoosterType.rowClear:
-        return 'assets/images/boosters/bomb.png';
+        return 'assets/images/power_ups/powerup_4_rocket.png';
+      case BoosterType.areaBlast:
+        return 'assets/images/power_ups/powerup_5_bomb.png';
       case BoosterType.colorClear:
-        return 'assets/images/boosters/color_bomb.png';
+        return 'assets/images/power_ups/powerup_7_color_bomb.png';
       case BoosterType.shuffle:
         return 'assets/images/boosters/shuffle.png';
       case BoosterType.extraMoves:
@@ -33,9 +34,10 @@ class BoosterBar extends StatelessWidget {
     return AnimatedBuilder(
       animation: boosterManager,
       builder: (context, child) {
-        // Display the 5 main booster types from the reference
+        // Display all 6 booster power-ups
         const displayTypes = [
           BoosterType.hammer,
+          BoosterType.rowClear,
           BoosterType.areaBlast,
           BoosterType.colorClear,
           BoosterType.shuffle,

@@ -16,9 +16,12 @@ class BlockWidget extends StatefulWidget {
   State<BlockWidget> createState() => _BlockWidgetState();
 }
 
-class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStateMixin {
+class _BlockWidgetState extends State<BlockWidget> with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+  late AnimationController _destroyController;
+  late Animation<double> _destroyScaleAnimation;
+  late Animation<double> _destroyFadeAnimation;
   late BlockStyle _style;
 
   @override
@@ -33,8 +36,35 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
+    _destroyController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+
+    _destroyScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.18).chain(CurveTween(curve: Curves.easeOutQuad)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.18, end: 0.0).chain(CurveTween(curve: Curves.easeInBack)),
+        weight: 70,
+      ),
+    ]).animate(_destroyController);
+
+    _destroyFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _destroyController,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeIn),
+      ),
+    );
+
     _style = BlockColorMapper.getStyle(widget.block.color);
     _updateAnimationState();
+
+    if (widget.block.isBeingDestroyed) {
+      _destroyController.forward(from: 0.0);
+    }
   }
 
   @override
@@ -43,6 +73,11 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
 
     if (widget.block.color != oldWidget.block.color) {
       _style = BlockColorMapper.getStyle(widget.block.color);
+    }
+
+    if (widget.block.isBeingDestroyed != oldWidget.block.isBeingDestroyed &&
+        widget.block.isBeingDestroyed) {
+      _destroyController.forward(from: 0.0);
     }
 
     if (widget.block.isSelected != oldWidget.block.isSelected ||
@@ -63,6 +98,7 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
   @override
   void dispose() {
     _controller.dispose();
+    _destroyController.dispose();
     super.dispose();
   }
 
@@ -75,20 +111,26 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
     final bool isPowerUp = widget.block.isPowerUp;
 
     return AnimatedBuilder(
-      animation: _scaleAnimation,
+      animation: Listenable.merge([_scaleAnimation, _destroyController]),
       builder: (context, child) {
         double currentScale = 1.0;
-        if (widget.block.isBeingDestroyed) {
-          currentScale = 0.0;
+        double currentOpacity = 1.0;
+
+        if (widget.block.isBeingDestroyed || _destroyController.isAnimating) {
+          currentScale = _destroyScaleAnimation.value;
+          currentOpacity = _destroyFadeAnimation.value;
         } else if (isTransforming) {
-          currentScale = _scaleAnimation.value * 1.08;
+          currentScale = _scaleAnimation.value * 1.15;
         } else if (isSelected) {
           currentScale = _scaleAnimation.value;
         }
 
-        return Transform.scale(
-          scale: currentScale,
-          child: child,
+        return Opacity(
+          opacity: currentOpacity.clamp(0.0, 1.0),
+          child: Transform.scale(
+            scale: currentScale.clamp(0.0, 2.0),
+            child: child,
+          ),
         );
       },
       child: SizedBox(
@@ -97,8 +139,8 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 1. Selection Glowing Aura
-            if (isSelected)
+            // 1. Selection / Transformation Glowing Aura
+            if (isSelected || isTransforming)
               Container(
                 width: size,
                 height: size,
@@ -106,9 +148,11 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
                   borderRadius: BorderRadius.circular(size * 0.22),
                   boxShadow: [
                     BoxShadow(
-                      color: _style.glow.withValues(alpha: 0.90),
-                      blurRadius: 8,
-                      spreadRadius: 1.5,
+                      color: isTransforming
+                          ? const Color(0xFFFFD700).withValues(alpha: 0.95)
+                          : _style.glow.withValues(alpha: 0.90),
+                      blurRadius: isTransforming ? 12 : 8,
+                      spreadRadius: isTransforming ? 2.5 : 1.5,
                     ),
                   ],
                 ),
@@ -129,15 +173,17 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
                 ),
               ),
 
-            // 3. Selection Outline Border
-            if (isSelected)
+            // 3. Selection / Transformation Outline Border
+            if (isSelected || isTransforming)
               Container(
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(size * 0.22),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.95),
+                    color: isTransforming
+                        ? const Color(0xFFFFEB3B)
+                        : Colors.white.withValues(alpha: 0.95),
                     width: 2.2,
                   ),
                 ),

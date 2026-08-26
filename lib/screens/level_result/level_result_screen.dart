@@ -240,116 +240,122 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
               // Content overlaid directly inside the parchment area of the frame
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 70, 26, 16),
-                  child: Column(
-                    children: [
-                      // Heading message
-                      const Text(
-                        'You ran out of moves!',
-                        style: TextStyle(
-                          color: Color(0xFF3E200C),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Try again and do better!',
-                        style: TextStyle(
-                          color: Color(0xFF5D3A1A),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // GOAL vs YOU GOT Panel (Real Game Blocks)
-                      _buildGoalComparisonPanel(),
-
-                      const SizedBox(height: 10),
-
-                      // SCORE & BEST SCORE Row
-                      Row(
+                  padding: const EdgeInsets.fromLTRB(26, 68, 26, 16),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: 308,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Left: Score
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'SCORE',
-                                  style: TextStyle(
-                                    color: Color(0xFF7A4E24),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                                Text(
-                                  _formatNumber(score),
-                                  style: const TextStyle(
-                                    color: Color(0xFF3E200C),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
+                          // Heading message
+                          const Text(
+                            'You ran out of moves!',
+                            style: TextStyle(
+                              color: Color(0xFF3E200C),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
-
-                          // Right: Best Score Badge
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF8D4F1E), Color(0xFF5E310E)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    offset: Offset(0, 2),
-                                    blurRadius: 3,
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'BEST SCORE',
-                                    style: TextStyle(
-                                      color: Color(0xFFFFE082),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    _formatNumber(bestScore),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Try again and do better!',
+                            style: TextStyle(
+                              color: Color(0xFF5D3A1A),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
-                      ),
+                          const SizedBox(height: 8),
 
-                      const SizedBox(height: 10),
+                          // GOAL vs YOU GOT Panel (Real Game Blocks)
+                          _buildGoalComparisonPanel(),
 
-                      // DON'T GIVE UP! Boosters Section
-                      _buildBoostersSuggestionSection(),
+                          const SizedBox(height: 8),
 
-                      const Spacer(),
+                          // SCORE & BEST SCORE Row
+                          Row(
+                            children: [
+                              // Left: Score
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'SCORE',
+                                      style: TextStyle(
+                                        color: Color(0xFF7A4E24),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatNumber(score),
+                                      style: const TextStyle(
+                                        color: Color(0xFF3E200C),
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Right: Best Score Badge
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF8D4F1E), Color(0xFF5E310E)],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        offset: Offset(0, 2),
+                                        blurRadius: 3,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        'BEST SCORE',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFE082),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        _formatNumber(bestScore),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // DON'T GIVE UP! Boosters Section
+                          _buildBoostersSuggestionSection(),
+
+                          const SizedBox(height: 10),
 
                       // Bottom 3 Action Buttons matching frame button slots
                       Row(
@@ -420,9 +426,11 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
+    ),
 
         // 2. Sad Bear Mascot & Broken Heart (Leaning over the board)
         Positioned(

@@ -12,6 +12,7 @@ import '../../game/levels/initial_board_generator.dart';
 import '../../game/gravity/gravity_controller.dart';
 import '../../game/specials/special_controller.dart';
 import '../../game/specials/special_creation_result.dart';
+import '../../game/boosters/booster_use_state.dart';
 import '../../game/specials/power_up_manager.dart';
 import '../../game/blast/blast_controller.dart';
 import '../../game/blast/blast_result.dart';
@@ -36,6 +37,10 @@ import 'widgets/booster_target_overlay.dart';
 import 'widgets/combo_display.dart';
 import 'widgets/feedback/feedback_layer.dart';
 import 'widgets/pause_dialog.dart';
+import 'widgets/visual_fx/gameplay_fx_layer.dart';
+import 'widgets/visual_fx/gameplay_fx_controller.dart';
+import 'widgets/visual_fx/screen_shake_container.dart';
+import '../../game/blocks/block_color_mapper.dart';
 import '../tutorial/tutorial_overlay.dart';
 
 class GameplayScreen extends StatefulWidget {
@@ -76,9 +81,18 @@ class _GameplayScreenState extends State<GameplayScreen> {
   late BoosterTargetController _boosterTargetController;
   late FeedbackController _feedbackController;
 
+  final GameplayFxController _fxController = GameplayFxController();
+  final ScreenShakeController _shakeController = ScreenShakeController();
+
   bool _isInitialized = false;
   int _highestCombo = 0;
   int _largestBlast = 0;
+  double _currentCellSize = 48.0;
+
+  Offset _getCellCenter(Position pos, [double? cellSize]) {
+    final size = cellSize ?? _currentCellSize;
+    return Offset((pos.column + 0.5) * size, (pos.row + 0.5) * size);
+  }
 
   @override
   void initState() {
@@ -183,10 +197,16 @@ class _GameplayScreenState extends State<GameplayScreen> {
       levelResultController: _levelResultController,
       storage: ServiceLocator.instance.storage,
       getBlock: (id) => _blocks[id],
-      onMoveBlock: (id, pos) {},
+      onMoveBlock: (id, pos) {
+        final b = _blocks[id];
+        if (b != null) {
+          setState(() => _blocks[id] = b.copyWith(position: pos));
+        }
+      },
       specialController: _specialController,
     );
 
+    _boosterManager.addListener(_onBoosterStateChanged);
     _boosterManager.loadInventory();
 
     _boosterTargetController = BoosterTargetController(
@@ -230,8 +250,33 @@ class _GameplayScreenState extends State<GameplayScreen> {
     });
   }
 
+  void _onBoosterStateChanged() {
+    if (!mounted) return;
+    if (_boosterManager.state == BoosterUseState.executing) {
+      final def = _boosterManager.selectedBoosterDef;
+      if (def?.type == BoosterType.shuffle) {
+        ServiceLocator.instance.audioManager.playShuffle();
+        final cellSize = _currentCellSize;
+        for (int r = 0; r < _boardController.rows; r++) {
+          for (int c = 0; c < _boardController.columns; c++) {
+            final center = _getCellCenter(Position(r, c), cellSize);
+            _fxController.spawnMatchPop(center, const Color(0xFFFFD54F), count: 3);
+          }
+        }
+      } else if (def?.type == BoosterType.extraMoves) {
+        ServiceLocator.instance.audioManager.playExtraMoves();
+        _shakeController.shake(intensity: 3.5);
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _boosterManager.removeListener(_onBoosterStateChanged);
+    _boosterManager.dispose();
+    _boosterTargetController.dispose();
+    _fxController.dispose();
+    _shakeController.dispose();
     _trailController.dispose();
     _cascadeController.dispose();
     _blastController.dispose();
@@ -297,14 +342,30 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     final count = trail.positions.length;
     final isPowerUpCreation = count >= 4;
+    final cellSize = _currentCellSize;
+    final matchColor = BlockColorMapper.getStyle(trail.color!).main;
 
     if (isPowerUpCreation) {
+      // Staggered pop sparkle particles along disappearing blocks
+      for (int i = 0; i < trail.positions.length; i++) {
+        final center = _getCellCenter(trail.positions[i], cellSize);
+        Future.delayed(Duration(milliseconds: i * 15), () {
+          if (mounted) _fxController.spawnMatchPop(center, matchColor, count: 8);
+        });
+      }
+
       // 2. Power-Up Transformation Flow (Block transforms, others disappear into it)
       final transformResult = await _powerUpManager.processTrailPowerUp(
         blockIds: trail.blockIds,
         positions: trail.positions,
         color: trail.color!,
       );
+
+      // Celebration pulse & golden sparkle burst on creation cell
+      if (transformResult.targetPosition != null) {
+        final creationCenter = _getCellCenter(transformResult.targetPosition!, cellSize);
+        _fxController.spawnPowerUpCreation(creationCenter, matchColor, transformResult.powerUpType);
+      }
 
       final blastResult = BlastResult(
         success: true,
@@ -344,7 +405,14 @@ class _GameplayScreenState extends State<GameplayScreen> {
         type: transformResult.specialType,
       ));
     } else {
-      // 3. Normal Blast (Length 2-3, no power-up)
+      // 3. Normal Blast (Length 2-3, staggered pops)
+      for (int i = 0; i < trail.positions.length; i++) {
+        final center = _getCellCenter(trail.positions[i], cellSize);
+        Future.delayed(Duration(milliseconds: i * 20), () {
+          if (mounted) _fxController.spawnMatchPop(center, matchColor, count: 12);
+        });
+      }
+
       final matchResult = MatchResult(
         isValid: true,
         length: trail.positions.length,
@@ -403,11 +471,84 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _levelResultController.setResolving(true);
     _moveController.consumeMove();
 
+    final cellSize = _currentCellSize;
+    final blockId = _boardController.getBlockId(pos);
+    final block = (blockId != null) ? _blocks[blockId] : null;
+
+    if (block != null) {
+      final center = _getCellCenter(pos, cellSize);
+      final sourceColor = BlockColorMapper.getStyle(block.color).main;
+
+      // Trigger Theme-Matched Blast FX
+      _fxController.spawnPowerUpBlast(
+        center: center,
+        specialType: block.specialType,
+        sourceColor: sourceColor,
+      );
+
+      // Directional Rocket / Cross Blast streaks
+      if (block.specialType == SpecialBlockType.smallArea ||
+          block.specialType == SpecialBlockType.horizontalLine ||
+          block.specialType == SpecialBlockType.verticalLine ||
+          block.specialType == SpecialBlockType.crossBlast) {
+        final boardWidth = cellSize * _level.boardConfig.columns;
+        final boardHeight = cellSize * _level.boardConfig.rows;
+
+        if (block.specialType == SpecialBlockType.horizontalLine ||
+            block.specialType == SpecialBlockType.crossBlast ||
+            block.specialType == SpecialBlockType.smallArea) {
+          _fxController.spawnRocketStreak(
+            start: Offset(0, center.dy),
+            end: Offset(boardWidth, center.dy),
+            color: const Color(0xFFFF3D00),
+            isHorizontal: true,
+          );
+        }
+        if (block.specialType == SpecialBlockType.verticalLine ||
+            block.specialType == SpecialBlockType.crossBlast) {
+          _fxController.spawnRocketStreak(
+            start: Offset(center.dx, 0),
+            end: Offset(center.dx, boardHeight),
+            color: const Color(0xFFFF3D00),
+            isHorizontal: false,
+          );
+        }
+      }
+
+      // Subtle Screen Shake for impact
+      if (block.specialType == SpecialBlockType.bomb ||
+          block.specialType == SpecialBlockType.megaBomb) {
+        _shakeController.shake(
+          intensity: block.specialType == SpecialBlockType.megaBomb ? 10.0 : 6.5,
+        );
+      } else if (block.specialType == SpecialBlockType.crossBlast ||
+                 block.specialType == SpecialBlockType.smallArea) {
+        _shakeController.shake(intensity: 4.5);
+      }
+    }
+
     final blastResult = await _powerUpManager.activatePowerUpAt(pos);
 
     if (blastResult.success) {
       if (blastResult.destroyedPositions.length > _largestBlast) {
         setState(() => _largestBlast = blastResult.destroyedPositions.length);
+      }
+
+      // Staggered outward pops on all affected blocks
+      for (int i = 0; i < blastResult.destroyedPositions.length; i++) {
+        final p = blastResult.destroyedPositions[i];
+        final popCenter = _getCellCenter(p, cellSize);
+        Future.delayed(Duration(milliseconds: (i * 12).clamp(0, 120)), () {
+          if (mounted) {
+            _fxController.spawnMatchPop(
+              popCenter,
+              blastResult.color != null
+                  ? BlockColorMapper.getStyle(blastResult.color!).main
+                  : const Color(0xFFFFD700),
+              count: 6,
+            );
+          }
+        });
       }
 
       final blastEvent = BlockBlastEvent(blastResult.destroyedPositions.length, isMegaBlast: true);
@@ -436,6 +577,137 @@ class _GameplayScreenState extends State<GameplayScreen> {
         _goalController.onCascadeResult(cascadeResult);
         dailyManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
         eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
+      }
+
+      if (_comboController.state.level > _highestCombo) {
+        setState(() => _highestCombo = _comboController.state.level);
+      }
+    }
+
+    _levelResultController.setResolving(false);
+  }
+
+  /// Handles player tapping a target cell when a booster is selected from the bottom bar
+  Future<void> _handleBoosterTapActivation(Position pos) async {
+    final def = _boosterManager.selectedBoosterDef;
+    if (def == null) {
+      _boosterTargetController.cancel();
+      return;
+    }
+
+    final blockId = _boardController.getBlockId(pos);
+    final block = (blockId != null) ? _blocks[blockId] : null;
+    if (block == null || block.isLocked) {
+      _boosterTargetController.cancel();
+      return;
+    }
+
+    _levelResultController.setResolving(true);
+    final cellSize = _currentCellSize;
+    final center = _getCellCenter(pos, cellSize);
+    final blockColor = BlockColorMapper.getStyle(block.color).main;
+
+    // 1. Trigger Theme-Matched Blast FX per Booster Type
+    switch (def.type) {
+      case BoosterType.rowClear: // Rocket (Clears row & column)
+        final boardWidth = cellSize * _level.boardConfig.columns;
+        final boardHeight = cellSize * _level.boardConfig.rows;
+        _fxController.spawnRocketStreak(
+          start: Offset(0, center.dy),
+          end: Offset(boardWidth, center.dy),
+          color: const Color(0xFFFF4500),
+          isHorizontal: true,
+        );
+        _fxController.spawnRocketStreak(
+          start: Offset(center.dx, 0),
+          end: Offset(center.dx, boardHeight),
+          color: const Color(0xFFFF4500),
+          isHorizontal: false,
+        );
+        _fxController.spawnPowerUpBlast(
+          center: center,
+          specialType: SpecialBlockType.crossBlast,
+          sourceColor: blockColor,
+        );
+        _shakeController.shake(intensity: 6.0);
+        ServiceLocator.instance.audioManager.playLineBlast();
+        break;
+
+      case BoosterType.areaBlast: // Bomb (3x3 explosive radius)
+        _fxController.spawnPowerUpBlast(
+          center: center,
+          specialType: SpecialBlockType.bomb,
+          sourceColor: const Color(0xFFFF6F00),
+        );
+        _shakeController.shake(intensity: 8.5);
+        ServiceLocator.instance.audioManager.playBomb();
+        break;
+
+      case BoosterType.colorClear: // Disco Ball / Color Bomb (All same color)
+        _fxController.spawnPowerUpBlast(
+          center: center,
+          specialType: SpecialBlockType.colorSpecial,
+          sourceColor: blockColor,
+        );
+        for (int r = 0; r < _boardController.rows; r++) {
+          for (int c = 0; c < _boardController.columns; c++) {
+            final p = Position(r, c);
+            final id = _boardController.getBlockId(p);
+            if (id != null && _blocks[id]?.color == block.color) {
+              final cellCenter = _getCellCenter(p, cellSize);
+              _fxController.spawnMatchPop(cellCenter, blockColor, count: 6);
+            }
+          }
+        }
+        _shakeController.shake(intensity: 7.5);
+        ServiceLocator.instance.audioManager.playColorBomb();
+        break;
+
+      case BoosterType.hammer: // Hammer single block smash
+        _fxController.spawnPowerUpBlast(
+          center: center,
+          specialType: SpecialBlockType.smallArea,
+          sourceColor: const Color(0xFFFFD700),
+        );
+        _shakeController.shake(intensity: 4.5);
+        ServiceLocator.instance.audioManager.playHammer();
+        break;
+
+      default:
+        break;
+    }
+
+    // 2. Execute targeted booster logic
+    final result = await _boosterManager.executeTargetedBooster(pos);
+
+    if (result.success) {
+      final affected = result.affectedPositions;
+      if (affected.length > _largestBlast) {
+        setState(() => _largestBlast = affected.length);
+      }
+
+      // Staggered outward pops on all affected cells
+      for (int i = 0; i < affected.length; i++) {
+        final p = affected[i];
+        final popCenter = _getCellCenter(p, cellSize);
+        Future.delayed(Duration(milliseconds: (i * 12).clamp(0, 120)), () {
+          if (mounted) {
+            _fxController.spawnMatchPop(
+              popCenter,
+              blockColor,
+              count: 6,
+            );
+          }
+        });
+      }
+
+      // 3. Trigger cascades and gravity drop
+      final allowedColors = _level.colorConfig?.availableColors ?? [];
+      final cascadeResult = await _cascadeController.startCascade(allowedColors);
+      if (cascadeResult.cascadeLevel > 0) {
+        _goalController.onCascadeResult(cascadeResult);
+        ServiceLocator.instance.dailyChallengeManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
+        ServiceLocator.instance.eventManager.incrementProgress(EventType.cascade, cascadeResult.cascadeLevel);
       }
 
       if (_comboController.state.level > _highestCombo) {
@@ -522,50 +794,68 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    AnimatedBuilder(
-                      animation: Listenable.merge([
-                        _levelResultController,
-                        _cascadeController,
-                        _trailController,
-                        _gravityController,
-                        _powerUpManager,
-                      ]),
-                      builder: (context, child) {
-                        final isLocked = _levelResultController.status != GameStatus.playing ||
-                                         _cascadeController.inputLocked;
-                        return AbsorbPointer(
-                          absorbing: isLocked,
-                          child: Center(
-                            child: BoardWidget(
-                              board: renderBoard,
-                              trail: _trailController.activeTrail,
-                              cellSize: (MediaQuery.of(context).size.width - 32) / _level.boardConfig.columns,
-                              cellSpacing: 0.0,
-                              onDragStart: (pos) {
-                                if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
-                                if (_boosterTargetController.isTargeting) {
-                                  _boosterTargetController.handleTap(pos);
-                                } else {
-                                  _trailController.handleDragStart(pos);
-                                  if (_trailController.isDragging) {
-                                    ServiceLocator.instance.audioManager.playTileTap();
-                                  }
-                                }
-                              },
-                              onDragUpdate: (pos) {
-                                if (!_boosterTargetController.isTargeting) {
-                                  final prevLength = _trailController.activeTrail.positions.length;
-                                  _trailController.handleDragUpdate(pos);
-                                  final newLength = _trailController.activeTrail.positions.length;
-                                  if (newLength > prevLength) {
-                                    ServiceLocator.instance.audioManager.playTrailDrag(trailLength: newLength);
-                                  }
-                                }
-                              },
-                              onDragEnd: () => _trailController.handleDragEnd(),
-                              onDragCancel: () => _trailController.handleDragCancel(),
-                            ),
-                          ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Dynamically calculate cellSize to fit both width & height comfortably with padding
+                        final maxAvailableWidth = constraints.maxWidth - 24;
+                        final maxAvailableHeight = constraints.maxHeight - 24;
+                        final cellSizeByW = (maxAvailableWidth - 24) / _level.boardConfig.columns;
+                        final cellSizeByH = (maxAvailableHeight - 24) / _level.boardConfig.rows;
+                        final cellSize = (cellSizeByW < cellSizeByH ? cellSizeByW : cellSizeByH).clamp(32.0, 72.0);
+                        _currentCellSize = cellSize;
+
+                        return AnimatedBuilder(
+                          animation: Listenable.merge([
+                            _levelResultController,
+                            _cascadeController,
+                            _trailController,
+                            _gravityController,
+                            _powerUpManager,
+                            _boosterManager,
+                          ]),
+                          builder: (context, child) {
+                            final isLocked = _levelResultController.status != GameStatus.playing ||
+                                             _cascadeController.inputLocked;
+
+                            return AbsorbPointer(
+                              absorbing: isLocked,
+                              child: ScreenShakeContainer(
+                                controller: _shakeController,
+                                child: Center(
+                                  child: BoardWidget(
+                                    board: renderBoard,
+                                    trail: _trailController.activeTrail,
+                                    cellSize: cellSize,
+                                    cellSpacing: 0.0,
+                                    fxOverlay: GameplayFxLayer(controller: _fxController),
+                                    onDragStart: (pos) {
+                                      if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
+                                      if (_boosterTargetController.isTargeting) {
+                                        _handleBoosterTapActivation(pos);
+                                      } else {
+                                        _trailController.handleDragStart(pos);
+                                        if (_trailController.isDragging) {
+                                          ServiceLocator.instance.audioManager.playTileTap();
+                                        }
+                                      }
+                                    },
+                                    onDragUpdate: (pos) {
+                                      if (!_boosterTargetController.isTargeting) {
+                                        final prevLength = _trailController.activeTrail.positions.length;
+                                        _trailController.handleDragUpdate(pos);
+                                        final newLength = _trailController.activeTrail.positions.length;
+                                        if (newLength > prevLength) {
+                                          ServiceLocator.instance.audioManager.playTrailDrag(trailLength: newLength);
+                                        }
+                                      }
+                                    },
+                                    onDragEnd: () => _trailController.handleDragEnd(),
+                                    onDragCancel: () => _trailController.handleDragCancel(),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

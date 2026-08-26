@@ -121,14 +121,22 @@ class BlastController extends ChangeNotifier {
       intensity = BlastIntensity.mega; // Upgrade intensity if specials triggered
     }
 
-    // Phase 1: Mark as being destroyed
-    for (final id in targetBlockIds) {
+    // Phase 1: Mark as being destroyed with sequential stagger
+    final targetList = targetBlockIds.toList();
+    final staggerMs = (targetList.length > 1) ? 20 : 0;
+    final totalStaggerDuration = Duration(milliseconds: staggerMs * (targetList.length - 1));
+
+    for (int i = 0; i < targetList.length; i++) {
+      final id = targetList[i];
       final block = getBlock(id);
       if (block != null) {
         onUpdateBlock(block.copyWith(
           isBeingDestroyed: true,
           isSelected: false,
         ));
+      }
+      if (staggerMs > 0 && i < targetList.length - 1) {
+        await Future.delayed(Duration(milliseconds: staggerMs));
       }
     }
     
@@ -143,7 +151,10 @@ class BlastController extends ChangeNotifier {
       }
     }
 
-    await Future.delayed(duration);
+    final remainingDelay = duration - totalStaggerDuration;
+    if (remainingDelay > Duration.zero) {
+      await Future.delayed(remainingDelay);
+    }
 
     // Phase 2: Physically remove
     for (final pos in targetPositions) {
