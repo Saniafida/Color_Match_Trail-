@@ -11,10 +11,10 @@ class BoosterValidator {
     required LevelResultController levelResultController,
     required BlastController blastController,
   }) {
-    final inventory = ServiceLocator.instance.inventoryManager.inventory;
+    final inventoryManager = ServiceLocator.instance.inventoryManager;
     
     // Inventory check
-    if (inventory.getQuantity(type) <= 0) return false;
+    if (inventoryManager.getQuantity(type) <= 0) return false;
 
     // Game state check
     if (levelResultController.status != GameStatus.playing) return false;

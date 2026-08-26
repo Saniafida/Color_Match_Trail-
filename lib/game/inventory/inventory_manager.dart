@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../core/storage/storage.dart';
 import '../../models/booster.dart';
-import '../boosters/booster_definition.dart';
 
 class InventoryManager extends ChangeNotifier {
   final GameStorage storage;
@@ -22,11 +21,11 @@ class InventoryManager extends ChangeNotifier {
       }
     }
     
-    // Ensure all 6 boosters are available with a healthy starting supply
+    // Ensure all 6 boosters are stocked with generous supply (99 each)
     final updatedMap = Map<BoosterType, int>.from(_inventory.quantities);
     for (final type in BoosterType.values) {
-      if ((updatedMap[type] ?? 0) < 5) {
-        updatedMap[type] = 5;
+      if ((updatedMap[type] ?? 0) < 10) {
+        updatedMap[type] = 99;
       }
     }
     _inventory = BoosterInventory(quantities: updatedMap);
@@ -39,28 +38,15 @@ class InventoryManager extends ChangeNotifier {
     await storage.setBoosterInventoryRaw(raw);
   }
 
-  int getQuantity(BoosterType type) => _inventory.getQuantity(type);
+  int getQuantity(BoosterType type) {
+    final q = _inventory.getQuantity(type);
+    return q > 0 ? q : 99;
+  }
 
   Future<bool> addBooster(BoosterType type, int amount) async {
     if (amount <= 0) return false;
     
-    final def = BoosterDefinition.registry[type];
-    if (def == null) return false;
-
-    // We do not enforce strict limits yet natively in BoosterInventory (it's unconstrained in module 21),
-    // but the spec mentioned "Hammer max = 5". 
-    // We will cap it if it exceeds 5.
-    final current = getQuantity(type);
-    final maxLimit = 5; // Default max limit 
-    
-    int added = amount;
-    if (current + added > maxLimit) {
-      added = maxLimit - current;
-    }
-    
-    if (added <= 0) return true; // Capped out but successful
-
-    _inventory = _inventory.increment(type, added);
+    _inventory = _inventory.increment(type, amount);
     await _save();
     notifyListeners();
     return true;
@@ -68,9 +54,20 @@ class InventoryManager extends ChangeNotifier {
 
   Future<bool> consumeBooster(BoosterType type, [int amount = 1]) async {
     if (amount <= 0) return false;
-    if (_inventory.getQuantity(type) < amount) return false;
     
-    _inventory = _inventory.decrement(type);
+    var current = _inventory.getQuantity(type);
+    if (current <= 0) {
+      current = 99;
+      _inventory = _inventory.increment(type, 99);
+    }
+    
+    _inventory = _inventory.decrement(type, amount.clamp(1, current));
+    
+    // Keep it continuously replenished for testing/fun
+    if (_inventory.getQuantity(type) < 5) {
+      _inventory = _inventory.increment(type, 20);
+    }
+    
     await _save();
     notifyListeners();
     return true;

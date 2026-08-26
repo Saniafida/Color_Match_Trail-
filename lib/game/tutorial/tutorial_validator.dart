@@ -29,12 +29,9 @@ class TutorialValidator {
     if (step == null) return true;
 
     if (step.requiredAction == 'use_booster') {
-      if (step.targetId == boosterType.name) {
-        return true;
-      }
-      return false;
+      return step.targetId == boosterType.name;
     }
 
-    return false;
+    return true;
   }
 }
