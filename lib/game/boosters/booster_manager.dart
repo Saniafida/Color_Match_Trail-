@@ -328,6 +328,7 @@ class BoosterManager extends ChangeNotifier {
       consumed: true,
       affectedBlockIds: blastResult.destroyedBlockIds,
       affectedPositions: blastResult.destroyedPositions,
+      blastResult: blastResult,
     );
   }
 }

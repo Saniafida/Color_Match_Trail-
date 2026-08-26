@@ -515,15 +515,24 @@ class _GameplayScreenState extends State<GameplayScreen> {
         }
       }
 
-      // Subtle Screen Shake for impact
+      // Subtle Screen Shake & Sound for impact
       if (block.specialType == SpecialBlockType.bomb ||
           block.specialType == SpecialBlockType.megaBomb) {
         _shakeController.shake(
           intensity: block.specialType == SpecialBlockType.megaBomb ? 10.0 : 6.5,
         );
+        ServiceLocator.instance.audioManager.playBomb();
       } else if (block.specialType == SpecialBlockType.crossBlast ||
-                 block.specialType == SpecialBlockType.smallArea) {
+                 block.specialType == SpecialBlockType.smallArea ||
+                 block.specialType == SpecialBlockType.horizontalLine ||
+                 block.specialType == SpecialBlockType.verticalLine) {
         _shakeController.shake(intensity: 4.5);
+        ServiceLocator.instance.audioManager.playLineBlast();
+      } else if (block.specialType == SpecialBlockType.colorSpecial) {
+        _shakeController.shake(intensity: 7.0);
+        ServiceLocator.instance.audioManager.playColorBomb();
+      } else {
+        ServiceLocator.instance.audioManager.playHammer();
       }
     }
 
@@ -684,6 +693,22 @@ class _GameplayScreenState extends State<GameplayScreen> {
       final affected = result.affectedPositions;
       if (affected.length > _largestBlast) {
         setState(() => _largestBlast = affected.length);
+      }
+
+      if (result.blastResult != null) {
+        final blastResult = result.blastResult!;
+        _goalController.onBlastResult(blastResult);
+        await _scoreController.processBlast(blastResult);
+        if (_scoreController.lastScoreEvent != null) {
+          _goalController.onScoreEvent(_scoreController.lastScoreEvent!);
+        }
+
+        final dailyManager = ServiceLocator.instance.dailyChallengeManager;
+        final eventManager = ServiceLocator.instance.eventManager;
+        dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
+        dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
+        eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
+        eventManager.incrementProgress(EventType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
       }
 
       // Staggered outward pops on all affected cells

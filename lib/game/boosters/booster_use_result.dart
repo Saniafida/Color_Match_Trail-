@@ -1,4 +1,5 @@
 import '../../models/models.dart';
+import '../blast/blast_result.dart';
 
 class BoosterUseResult {
   final bool success;
@@ -7,6 +8,7 @@ class BoosterUseResult {
   final List<String> affectedBlockIds;
   final List<Position> affectedPositions;
   final DestructionSource source;
+  final BlastResult? blastResult;
   final String? error;
 
   const BoosterUseResult({
@@ -16,6 +18,7 @@ class BoosterUseResult {
     this.affectedBlockIds = const [],
     this.affectedPositions = const [],
     this.source = DestructionSource.booster,
+    this.blastResult,
     this.error,
   });
 }

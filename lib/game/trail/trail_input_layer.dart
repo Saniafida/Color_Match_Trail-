@@ -41,6 +41,11 @@ class TrailInputLayer extends StatelessWidget {
     
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTapDown: (details) {
+        final pos = _getLocalPosition(details.localPosition);
+        if (pos != null) onDragStart(pos);
+      },
+      onTapUp: (details) => onDragEnd(),
       onPanStart: (details) {
         final pos = _getLocalPosition(details.localPosition);
         if (pos != null) onDragStart(pos);

@@ -95,49 +95,70 @@ class BoosterBar extends StatelessWidget {
               }
             }
           : null,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          // Wooden / Gold Circular Container
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: isSelected
-                  ? const LinearGradient(
-                      colors: [Color(0xFFFFEE58), Color(0xFFFFB300)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFF8D582A), Color(0xFF5D3512)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+      child: AnimatedScale(
+        scale: isSelected ? 1.15 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutBack,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Glowing golden aura when selected
+            if (isSelected)
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.85),
+                      blurRadius: 14,
+                      spreadRadius: 3,
                     ),
-              border: Border.all(
-                color: isSelected ? Colors.white : const Color(0xFFFFD54F),
-                width: isSelected ? 3.0 : 2.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isSelected ? const Color(0xFFFFD700).withAlpha(180) : Colors.black45,
-                  blurRadius: isSelected ? 8 : 4,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: ClipOval(
-                child: Image.asset(
-                  assetPath,
-                  fit: BoxFit.cover,
+                  ],
                 ),
               ),
+
+            // Wooden / Gold Circular Container
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFFFEE58), Color(0xFFFFB300)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF8D582A), Color(0xFF5D3512)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                border: Border.all(
+                  color: isSelected ? Colors.white : const Color(0xFFFFD54F),
+                  width: isSelected ? 3.0 : 2.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected ? const Color(0xFFFFD700).withValues(alpha: 0.7) : Colors.black45,
+                    blurRadius: isSelected ? 8 : 4,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ClipOval(
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
-          ),
 
           // Count Badge (Red / Coral Pill)
           Positioned(
@@ -169,6 +190,7 @@ class BoosterBar extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
