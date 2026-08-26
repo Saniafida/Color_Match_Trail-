@@ -68,6 +68,7 @@ flutter:
     - assets/images/themes/
     - assets/images/lose_screen/
     - assets/images/home_screen/
+    - assets/images/power_ups/
     - assets/blocks/
     - assets/locales/
     - assets/data/levels/
@@ -81,6 +82,10 @@ flutter:
     - assets/data/colors/
     - assets/data/game_config/
     - assets/data/achievements/
+    - assets/data/milestones/
+    - assets/data/balance/
+    - assets/data/tutorial/
+    - assets/data/levels/templates/
     - assets/levels/
     - assets/sounds/
     - assets/sounds/ui/

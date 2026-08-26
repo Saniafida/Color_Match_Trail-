@@ -210,6 +210,7 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
     if (selectedTile == null) {
       HapticFeedback.selectionClick();
+      ServiceLocator.instance.audioManager.playTileTap();
       setState(() => selectedTile = tapped);
       return;
     }
@@ -1477,50 +1478,25 @@ class _TileSwapScreenState extends State<TileSwapScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 3D Block Image
-            Image.asset(
-              BlockColorMapper.getAssetPath(cell.color),
-              fit: BoxFit.contain,
-            ),
-
-            // Special Tile Badge Overlay
-            if (cell.special == TileSpecialType.lineHorizontal)
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black38,
-                  border: Border.all(color: Colors.white, width: 1.2),
-                ),
-                padding: const EdgeInsets.all(2),
-                child: const Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 14),
-              )
-            else if (cell.special == TileSpecialType.lineVertical)
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black38,
-                  border: Border.all(color: Colors.white, width: 1.2),
-                ),
-                padding: const EdgeInsets.all(2),
-                child: const Icon(Icons.swap_vert_rounded, color: Colors.white, size: 14),
+            if (cell.special == TileSpecialType.lineHorizontal || cell.special == TileSpecialType.lineVertical)
+              Image.asset(
+                'assets/images/power_ups/powerup_4_rocket.png',
+                width: cellSize * 0.95,
+                height: cellSize * 0.95,
+                fit: BoxFit.contain,
               )
             else if (cell.special == TileSpecialType.colorBomb)
-              Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      Color(0xFFFF1744),
-                      Color(0xFFFFEA00),
-                      Color(0xFF00E676),
-                      Color(0xFF2979FF),
-                      Color(0xFFAA00FF),
-                      Color(0xFFFF1744),
-                    ],
-                  ),
-                ),
-                padding: const EdgeInsets.all(3),
-                child: const Icon(Icons.star_rounded, color: Colors.white, size: 14),
+              Image.asset(
+                'assets/images/power_ups/powerup_7_color_bomb.png',
+                width: cellSize * 0.95,
+                height: cellSize * 0.95,
+                fit: BoxFit.contain,
+              )
+            else
+              // 3D Normal Block Image
+              Image.asset(
+                BlockColorMapper.getAssetPath(cell.color),
+                fit: BoxFit.contain,
               ),
           ],
         ),

@@ -547,11 +547,19 @@ class _GameplayScreenState extends State<GameplayScreen> {
                                   _boosterTargetController.handleTap(pos);
                                 } else {
                                   _trailController.handleDragStart(pos);
+                                  if (_trailController.isDragging) {
+                                    ServiceLocator.instance.audioManager.playTileTap();
+                                  }
                                 }
                               },
                               onDragUpdate: (pos) {
                                 if (!_boosterTargetController.isTargeting) {
+                                  final prevLength = _trailController.activeTrail.positions.length;
                                   _trailController.handleDragUpdate(pos);
+                                  final newLength = _trailController.activeTrail.positions.length;
+                                  if (newLength > prevLength) {
+                                    ServiceLocator.instance.audioManager.playTrailDrag(trailLength: newLength);
+                                  }
                                 }
                               },
                               onDragEnd: () => _trailController.handleDragEnd(),

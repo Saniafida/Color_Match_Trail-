@@ -97,8 +97,8 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 1. Selection / Trail Glowing Aura
-            if (isSelected || isPowerUp)
+            // 1. Selection Glowing Aura
+            if (isSelected)
               Container(
                 width: size,
                 height: size,
@@ -106,48 +106,41 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
                   borderRadius: BorderRadius.circular(size * 0.22),
                   boxShadow: [
                     BoxShadow(
-                      color: isPowerUp
-                          ? const Color(0xFFFFD700).withValues(alpha: 0.85)
-                          : _style.glow.withValues(alpha: 0.90),
-                      blurRadius: isPowerUp ? 10 : 8,
-                      spreadRadius: isPowerUp ? 2 : 1.5,
+                      color: _style.glow.withValues(alpha: 0.90),
+                      blurRadius: 8,
+                      spreadRadius: 1.5,
                     ),
                   ],
                 ),
               ),
 
-            // 2. Main 3D Block PNG Image Asset from assets/blocks/
-            Opacity(
-              opacity: isLocked ? 0.45 : 1.0,
-              child: Image.asset(
-                _style.assetPath,
-                width: size,
-                height: size,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
+            // 2. Display either standalone Power-Up Asset OR Normal Block Asset
+            if (isPowerUp)
+              _buildPowerUpBadge(size * 0.95)
+            else
+              Opacity(
+                opacity: isLocked ? 0.45 : 1.0,
+                child: Image.asset(
+                  _style.assetPath,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                ),
               ),
-            ),
 
-            // 3. Selection / Power-Up Outline Border
-            if (isSelected || isPowerUp)
+            // 3. Selection Outline Border
+            if (isSelected)
               Container(
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(size * 0.22),
                   border: Border.all(
-                    color: isPowerUp
-                        ? const Color(0xFFFFEB3B)
-                        : Colors.white.withValues(alpha: 0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                     width: 2.2,
                   ),
                 ),
-              ),
-
-            // 4. Special Power-Up Emblem Badge Overlay (if power-up block)
-            if (isPowerUp)
-              Center(
-                child: _buildPowerUpBadge(size * 0.55),
               ),
           ],
         ),
@@ -156,73 +149,54 @@ class _BlockWidgetState extends State<BlockWidget> with SingleTickerProviderStat
   }
 
   Widget _buildPowerUpBadge(double iconSize) {
-    IconData icon;
-    Color color;
+    String assetPath;
 
     switch (widget.block.specialType) {
       case SpecialBlockType.smallArea:
       case SpecialBlockType.horizontalLine:
       case SpecialBlockType.verticalLine:
-        icon = Icons.rocket_launch_rounded;
-        color = Colors.white;
+        assetPath = 'assets/images/power_ups/powerup_4_rocket.png';
         break;
       case SpecialBlockType.bomb:
-        icon = Icons.local_fire_department_rounded;
-        color = const Color(0xFFFFD700);
+        assetPath = 'assets/images/power_ups/powerup_5_bomb.png';
         break;
       case SpecialBlockType.crossBlast:
-        icon = Icons.control_camera_rounded;
-        color = const Color(0xFF00E5FF);
+        assetPath = 'assets/images/power_ups/powerup_6_cross.png';
         break;
       case SpecialBlockType.colorSpecial:
-        icon = Icons.auto_awesome;
-        color = const Color(0xFFFF4081);
+        assetPath = 'assets/images/power_ups/powerup_7_color_bomb.png';
         break;
       case SpecialBlockType.megaBomb:
-        icon = Icons.stars_rounded;
-        color = const Color(0xFFFFD700);
+        assetPath = 'assets/images/power_ups/powerup_8_disco_mega.png';
+        break;
+      case SpecialBlockType.magicWand:
+        assetPath = 'assets/images/power_ups/powerup_9_star_wand.png';
         break;
       case SpecialBlockType.none:
         switch (widget.block.type) {
           case BlockType.rocket:
-            icon = Icons.rocket_launch_rounded;
-            color = Colors.white;
+            assetPath = 'assets/images/power_ups/powerup_4_rocket.png';
             break;
           case BlockType.bomb:
-            icon = Icons.local_fire_department_rounded;
-            color = const Color(0xFFFFD700);
+            assetPath = 'assets/images/power_ups/powerup_5_bomb.png';
             break;
           case BlockType.colorBomb:
-            icon = Icons.auto_awesome;
-            color = const Color(0xFFFF4081);
+            assetPath = 'assets/images/power_ups/powerup_7_color_bomb.png';
+            break;
+          case BlockType.otherSpecial:
+            assetPath = 'assets/images/power_ups/powerup_9_star_wand.png';
             break;
           default:
-            icon = Icons.star_rounded;
-            color = Colors.white;
+            assetPath = 'assets/images/power_ups/powerup_4_rocket.png';
         }
     }
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Icon(
-          icon,
-          size: iconSize * 1.15,
-          color: Colors.black.withValues(alpha: 0.75),
-        ),
-        Icon(
-          icon,
-          size: iconSize,
-          color: color,
-          shadows: const [
-            Shadow(
-              color: Colors.black87,
-              blurRadius: 4,
-              offset: Offset(1, 2),
-            ),
-          ],
-        ),
-      ],
+    return Image.asset(
+      assetPath,
+      width: iconSize,
+      height: iconSize,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
     );
   }
 }

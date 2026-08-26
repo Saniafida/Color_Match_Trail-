@@ -60,7 +60,8 @@ void main() {
       expect(PowerUpConfig.getPowerUpTypeForLength(6), PowerUpType.crossBlast);
       expect(PowerUpConfig.getPowerUpTypeForLength(7), PowerUpType.colorBomb);
       expect(PowerUpConfig.getPowerUpTypeForLength(8), PowerUpType.megaBomb);
-      expect(PowerUpConfig.getPowerUpTypeForLength(12), PowerUpType.megaBomb);
+      expect(PowerUpConfig.getPowerUpTypeForLength(9), PowerUpType.magicWand);
+      expect(PowerUpConfig.getPowerUpTypeForLength(12), PowerUpType.magicWand);
     });
 
     test('2. Creation cell selection follows strict priority order', () {

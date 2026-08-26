@@ -148,12 +148,14 @@ class AudioManager extends ChangeNotifier {
     ));
   }
 
-  void playTrailDrag() {
-    playSfx(const SoundDefinition(
+  void playTrailDrag({int trailLength = 1}) {
+    final pitch = 1.0 + ((trailLength - 1) * 0.08).clamp(0.0, 0.7);
+    playSfx(SoundDefinition(
       id: 'trail_drag',
       assetPath: 'assets/sounds/gameplay/trail_drag.wav',
       type: AudioType.gameplay,
-      volume: 0.65,
+      volume: 0.7,
+      pitch: pitch,
       priority: AudioPriority.low,
     ));
   }
@@ -199,7 +201,7 @@ class AudioManager extends ChangeNotifier {
       id: 'tile_drop',
       assetPath: 'assets/sounds/blocks/tile_drop.wav',
       type: AudioType.gameplay,
-      volume: 0.65,
+      volume: 0.45,
       priority: AudioPriority.low,
     ));
   }

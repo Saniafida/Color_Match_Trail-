@@ -3,11 +3,12 @@ import 'position.dart';
 
 enum PowerUpType {
   none,
-  smallArea,   // 4 blocks connected (Power-Up A: small area blast)
+  smallArea,   // 4 blocks connected (Rocket: small area blast)
   bomb,        // 5 blocks connected (Bomb: 3x3 explosion)
-  crossBlast,  // 6 blocks connected (Power-Up B: Row + Column cross blast)
-  colorBomb,   // 7 blocks connected (Power-Up C: Color bomb clears matching color)
-  megaBomb,    // 8+ blocks connected (Power-Up D: 5x5 Mega Bomb / Strongest)
+  crossBlast,  // 6 blocks connected (Cross Rocket: Row + Column cross blast)
+  colorBomb,   // 7 blocks connected (Pinwheel: Color bomb clears matching color)
+  megaBomb,    // 8 blocks connected (Disco Ball: 5x5 Mega Bomb)
+  magicWand,   // 9+ blocks connected (Star Wand: Full Board Magic Blast)
 }
 
 enum PowerUpState {

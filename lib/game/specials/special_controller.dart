@@ -171,6 +171,15 @@ class SpecialController extends ChangeNotifier {
         }
         break;
 
+      case SpecialBlockType.magicWand:
+        // Magic Star Wand targets all cells across the board
+        for (int r = 0; r < rows; r++) {
+          for (int c = 0; c < cols; c++) {
+            targets.add(Position(r, c));
+          }
+        }
+        break;
+
       case SpecialBlockType.none:
         break;
     }

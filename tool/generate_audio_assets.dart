@@ -161,44 +161,49 @@ List<double> _generateClick() {
 
 List<double> _generateSoftTap() {
   const sr = 44100;
-  const duration = 0.06;
+  const duration = 0.035;
   final count = (sr * duration).toInt();
   final out = List<double>.filled(count, 0.0);
+  final rnd = Random(5678);
 
   for (int i = 0; i < count; i++) {
     final t = i / sr;
-    final env = exp(-t * 60);
-    out[i] = sin(2 * pi * 440 * t) * env * 0.6;
+    final env = exp(-t * 120.0);
+    final f = 680.0 * exp(-t * 15.0);
+    final click = (t < 0.0025) ? (rnd.nextDouble() * 2.0 - 1.0) * 0.25 : 0.0;
+    out[i] = (sin(2 * pi * f * t) * 0.7 + click) * env * 0.55;
   }
   return out;
 }
 
 List<double> _generateSnapClick() {
   const sr = 44100;
-  const duration = 0.08;
+  const duration = 0.045;
   final count = (sr * duration).toInt();
   final out = List<double>.filled(count, 0.0);
 
   for (int i = 0; i < count; i++) {
     final t = i / sr;
-    final env = exp(-t * 50);
-    final freq = 800.0 * exp(-t * 20);
-    out[i] = sin(2 * pi * freq * t) * env * 0.7;
+    final env = exp(-t * 80.0);
+    final freq = 920.0 * exp(-t * 25.0);
+    out[i] = sin(2 * pi * freq * t) * env * 0.65;
   }
   return out;
 }
 
 List<double> _generateMatchPop() {
   const sr = 44100;
-  const duration = 0.14;
+  const duration = 0.12;
   final count = (sr * duration).toInt();
   final out = List<double>.filled(count, 0.0);
 
   for (int i = 0; i < count; i++) {
     final t = i / sr;
-    final env = (1.0 - t / duration) * (1.0 - exp(-t * 200));
-    final freq = 380.0 + 550.0 * (t / duration); // Pitch sweep up
-    out[i] = sin(2 * pi * freq * t) * env * 0.85;
+    final env = exp(-t * 26.0) * (1.0 - exp(-t * 250.0));
+    final freq = 520.0 + 380.0 * (1.0 - exp(-t * 35.0)); // Ascending sweet bubble pop
+    final tone = sin(2 * pi * freq * t);
+    final harmonic = sin(2 * pi * freq * 2.0 * t) * 0.25;
+    out[i] = (tone + harmonic) * env * 0.8;
   }
   return out;
 }
@@ -343,30 +348,39 @@ List<double> _generateInvalidWobble() {
 
 List<double> _generateWoodThud() {
   const sr = 44100;
-  const duration = 0.09;
+  const duration = 0.055; // Snappy 55ms organic wooden drop
   final count = (sr * duration).toInt();
   final out = List<double>.filled(count, 0.0);
+  final rnd = Random(1234);
 
   for (int i = 0; i < count; i++) {
     final t = i / sr;
-    final env = exp(-t * 40.0);
-    final freq = 180.0 * exp(-t * 15);
-    out[i] = sin(2 * pi * freq * t) * env * 0.8;
+    final env = exp(-t * 90.0);
+    // Warm woody fundamental + resonant harmonic
+    final f1 = 540.0 * (1.0 - 0.2 * (t / duration));
+    final tone1 = sin(2 * pi * f1 * t);
+    final tone2 = sin(2 * pi * (f1 * 2.15) * t) * 0.3;
+    // Crisp tactile micro-click transient in first 3ms
+    final click = (t < 0.003) ? (rnd.nextDouble() * 2.0 - 1.0) * (1.0 - t / 0.003) * 0.35 : 0.0;
+
+    out[i] = (tone1 * 0.7 + tone2 + click) * env * 0.7;
   }
   return out;
 }
 
 List<double> _generateWaterChime() {
   const sr = 44100;
-  const duration = 0.12;
+  const duration = 0.085; // Crisp 85ms harmonic pop chime
   final count = (sr * duration).toInt();
   final out = List<double>.filled(count, 0.0);
 
   for (int i = 0; i < count; i++) {
     final t = i / sr;
-    final env = exp(-t * 22.0);
-    final freq = 650.0 + 350.0 * exp(-t * 10);
-    out[i] = sin(2 * pi * freq * t) * env * 0.7;
+    final env = exp(-t * 40.0) * (1.0 - exp(-t * 300.0));
+    final f = 660.0;
+    final tone1 = sin(2 * pi * f * t);
+    final tone2 = sin(2 * pi * (f * 1.5) * t) * 0.35;
+    out[i] = (tone1 + tone2) * env * 0.75;
   }
   return out;
 }
@@ -753,33 +767,7 @@ List<double> _generateLiquidTrickle() {
 
 List<double> _generateBgmMelody({required int type}) {
   const sr = 44100;
-  const duration = 4.0; // 4 second looping melody
+  const duration = 1.0; // 1 second silent loop
   final count = (sr * duration).toInt();
-  final out = List<double>.filled(count, 0.0);
-
-  // Harmonious chord progressions
-  final melodyNotes = type == 0
-      // Home BGM: C major peaceful garden progression (C -> G -> Am -> F)
-      ? [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 349.23]
-      : (type == 1
-          // Gameplay BGM: Playful upbeat puzzle progression
-          ? [329.63, 392.00, 523.25, 659.25, 523.25, 440.00, 392.00, 329.63]
-          // Mini-Games BGM: Brisk cheerful arcade progression
-          : [392.00, 523.25, 659.25, 783.99, 659.25, 523.25, 587.33, 493.88]);
-
-  final noteDur = duration / melodyNotes.length;
-
-  for (int i = 0; i < count; i++) {
-    final t = i / sr;
-    final noteIdx = (t / noteDur).floor().clamp(0, melodyNotes.length - 1);
-    final freq = melodyNotes[noteIdx];
-    final noteTime = t - noteIdx * noteDur;
-    final env = (1.0 - exp(-noteTime * 40.0)) * exp(-noteTime * 4.0);
-
-    // Warm FM synthesis
-    final mod = sin(2 * pi * freq * 2.0 * t) * 0.2;
-    final carrier = sin(2 * pi * (freq + mod * freq) * t);
-    out[i] = carrier * env * 0.45;
-  }
-  return out;
+  return List<double>.filled(count, 0.0); // Completely silent
 }

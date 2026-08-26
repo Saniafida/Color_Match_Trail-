@@ -56,11 +56,19 @@ class PowerUpConfig {
     ),
     PowerUpMappingRule(
       minConnectedBlocks: 8,
-      maxConnectedBlocks: 999,
+      maxConnectedBlocks: 8,
       resultPowerUp: PowerUpType.megaBomb,
       specialType: SpecialBlockType.megaBomb,
       blockType: BlockType.colorBomb,
-      description: 'Mega Bomb 5x5 (8+ blocks)',
+      description: 'Mega Disco Bomb 5x5 (8 blocks)',
+    ),
+    PowerUpMappingRule(
+      minConnectedBlocks: 9,
+      maxConnectedBlocks: 999,
+      resultPowerUp: PowerUpType.magicWand,
+      specialType: SpecialBlockType.magicWand,
+      blockType: BlockType.otherSpecial,
+      description: 'Magic Star Wand Board Clear (9+ blocks)',
     ),
   ];
 

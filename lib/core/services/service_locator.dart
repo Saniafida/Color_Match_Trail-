@@ -307,4 +307,10 @@ class ServiceLocator {
     );
     playerProfileManager.initialize();
   }
+
+  void dispose() {
+    gameSaveManager.dispose();
+    statisticsManager.dispose();
+    audioManager.dispose();
+  }
 }

@@ -24,6 +24,26 @@ class FlutterAudioService extends AudioService {
     try {
       AudioCache.instance.prefix = '';
 
+      try {
+        await AudioPlayer.global.setAudioContext(
+          AudioContext(
+            android: const AudioContextAndroid(
+              isSpeakerphoneOn: false,
+              stayAwake: false,
+              contentType: AndroidContentType.sonification,
+              usageType: AndroidUsageType.game,
+              audioFocus: AndroidAudioFocus.none,
+            ),
+            iOS: AudioContextIOS(
+              category: AVAudioSessionCategory.playback,
+              options: const {
+                AVAudioSessionOptions.mixWithOthers,
+              },
+            ),
+          ),
+        );
+      } catch (_) {}
+
       _musicPlayer = AudioPlayer(playerId: 'bgm_player');
       await _musicPlayer?.setReleaseMode(ReleaseMode.loop);
       await _musicPlayer?.setVolume(_musicVolume);

@@ -214,4 +214,10 @@ class GameSaveManager extends ChangeNotifier {
     );
     await saveNow();
   }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
 }

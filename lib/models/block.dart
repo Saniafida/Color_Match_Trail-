@@ -13,7 +13,8 @@ enum SpecialBlockType {
   colorSpecial,
   smallArea,
   crossBlast,
-  megaBomb;
+  megaBomb,
+  magicWand;
 
   PowerUpType toPowerUpType() {
     switch (this) {
@@ -29,6 +30,8 @@ enum SpecialBlockType {
         return PowerUpType.colorBomb;
       case SpecialBlockType.megaBomb:
         return PowerUpType.megaBomb;
+      case SpecialBlockType.magicWand:
+        return PowerUpType.magicWand;
       case SpecialBlockType.none:
         return PowerUpType.none;
     }
@@ -46,6 +49,8 @@ enum SpecialBlockType {
         return SpecialBlockType.colorSpecial;
       case PowerUpType.megaBomb:
         return SpecialBlockType.megaBomb;
+      case PowerUpType.magicWand:
+        return SpecialBlockType.magicWand;
       case PowerUpType.none:
         return SpecialBlockType.none;
     }
