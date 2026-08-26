@@ -45,7 +45,7 @@ class BoosterBar extends StatelessWidget {
         ];
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF3E200C).withAlpha(220),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -106,15 +106,15 @@ class BoosterBar extends StatelessWidget {
             // Glowing golden aura when selected
             if (isSelected)
               Container(
-                width: 60,
-                height: 60,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFFFFD700).withValues(alpha: 0.85),
-                      blurRadius: 14,
-                      spreadRadius: 3,
+                      blurRadius: 12,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -122,8 +122,8 @@ class BoosterBar extends StatelessWidget {
 
             // Wooden / Gold Circular Container
             Container(
-              width: 54,
-              height: 54,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: isSelected
@@ -139,7 +139,7 @@ class BoosterBar extends StatelessWidget {
                       ),
                 border: Border.all(
                   color: isSelected ? Colors.white : const Color(0xFFFFD54F),
-                  width: isSelected ? 3.0 : 2.0,
+                  width: isSelected ? 2.5 : 1.8,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -150,7 +150,7 @@ class BoosterBar extends StatelessWidget {
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.all(4.0),
+                padding: const EdgeInsets.all(3.5),
                 child: ClipOval(
                   child: Image.asset(
                     assetPath,
