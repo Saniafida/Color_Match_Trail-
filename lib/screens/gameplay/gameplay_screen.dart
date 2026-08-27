@@ -854,28 +854,33 @@ class _GameplayScreenState extends State<GameplayScreen> {
                                     cellSpacing: 0.0,
                                     fxOverlay: GameplayFxLayer(controller: _fxController),
                                     onDragStart: (pos) {
-                                      if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
                                       if (_boosterTargetController.isTargeting) {
                                         _handleBoosterTapActivation(pos);
-                                      } else {
-                                        _trailController.handleDragStart(pos);
-                                        if (_trailController.isDragging) {
-                                          ServiceLocator.instance.audioManager.playTileTap();
-                                        }
+                                        return;
+                                      }
+                                      if (!TutorialValidator.canStartDrag(ServiceLocator.instance.tutorialManager, pos, _boardController)) return;
+                                      _trailController.handleDragStart(pos);
+                                      if (_trailController.isDragging) {
+                                        ServiceLocator.instance.audioManager.playTileTap();
                                       }
                                     },
                                     onDragUpdate: (pos) {
-                                      if (!_boosterTargetController.isTargeting) {
-                                        final prevLength = _trailController.activeTrail.positions.length;
-                                        _trailController.handleDragUpdate(pos);
-                                        final newLength = _trailController.activeTrail.positions.length;
-                                        if (newLength > prevLength) {
-                                          ServiceLocator.instance.audioManager.playTrailDrag(trailLength: newLength);
-                                        }
+                                      if (_boosterTargetController.isTargeting) return;
+                                      final prevLength = _trailController.activeTrail.positions.length;
+                                      _trailController.handleDragUpdate(pos);
+                                      final newLength = _trailController.activeTrail.positions.length;
+                                      if (newLength > prevLength) {
+                                        ServiceLocator.instance.audioManager.playTrailDrag(trailLength: newLength);
                                       }
                                     },
-                                    onDragEnd: () => _trailController.handleDragEnd(),
-                                    onDragCancel: () => _trailController.handleDragCancel(),
+                                    onDragEnd: () {
+                                      if (_boosterTargetController.isTargeting) return;
+                                      _trailController.handleDragEnd();
+                                    },
+                                    onDragCancel: () {
+                                      if (_boosterTargetController.isTargeting) return;
+                                      _trailController.handleDragCancel();
+                                    },
                                   ),
                                 ),
                               ),

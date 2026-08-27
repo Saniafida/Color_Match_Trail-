@@ -12,21 +12,10 @@ class InventoryManager extends ChangeNotifier {
   BoosterInventory get inventory => _inventory;
 
   Future<void> initialize() async {
-    final raw = await storage.getBoosterInventoryRaw();
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        _inventory = BoosterInventory.fromJson(jsonDecode(raw));
-      } catch (e) {
-        // Handle gracefully, remain default
-      }
-    }
-    
-    // Set 3 for each power-up
-    final updatedMap = Map<BoosterType, int>.from(_inventory.quantities);
+    // Always initialize/reset all 6 power-ups to exactly 3
+    final updatedMap = <BoosterType, int>{};
     for (final type in BoosterType.values) {
-      if (!updatedMap.containsKey(type) || updatedMap[type]! <= 0) {
-        updatedMap[type] = 3;
-      }
+      updatedMap[type] = 3;
     }
     _inventory = BoosterInventory(quantities: updatedMap);
     await _save();

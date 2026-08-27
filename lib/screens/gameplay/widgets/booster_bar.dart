@@ -66,7 +66,7 @@ class BoosterBar extends StatelessWidget {
               final isSelected = boosterManager.selectedBoosterDef?.type == type ||
                   boosterManager.secondBoosterDef?.type == type;
               final count = boosterManager.inventory.getQuantity(type);
-              final isAvailable = boosterManager.canActivateBooster(type) || isSelected;
+              final isAvailable = (count > 0 && boosterManager.canActivateBooster(type)) || isSelected;
 
               return _buildBoosterButton(type, isSelected, isAvailable, count);
             }).toList(),
