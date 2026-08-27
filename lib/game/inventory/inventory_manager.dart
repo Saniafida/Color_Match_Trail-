@@ -21,11 +21,11 @@ class InventoryManager extends ChangeNotifier {
       }
     }
     
-    // Ensure all 6 boosters are stocked with generous supply (99 each)
+    // Set 3 for each power-up
     final updatedMap = Map<BoosterType, int>.from(_inventory.quantities);
     for (final type in BoosterType.values) {
-      if ((updatedMap[type] ?? 0) < 10) {
-        updatedMap[type] = 99;
+      if (!updatedMap.containsKey(type) || updatedMap[type]! <= 0) {
+        updatedMap[type] = 3;
       }
     }
     _inventory = BoosterInventory(quantities: updatedMap);
@@ -39,8 +39,7 @@ class InventoryManager extends ChangeNotifier {
   }
 
   int getQuantity(BoosterType type) {
-    final q = _inventory.getQuantity(type);
-    return q > 0 ? q : 99;
+    return _inventory.getQuantity(type);
   }
 
   Future<bool> addBooster(BoosterType type, int amount) async {
@@ -54,20 +53,9 @@ class InventoryManager extends ChangeNotifier {
 
   Future<bool> consumeBooster(BoosterType type, [int amount = 1]) async {
     if (amount <= 0) return false;
+    if (_inventory.getQuantity(type) < amount) return false;
     
-    var current = _inventory.getQuantity(type);
-    if (current <= 0) {
-      current = 99;
-      _inventory = _inventory.increment(type, 99);
-    }
-    
-    _inventory = _inventory.decrement(type, amount.clamp(1, current));
-    
-    // Keep it continuously replenished for testing/fun
-    if (_inventory.getQuantity(type) < 5) {
-      _inventory = _inventory.increment(type, 20);
-    }
-    
+    _inventory = _inventory.decrement(type, amount);
     await _save();
     notifyListeners();
     return true;
