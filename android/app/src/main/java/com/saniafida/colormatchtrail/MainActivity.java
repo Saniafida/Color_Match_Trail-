@@ -1,4 +1,4 @@
-package com.example.color_match_trail;
+package com.saniafida.colormatchtrail;
 
 import io.flutter.embedding.android.FlutterActivity;
 

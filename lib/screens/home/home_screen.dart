@@ -94,7 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
 
                   // 2 MAIN FEATURE CARDS (Daily Challenge & Events)
-                  IntrinsicHeight(
+                  SizedBox(
+                    height: 72,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -160,17 +161,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.center,
-      child: SizedBox(
-        width: 360,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // 1. Hearts Pill (5 Full +)
-            _buildStatPill(
-              iconPath: 'assets/images/icons/icon_heart.png',
-              value: '5',
-              subLabel: 'Full',
-            ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Hearts Pill (5 Full +)
+          _buildStatPill(
+            iconPath: 'assets/images/icons/icon_heart.png',
+            value: '5',
+            subLabel: 'Full',
+          ),
+          const SizedBox(width: 8),
 
             // 2. Coins Pill (1250 +)
             _buildStatPill(
@@ -210,8 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildStatPill({
