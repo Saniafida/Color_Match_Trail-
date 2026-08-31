@@ -24,27 +24,30 @@ class ProgressionValidator {
       }
     }
 
-    // Repair Impossible States: If level N is unlocked, ensure N-1 is completed (unless N is first level in world)
-    for (final world in allWorlds) {
-      bool previousCompleted = true;
-      for (int i = 0; i < world.levelIds.length; i++) {
-        final levelId = world.levelIds[i];
-        final progress = levels[levelId];
-        
-        if (progress != null && progress.unlocked) {
-          if (!previousCompleted && i > 0) {
-            // Repair: lock it if the previous isn't completed
-            levels[levelId] = progress.copyWith(unlocked: false);
+    // Repair Impossible States: If level N is unlocked, ensure N-1 is completed
+    for (int lvl = 1; lvl <= 147; lvl++) {
+      final levelId = 'level_$lvl';
+      final progress = levels[levelId];
+      if (lvl > 1 && progress != null && progress.unlocked) {
+        final prevProgress = levels['level_${lvl - 1}'];
+        if (prevProgress == null || !prevProgress.completed) {
+          levels[levelId] = progress.copyWith(unlocked: false);
+        }
+      }
+      if (progress != null && (progress.unlocked || progress.completed)) {
+        for (final world in allWorlds) {
+          if (world.levelIds.contains(levelId)) {
+            unlockedWorlds.add(world.worldId);
+            break;
           }
         }
-        previousCompleted = levels[levelId]?.completed ?? false;
       }
     }
 
     return state.copyWith(
       levels: levels,
       unlockedWorlds: unlockedWorlds,
-      currentLevel: currentLevel,
+      currentLevel: currentLevel ?? 'level_1',
     );
   }
 }
