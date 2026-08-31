@@ -933,12 +933,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
-        // 4. Pass
+        // 4. Events
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2.0),
             child: _buildBottomNavButton(
-              label: 'Pass',
+              label: 'Events',
               iconWidget: Image.asset(
                 'assets/images/home_screen/icon_pass_shield.png',
                 width: 26,
