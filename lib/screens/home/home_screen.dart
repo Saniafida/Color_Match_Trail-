@@ -330,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Daily Bonus',
               imagePath: 'assets/images/home_screen/icon_daily_bonus.png',
               badgeText: '!',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.rewards),
+              onTap: () => Navigator.pushNamed(context, AppRoutes.dailyBonus),
             ),
           ),
         ],
@@ -928,7 +928,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _buildBottomNavButton(
               label: 'Spin',
               iconWidget: _buildSpinWheelIcon(),
-              onTap: () => Navigator.pushNamed(context, AppRoutes.rewards),
+              onTap: () => Navigator.pushNamed(context, AppRoutes.spinWheel),
             ),
           ),
         ),

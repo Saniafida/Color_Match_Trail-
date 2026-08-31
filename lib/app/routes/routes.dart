@@ -10,6 +10,8 @@ import '../../screens/events/events_screen.dart';
 import '../../screens/events/event_detail_screen.dart';
 import '../../screens/shop/shop_screen.dart';
 import '../../screens/rewards/rewards_screen.dart';
+import '../../screens/rewards/daily_bonus_screen.dart';
+import '../../screens/rewards/spin_wheel_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/achievements/achievements_screen.dart';
 import '../../screens/statistics/statistics_screen.dart';
@@ -34,6 +36,8 @@ class AppRoutes {
   static const String eventDetail = '/event_detail';
   static const String shop = '/shop';
   static const String rewards = '/rewards';
+  static const String dailyBonus = '/daily_bonus';
+  static const String spinWheel = '/spin_wheel';
   static const String settings = '/settings';
   static const String themes = '/themes';
   static const String achievements = '/achievements';
@@ -71,7 +75,14 @@ class AppRoutes {
       case shop:
         return MaterialPageRoute(builder: (_) => const ShopScreen());
       case rewards:
+        if (routeSettings.arguments == 'spin') {
+          return MaterialPageRoute(builder: (_) => const SpinWheelScreen());
+        }
         return MaterialPageRoute(builder: (_) => const RewardsScreen());
+      case dailyBonus:
+        return MaterialPageRoute(builder: (_) => const DailyBonusScreen());
+      case spinWheel:
+        return MaterialPageRoute(builder: (_) => const SpinWheelScreen());
       case settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
       case themes:
