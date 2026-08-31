@@ -188,9 +188,11 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                 height: 54,
                 fontSize: 18,
                 onPressed: () {
-                  final nextId = _resultManager.nextLevelId;
+                  final currentNum = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), ''));
+                  final nextId = _resultManager.nextLevelId ?? (currentNum != null && currentNum < 147 ? 'level_${currentNum + 1}' : null);
                   _resultManager.reset();
                   if (nextId != null) {
+                    ServiceLocator.instance.progressionManager.setCurrentLevel(nextId);
                     Navigator.pushReplacementNamed(
                       context,
                       AppRoutes.gameplay,

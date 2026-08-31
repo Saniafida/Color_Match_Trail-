@@ -172,31 +172,65 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
                         ),
                       ),
 
-                      // Content Column (Number + 3 Stars)
+                      // Content Column (Number + 3 Stars or Lock Icon)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.5),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Level Number
-                            Flexible(
-                              child: Text(
-                                levelNumber,
-                                style: TextStyle(
-                                  color: _getTextColor(state),
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: widget.width * 0.38,
-                                  height: 1.05,
-                                  shadows: _getTextShadows(state),
+                        padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
+                        child: state == LevelNodeVisualState.locked
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.lock_rounded,
+                                      size: (widget.width * 0.36).clamp(10.0, 14.0),
+                                      color: const Color(0xFFD7CCC8),
+                                      shadows: const [
+                                        Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
+                                      ],
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        levelNumber,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: const Color(0xFFD7CCC8),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: (widget.width * 0.25).clamp(7.0, 9.5),
+                                          height: 1.0,
+                                          shadows: const [
+                                            Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Level Number
+                                  Flexible(
+                                    child: Text(
+                                      levelNumber,
+                                      style: TextStyle(
+                                        color: _getTextColor(state),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: widget.width * 0.38,
+                                        height: 1.05,
+                                        shadows: _getTextShadows(state),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  // 3 Stars row
+                                  _buildStars(widget.progress.bestStars, state),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 1),
-                            // 3 Stars row
-                            _buildStars(widget.progress.bestStars, state),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -269,15 +303,27 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
         );
 
       case LevelNodeVisualState.unlocked:
-      case LevelNodeVisualState.locked:
-        // Soft warm parchment / tan beige
+        // Warm inviting parchment
         return const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFFF3E7D0),
-            Color(0xFFE5D2B4),
-            Color(0xFFD6BE9B),
+            Color(0xFFFFF9EC),
+            Color(0xFFF3E4CA),
+            Color(0xFFE2CCA4),
+          ],
+          stops: [0.0, 0.5, 1.0],
+        );
+
+      case LevelNodeVisualState.locked:
+        // Muted stone locked gradient
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF8D7F72),
+            Color(0xFF75675A),
+            Color(0xFF5E5145),
           ],
           stops: [0.0, 0.5, 1.0],
         );
@@ -292,8 +338,9 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
       case LevelNodeVisualState.current:
         return const Color(0xFFFFE082);
       case LevelNodeVisualState.unlocked:
+        return const Color(0xFFC7A774);
       case LevelNodeVisualState.locked:
-        return const Color(0xFFC3AC87);
+        return const Color(0xFF4A3E34);
     }
   }
 
@@ -305,8 +352,9 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
       case LevelNodeVisualState.current:
         return Colors.white;
       case LevelNodeVisualState.unlocked:
+        return const Color(0xFF4E2D12);
       case LevelNodeVisualState.locked:
-        return const Color(0xFF5D4037);
+        return const Color(0xFFD7CCC8);
     }
   }
 
@@ -322,9 +370,12 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
           Shadow(color: Color(0x99BF360C), blurRadius: 2, offset: Offset(0, 1)),
         ];
       case LevelNodeVisualState.unlocked:
-      case LevelNodeVisualState.locked:
         return const [
           Shadow(color: Color(0x40FFFFFF), blurRadius: 1, offset: Offset(0, 1)),
+        ];
+      case LevelNodeVisualState.locked:
+        return const [
+          Shadow(color: Colors.black54, blurRadius: 1, offset: Offset(0, 1)),
         ];
     }
   }
