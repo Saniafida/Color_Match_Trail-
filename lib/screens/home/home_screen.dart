@@ -909,13 +909,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
-        // 2. Friends
+        // 2. Achievements
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2.0),
             child: _buildBottomNavButton(
-              label: 'Friends',
-              iconWidget: const Icon(Icons.people_alt_rounded, color: Color(0xFF42A5F5), size: 24),
+              label: 'Achievements',
+              iconWidget: const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD54F), size: 24),
               onTap: () => Navigator.pushNamed(context, AppRoutes.achievements),
             ),
           ),
