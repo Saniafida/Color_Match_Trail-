@@ -55,28 +55,28 @@ class GameDataManager extends ChangeNotifier {
     if (_status == GameDataStatus.loaded) return;
 
     _status = GameDataStatus.loading;
-    notifyListeners();
-
     try {
-      // 1. Load Worlds
+      // 1. Load Worlds from assets
       await _loadAndParseList('assets/data/worlds/worlds.json', (json) {
         final world = WorldDefinition.fromJson(json);
         _worlds[world.worldId] = world;
       });
 
-      // Ensure all 147 adventure levels are mapped across worlds
+      // Supplement remaining adventure worlds to cover all 147 levels
       final adventureWorlds = AdventureLevelGenerator.generateAllWorlds();
       for (final w in adventureWorlds) {
         _worlds.putIfAbsent(w.worldId, () => w);
       }
 
-      // 2. Load Levels
+      // 2. Load Levels from assets if valid
       await _loadAndParseList('assets/data/levels/levels.json', (json) {
         final level = LevelDefinitionData.fromJson(json);
-        _levels[level.levelId] = level;
+        if (level.goals.isNotEmpty && level.goals.first.color != null) {
+          _levels[level.levelId] = level;
+        }
       });
 
-      // Populate procedural data for all 147 levels
+      // Populate rich procedural data for all 147 levels
       for (int i = 1; i <= AdventureLevelGenerator.totalAdventureLevels; i++) {
         final lvlId = 'level_$i';
         _levels.putIfAbsent(lvlId, () => AdventureLevelGenerator.generateData(i));
