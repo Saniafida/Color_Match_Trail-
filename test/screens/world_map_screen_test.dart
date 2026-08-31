@@ -68,6 +68,29 @@ void main() {
 
       expect(find.text('2'), findsOneWidget);
       expect(find.byIcon(Icons.star_rounded), findsNWidgets(3));
+
+      // Render Locked Node (should display Lock icon)
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LevelNode(
+              progress: const LevelProgress(
+                levelId: 'level_5',
+                unlocked: false,
+                completed: false,
+                bestScore: 0,
+                bestStars: 0,
+              ),
+              isCurrent: false,
+              reducedMotion: true,
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('5'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
     });
 
     testWidgets('2. WorldHeader displays world name and stars', (WidgetTester tester) async {
