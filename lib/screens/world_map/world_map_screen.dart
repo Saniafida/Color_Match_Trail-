@@ -15,7 +15,7 @@ class WorldMapScreen extends StatefulWidget {
 
 class _WorldMapScreenState extends State<WorldMapScreen> {
   late final ProgressionManager _progressionManager;
-  int _selectedLevel = 4; // Default starting selected level
+  int _selectedLevel = 1; // Default starting selected level
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
   void _initSelectedLevel() {
     final currentPlayable = _progressionManager.currentPlayableLevel;
-    final num = int.tryParse(currentPlayable.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
+    final num = int.tryParse(currentPlayable.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
     _selectedLevel = num;
   }
 
@@ -38,18 +38,27 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   }
 
   void _onProgressionUpdated() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        _initSelectedLevel();
+      });
+    }
   }
 
-  void _playLevel(int levelNumber) {
+  void _playLevel(int levelNumber) async {
     final levelId = 'level_$levelNumber';
     _progressionManager.setCurrentLevel(levelId);
 
-    Navigator.pushNamed(
+    await Navigator.pushNamed(
       context,
       AppRoutes.gameplay,
       arguments: levelId,
     );
+    if (mounted) {
+      setState(() {
+        _initSelectedLevel();
+      });
+    }
   }
 
   @override

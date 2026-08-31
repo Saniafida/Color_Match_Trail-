@@ -119,6 +119,7 @@ class PowerUpManager extends ChangeNotifier {
     }
 
     // Phase 1: Mark other blocks as being destroyed (energy pull toward chosen cell)
+    final additionalSpecialTargets = <Position>[];
     for (final id in removedIds) {
       final b = getBlock(id);
       if (b != null) {
@@ -126,6 +127,19 @@ class PowerUpManager extends ChangeNotifier {
           isBeingDestroyed: true,
           isSelected: false,
         ));
+
+        // If a consumed block was also a power-up, trigger its special blast effect
+        if (b.specialType != SpecialBlockType.none) {
+          final specialResult = specialController.activateSpecial(
+            SpecialActivationRequest(
+              blockId: b.id,
+              position: b.position,
+              type: b.specialType,
+              color: b.color,
+            ),
+          );
+          additionalSpecialTargets.addAll(specialResult.targetPositions);
+        }
       }
     }
 
@@ -185,15 +199,39 @@ class PowerUpManager extends ChangeNotifier {
     }
 
     final block = getBlock(blockId);
-    if (block == null || block.specialType == SpecialBlockType.none) {
+    if (block == null) {
+      return const BlastResult(success: false);
+    }
+
+    SpecialBlockType specialType = block.specialType;
+    if (specialType == SpecialBlockType.none) {
+      switch (block.type) {
+        case BlockType.rocket:
+          specialType = SpecialBlockType.crossBlast;
+          break;
+        case BlockType.bomb:
+          specialType = SpecialBlockType.bomb;
+          break;
+        case BlockType.colorBomb:
+          specialType = SpecialBlockType.colorSpecial;
+          break;
+        case BlockType.otherSpecial:
+          specialType = SpecialBlockType.magicWand;
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (specialType == SpecialBlockType.none) {
       return const BlastResult(success: false);
     }
 
     // Trigger activation via SpecialController & BlastController
     final activationRequest = SpecialActivationRequest(
       blockId: block.id,
-      position: block.position,
-      type: block.specialType,
+      position: position,
+      type: specialType,
       color: block.color,
     );
 

@@ -33,9 +33,8 @@ class SpecialController extends ChangeNotifier {
     final Queue<SpecialActivationRequest> queue = Queue();
     final Set<String> processedSpecialIds = {};
     
-    // Overall targets collected across the entire chain reaction
-    final Set<String> allTargetIds = {};
-    final Set<Position> allTargetPositions = {};
+    // Overall targets collected across the entire chain reaction (guarantees 1:1 ID to Position mapping)
+    final Map<String, Position> targetBlocks = {};
     
     queue.add(initialRequest);
     
@@ -46,8 +45,7 @@ class SpecialController extends ChangeNotifier {
       processedSpecialIds.add(request.blockId);
       
       // Ensure the special block itself is targeted to be consumed
-      allTargetIds.add(request.blockId);
-      allTargetPositions.add(request.position);
+      targetBlocks[request.blockId] = request.position;
 
       final newTargets = _calculateTargetsForType(request);
       
@@ -56,8 +54,7 @@ class SpecialController extends ChangeNotifier {
         final targetId = boardController.getBlockId(pos);
         if (targetId == null) continue;
         
-        allTargetIds.add(targetId);
-        allTargetPositions.add(pos);
+        targetBlocks[targetId] = pos;
         
         // If this target is ALSO a special block that hasn't been activated yet, queue it!
         if (!processedSpecialIds.contains(targetId)) {
@@ -79,9 +76,9 @@ class SpecialController extends ChangeNotifier {
       specialBlockId: initialRequest.blockId,
       specialType: initialRequest.type,
       sourcePosition: initialRequest.position,
-      targetBlockIds: allTargetIds.toList(),
-      targetPositions: allTargetPositions.toList(),
-      affectedCount: allTargetIds.length,
+      targetBlockIds: targetBlocks.keys.toList(),
+      targetPositions: targetBlocks.values.toList(),
+      affectedCount: targetBlocks.length,
       activationColor: initialRequest.color,
     );
   }

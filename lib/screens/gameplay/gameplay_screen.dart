@@ -468,72 +468,95 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   /// Handles direct player tap interaction on an existing power-up block
   Future<void> _handlePowerUpTapActivation(Position pos) async {
+    final blockId = _boardController.getBlockId(pos);
+    final block = (blockId != null) ? _blocks[blockId] : null;
+    if (block == null || !block.isPowerUp || block.isLocked || block.isBeingDestroyed) {
+      return;
+    }
+
     _levelResultController.setResolving(true);
     _moveController.consumeMove();
 
     final cellSize = _currentCellSize;
-    final blockId = _boardController.getBlockId(pos);
-    final block = (blockId != null) ? _blocks[blockId] : null;
+    final center = _getCellCenter(pos, cellSize);
+    final sourceColor = BlockColorMapper.getStyle(block.color).main;
 
-    if (block != null) {
-      final center = _getCellCenter(pos, cellSize);
-      final sourceColor = BlockColorMapper.getStyle(block.color).main;
-
-      // Trigger Theme-Matched Blast FX
-      _fxController.spawnPowerUpBlast(
-        center: center,
-        specialType: block.specialType,
-        sourceColor: sourceColor,
-      );
-
-      // Directional Rocket / Cross Blast streaks
-      if (block.specialType == SpecialBlockType.smallArea ||
-          block.specialType == SpecialBlockType.horizontalLine ||
-          block.specialType == SpecialBlockType.verticalLine ||
-          block.specialType == SpecialBlockType.crossBlast) {
-        final boardWidth = cellSize * _level.boardConfig.columns;
-        final boardHeight = cellSize * _level.boardConfig.rows;
-
-        if (block.specialType == SpecialBlockType.horizontalLine ||
-            block.specialType == SpecialBlockType.crossBlast ||
-            block.specialType == SpecialBlockType.smallArea) {
-          _fxController.spawnRocketStreak(
-            start: Offset(0, center.dy),
-            end: Offset(boardWidth, center.dy),
-            color: const Color(0xFFFF3D00),
-            isHorizontal: true,
-          );
-        }
-        if (block.specialType == SpecialBlockType.verticalLine ||
-            block.specialType == SpecialBlockType.crossBlast) {
-          _fxController.spawnRocketStreak(
-            start: Offset(center.dx, 0),
-            end: Offset(center.dx, boardHeight),
-            color: const Color(0xFFFF3D00),
-            isHorizontal: false,
-          );
-        }
+    // Determine special type with fallback for block.type
+    SpecialBlockType specialType = block.specialType;
+    if (specialType == SpecialBlockType.none) {
+      switch (block.type) {
+        case BlockType.rocket:
+          specialType = SpecialBlockType.crossBlast;
+          break;
+        case BlockType.bomb:
+          specialType = SpecialBlockType.bomb;
+          break;
+        case BlockType.colorBomb:
+          specialType = SpecialBlockType.colorSpecial;
+          break;
+        case BlockType.otherSpecial:
+          specialType = SpecialBlockType.magicWand;
+          break;
+        default:
+          specialType = SpecialBlockType.smallArea;
+          break;
       }
+    }
 
-      // Subtle Screen Shake & Sound for impact
-      if (block.specialType == SpecialBlockType.bomb ||
-          block.specialType == SpecialBlockType.megaBomb) {
-        _shakeController.shake(
-          intensity: block.specialType == SpecialBlockType.megaBomb ? 10.0 : 6.5,
+    // Trigger Theme-Matched Blast FX
+    _fxController.spawnPowerUpBlast(
+      center: center,
+      specialType: specialType,
+      sourceColor: sourceColor,
+    );
+
+    // Directional Rocket / Cross Blast streaks
+    if (specialType == SpecialBlockType.smallArea ||
+        specialType == SpecialBlockType.horizontalLine ||
+        specialType == SpecialBlockType.verticalLine ||
+        specialType == SpecialBlockType.crossBlast) {
+      final boardWidth = cellSize * _level.boardConfig.columns;
+      final boardHeight = cellSize * _level.boardConfig.rows;
+
+      if (specialType == SpecialBlockType.horizontalLine ||
+          specialType == SpecialBlockType.crossBlast ||
+          specialType == SpecialBlockType.smallArea) {
+        _fxController.spawnRocketStreak(
+          start: Offset(0, center.dy),
+          end: Offset(boardWidth, center.dy),
+          color: const Color(0xFFFF3D00),
+          isHorizontal: true,
         );
-        ServiceLocator.instance.audioManager.playBomb();
-      } else if (block.specialType == SpecialBlockType.crossBlast ||
-                 block.specialType == SpecialBlockType.smallArea ||
-                 block.specialType == SpecialBlockType.horizontalLine ||
-                 block.specialType == SpecialBlockType.verticalLine) {
-        _shakeController.shake(intensity: 4.5);
-        ServiceLocator.instance.audioManager.playLineBlast();
-      } else if (block.specialType == SpecialBlockType.colorSpecial) {
-        _shakeController.shake(intensity: 7.0);
-        ServiceLocator.instance.audioManager.playColorBomb();
-      } else {
-        ServiceLocator.instance.audioManager.playHammer();
       }
+      if (specialType == SpecialBlockType.verticalLine ||
+          specialType == SpecialBlockType.crossBlast) {
+        _fxController.spawnRocketStreak(
+          start: Offset(center.dx, 0),
+          end: Offset(center.dx, boardHeight),
+          color: const Color(0xFFFF3D00),
+          isHorizontal: false,
+        );
+      }
+    }
+
+    // Subtle Screen Shake & Sound for impact
+    if (specialType == SpecialBlockType.bomb ||
+        specialType == SpecialBlockType.megaBomb) {
+      _shakeController.shake(
+        intensity: specialType == SpecialBlockType.megaBomb ? 10.0 : 6.5,
+      );
+      ServiceLocator.instance.audioManager.playBomb();
+    } else if (specialType == SpecialBlockType.crossBlast ||
+               specialType == SpecialBlockType.smallArea ||
+               specialType == SpecialBlockType.horizontalLine ||
+               specialType == SpecialBlockType.verticalLine) {
+      _shakeController.shake(intensity: 4.5);
+      ServiceLocator.instance.audioManager.playLineBlast();
+    } else if (specialType == SpecialBlockType.colorSpecial) {
+      _shakeController.shake(intensity: 7.0);
+      ServiceLocator.instance.audioManager.playColorBomb();
+    } else {
+      ServiceLocator.instance.audioManager.playHammer();
     }
 
     final blastResult = await _powerUpManager.activatePowerUpAt(pos);
@@ -607,7 +630,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final blockId = _boardController.getBlockId(pos);
     final block = (blockId != null) ? _blocks[blockId] : null;
     if (block == null || block.isLocked) {
-      _boosterTargetController.cancel();
+      // Don't cancel targeting on accidental miss; allow player to tap a valid block
       return;
     }
 
@@ -616,74 +639,86 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final center = _getCellCenter(pos, cellSize);
     final blockColor = BlockColorMapper.getStyle(block.color).main;
 
-    // 1. Trigger Theme-Matched Blast FX per Booster Type
-    switch (def.type) {
-      case BoosterType.rowClear: // Rocket (Clears row & column)
-        final boardWidth = cellSize * _level.boardConfig.columns;
-        final boardHeight = cellSize * _level.boardConfig.rows;
-        _fxController.spawnRocketStreak(
-          start: Offset(0, center.dy),
-          end: Offset(boardWidth, center.dy),
-          color: const Color(0xFFFF4500),
-          isHorizontal: true,
-        );
-        _fxController.spawnRocketStreak(
-          start: Offset(center.dx, 0),
-          end: Offset(center.dx, boardHeight),
-          color: const Color(0xFFFF4500),
-          isHorizontal: false,
-        );
-        _fxController.spawnPowerUpBlast(
-          center: center,
-          specialType: SpecialBlockType.crossBlast,
-          sourceColor: blockColor,
-        );
-        _shakeController.shake(intensity: 6.0);
-        ServiceLocator.instance.audioManager.playLineBlast();
-        break;
+    final activeCombo = _boosterManager.activeCombination;
+    if (activeCombo != null) {
+      // Combo Visual Effects
+      _fxController.spawnPowerUpBlast(
+        center: center,
+        specialType: SpecialBlockType.megaBomb,
+        sourceColor: const Color(0xFFFFD700),
+      );
+      _shakeController.shake(intensity: 9.0);
+      ServiceLocator.instance.audioManager.playBomb();
+    } else {
+      // 1. Trigger Theme-Matched Blast FX per Booster Type
+      switch (def.type) {
+        case BoosterType.rowClear: // Rocket (Clears row & column)
+          final boardWidth = cellSize * _level.boardConfig.columns;
+          final boardHeight = cellSize * _level.boardConfig.rows;
+          _fxController.spawnRocketStreak(
+            start: Offset(0, center.dy),
+            end: Offset(boardWidth, center.dy),
+            color: const Color(0xFFFF4500),
+            isHorizontal: true,
+          );
+          _fxController.spawnRocketStreak(
+            start: Offset(center.dx, 0),
+            end: Offset(center.dx, boardHeight),
+            color: const Color(0xFFFF4500),
+            isHorizontal: false,
+          );
+          _fxController.spawnPowerUpBlast(
+            center: center,
+            specialType: SpecialBlockType.crossBlast,
+            sourceColor: blockColor,
+          );
+          _shakeController.shake(intensity: 6.0);
+          ServiceLocator.instance.audioManager.playLineBlast();
+          break;
 
-      case BoosterType.areaBlast: // Bomb (3x3 explosive radius)
-        _fxController.spawnPowerUpBlast(
-          center: center,
-          specialType: SpecialBlockType.bomb,
-          sourceColor: const Color(0xFFFF6F00),
-        );
-        _shakeController.shake(intensity: 8.5);
-        ServiceLocator.instance.audioManager.playBomb();
-        break;
+        case BoosterType.areaBlast: // Bomb (3x3 explosive radius)
+          _fxController.spawnPowerUpBlast(
+            center: center,
+            specialType: SpecialBlockType.bomb,
+            sourceColor: const Color(0xFFFF6F00),
+          );
+          _shakeController.shake(intensity: 8.5);
+          ServiceLocator.instance.audioManager.playBomb();
+          break;
 
-      case BoosterType.colorClear: // Disco Ball / Color Bomb (All same color)
-        _fxController.spawnPowerUpBlast(
-          center: center,
-          specialType: SpecialBlockType.colorSpecial,
-          sourceColor: blockColor,
-        );
-        for (int r = 0; r < _boardController.rows; r++) {
-          for (int c = 0; c < _boardController.columns; c++) {
-            final p = Position(r, c);
-            final id = _boardController.getBlockId(p);
-            if (id != null && _blocks[id]?.color == block.color) {
-              final cellCenter = _getCellCenter(p, cellSize);
-              _fxController.spawnMatchPop(cellCenter, blockColor, count: 6);
+        case BoosterType.colorClear: // Disco Ball / Color Bomb (All same color)
+          _fxController.spawnPowerUpBlast(
+            center: center,
+            specialType: SpecialBlockType.colorSpecial,
+            sourceColor: blockColor,
+          );
+          for (int r = 0; r < _boardController.rows; r++) {
+            for (int c = 0; c < _boardController.columns; c++) {
+              final p = Position(r, c);
+              final id = _boardController.getBlockId(p);
+              if (id != null && _blocks[id]?.color == block.color) {
+                final cellCenter = _getCellCenter(p, cellSize);
+                _fxController.spawnMatchPop(cellCenter, blockColor, count: 6);
+              }
             }
           }
-        }
-        _shakeController.shake(intensity: 7.5);
-        ServiceLocator.instance.audioManager.playColorBomb();
-        break;
+          _shakeController.shake(intensity: 7.5);
+          ServiceLocator.instance.audioManager.playColorBomb();
+          break;
 
-      case BoosterType.hammer: // Hammer single block smash
-        _fxController.spawnPowerUpBlast(
-          center: center,
-          specialType: SpecialBlockType.smallArea,
-          sourceColor: const Color(0xFFFFD700),
-        );
-        _shakeController.shake(intensity: 4.5);
-        ServiceLocator.instance.audioManager.playHammer();
-        break;
+        case BoosterType.hammer: // Hammer single block smash
+          _fxController.spawnPowerUpBlast(
+            center: center,
+            specialType: SpecialBlockType.smallArea,
+            sourceColor: const Color(0xFFFFD700),
+          );
+          _shakeController.shake(intensity: 4.5);
+          ServiceLocator.instance.audioManager.playHammer();
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
 
     // 2. Execute targeted booster logic
@@ -908,7 +943,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
               
               Padding(
                 padding: const EdgeInsets.only(bottom: 24, top: 8),
-                child: BoosterBar(boosterManager: _boosterManager),
+                child: BoosterBar(
+                  boosterManager: _boosterManager,
+                  levelResultController: _levelResultController,
+                  blastController: _blastController,
+                ),
               ),
             ],
           ),

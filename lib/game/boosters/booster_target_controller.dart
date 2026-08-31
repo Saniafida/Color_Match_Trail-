@@ -21,7 +21,10 @@ class BoosterTargetController extends ChangeNotifier {
   BoosterDefinition? get currentBooster => boosterManager.selectedBoosterDef;
 
   void _onBoosterStateChanged() {
-    final shouldBeTargeting = boosterManager.state == BoosterUseState.selecting;
+    final isSelecting = boosterManager.state == BoosterUseState.selecting ||
+        boosterManager.state == BoosterUseState.selectingCombo;
+    final isTargeted = boosterManager.selectedBoosterDef?.activationStyle == BoosterActivationStyle.targeted;
+    final shouldBeTargeting = isSelecting && isTargeted;
     if (_isTargeting != shouldBeTargeting) {
       _isTargeting = shouldBeTargeting;
       notifyListeners();

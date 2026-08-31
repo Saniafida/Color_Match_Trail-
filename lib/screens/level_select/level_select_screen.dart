@@ -16,6 +16,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
   late final ProgressionManager _progressionManager;
   late final GameDataManager _dataManager;
   TabController? _tabController;
+  final GlobalKey _currentLevelKey = GlobalKey();
 
   @override
   void initState() {
@@ -24,10 +25,43 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
     _dataManager = ServiceLocator.instance.gameDataManager;
 
     final worlds = _dataManager.getAllWorlds();
+    final currentPlayable = _progressionManager.currentPlayableLevel;
+    int initialIndex = 0;
+    for (int i = 0; i < worlds.length; i++) {
+      if (worlds[i].levelIds.contains(currentPlayable)) {
+        initialIndex = i;
+        break;
+      }
+    }
+
     if (worlds.isNotEmpty) {
-      _tabController = TabController(length: worlds.length, vsync: this);
+      _tabController = TabController(
+        length: worlds.length,
+        vsync: this,
+        initialIndex: initialIndex.clamp(0, worlds.length - 1),
+      );
     }
     _progressionManager.addListener(_onProgressionUpdated);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) {
+          _scrollToCurrentLevel();
+        }
+      });
+    });
+  }
+
+  void _scrollToCurrentLevel() {
+    final targetContext = _currentLevelKey.currentContext;
+    if (targetContext != null) {
+      Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    }
   }
 
   @override
@@ -129,13 +163,15 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
               final stars = progress?.bestStars ?? 0;
               final isCurrent = state.currentLevel == levelId || _progressionManager.currentPlayableLevel == levelId;
 
-              return InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  _playLevel(levelId);
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
+              return KeyedSubtree(
+                key: isCurrent ? _currentLevelKey : null,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _playLevel(levelId);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
                   decoration: BoxDecoration(
                     color: isUnlocked ? const Color(0xFF1E293B) : const Color(0xFF0B1120),
                     borderRadius: BorderRadius.circular(16),
@@ -190,7 +226,8 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
                     ],
                   ),
                 ),
-              );
+              ),
+            );
             },
           );
         }).toList(),

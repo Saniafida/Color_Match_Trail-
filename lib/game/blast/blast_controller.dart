@@ -40,26 +40,69 @@ class BlastController extends ChangeNotifier {
     }
 
     // Verify all blocks still exist and are valid for destruction
-    for (int i = 0; i < match.blockIds.length; i++) {
-      final id = match.blockIds[i];
-      final pos = match.positions[i];
-      
-      final boardId = boardController.getBlockId(pos);
-      if (boardId != id) return const BlastResult(success: false);
-      
-      final block = getBlock(id);
-      if (block == null || block.isLocked || block.isBeingDestroyed) {
-        return const BlastResult(success: false);
+    if (source == DestructionSource.playerMatch) {
+      for (int i = 0; i < match.blockIds.length; i++) {
+        final id = match.blockIds[i];
+        final block = getBlock(id);
+        if (block == null || block.isLocked || block.isBeingDestroyed) {
+          return const BlastResult(success: false);
+        }
+        if (i < match.positions.length) {
+          final pos = match.positions[i];
+          final boardId = boardController.getBlockId(pos);
+          if (boardId != id) return const BlastResult(success: false);
+        }
       }
     }
 
-    // Determine creation
+    // Collect valid blocks and their actual board positions
+    final Map<String, Position> validatedBlocks = {};
+    for (int i = 0; i < match.blockIds.length; i++) {
+      final id = match.blockIds[i];
+      final block = getBlock(id);
+      if (block == null || block.isLocked || block.isBeingDestroyed) {
+        continue;
+      }
+
+      Position? pos;
+      if (i < match.positions.length && boardController.getBlockId(match.positions[i]) == id) {
+        pos = match.positions[i];
+      } else {
+        final blockPos = block.position;
+        if (boardController.getBlockId(blockPos) == id) {
+          pos = blockPos;
+        } else {
+          for (int r = 0; r < boardController.rows; r++) {
+            for (int c = 0; c < boardController.columns; c++) {
+              final p = Position(r, c);
+              if (boardController.getBlockId(p) == id) {
+                pos = p;
+                break;
+              }
+            }
+            if (pos != null) break;
+          }
+        }
+      }
+
+      if (pos != null) {
+        validatedBlocks[id] = pos;
+      }
+    }
+
+    if (validatedBlocks.isEmpty) {
+      return const BlastResult(success: false);
+    }
+
+    // Determine special creation (if applicable)
     String? specialCreationBlockId;
     SpecialBlockType specialCreationType = SpecialBlockType.none;
     
     if (match.specialCreationHint != SpecialCreationType.none) {
       final middleIndex = match.length ~/ 2;
-      specialCreationBlockId = match.blockIds[middleIndex];
+      if (middleIndex < match.blockIds.length) {
+        specialCreationBlockId = match.blockIds[middleIndex];
+      }
       
       switch (match.specialCreationHint) {
         case SpecialCreationType.lineBlast:
@@ -76,25 +119,21 @@ class BlastController extends ChangeNotifier {
       }
     }
 
-    final Set<String> targetBlockIds = {};
-    final Set<Position> targetPositions = {};
-    
-    for (int i = 0; i < match.blockIds.length; i++) {
-      if (match.blockIds[i] == specialCreationBlockId) continue;
-      targetBlockIds.add(match.blockIds[i]);
-      targetPositions.add(match.positions[i]);
+    final Map<String, Position> targetBlocks = Map.from(validatedBlocks);
+    if (specialCreationBlockId != null) {
+      targetBlocks.remove(specialCreationBlockId);
     }
     
-    // Check for special activations
-    for (int i = 0; i < match.blockIds.length; i++) {
-      if (match.blockIds[i] == specialCreationBlockId) continue;
+    // Check for special activations and chain reactions
+    for (final entry in validatedBlocks.entries) {
+      if (entry.key == specialCreationBlockId) continue;
       
-      final block = getBlock(match.blockIds[i]);
+      final block = getBlock(entry.key);
       if (block != null && block.specialType != SpecialBlockType.none) {
         final result = specialController.activateSpecial(
           SpecialActivationRequest(
             blockId: block.id,
-            position: block.position,
+            position: entry.value,
             type: block.specialType,
             color: block.color,
           )
@@ -104,8 +143,7 @@ class BlastController extends ChangeNotifier {
           final tPos = result.targetPositions[j];
           // Protect newly created special from being destroyed instantly by a chain reaction in the same turn
           if (tId != specialCreationBlockId) {
-            targetBlockIds.add(tId);
-            targetPositions.add(tPos);
+            targetBlocks[tId] = tPos;
           }
         }
       }
@@ -117,12 +155,12 @@ class BlastController extends ChangeNotifier {
 
     BlastIntensity intensity = match.connectionType == ConnectionType.mega ? BlastIntensity.mega : BlastIntensity.normal;
     Duration duration = const Duration(milliseconds: 400);
-    if (targetBlockIds.length > match.length) {
+    if (targetBlocks.length > match.length) {
       intensity = BlastIntensity.mega; // Upgrade intensity if specials triggered
     }
 
     // Phase 1: Mark as being destroyed with sequential stagger
-    final targetList = targetBlockIds.toList();
+    final targetList = targetBlocks.keys.toList();
     final staggerMs = (targetList.length > 1) ? 20 : 0;
     final totalStaggerDuration = Duration(milliseconds: staggerMs * (targetList.length - 1));
 
@@ -157,12 +195,23 @@ class BlastController extends ChangeNotifier {
     }
 
     // Phase 2: Physically remove
-    for (final pos in targetPositions) {
-      final id = boardController.getBlockId(pos);
-      if (id != null && targetBlockIds.contains(id)) {
+    for (final entry in targetBlocks.entries) {
+      final pos = entry.value;
+      final id = entry.key;
+      if (boardController.getBlockId(pos) == id) {
         boardController.clearCell(pos);
-        onRemoveBlock(id);
+      } else {
+        for (int r = 0; r < boardController.rows; r++) {
+          for (int c = 0; c < boardController.columns; c++) {
+            final p = Position(r, c);
+            if (boardController.getBlockId(p) == id) {
+              boardController.clearCell(p);
+              break;
+            }
+          }
+        }
       }
+      onRemoveBlock(id);
     }
 
     _isBlasting = false;
@@ -170,9 +219,9 @@ class BlastController extends ChangeNotifier {
     
     final result = BlastResult(
       success: true,
-      destroyedBlockIds: targetBlockIds.toList(),
-      destroyedPositions: targetPositions.toList(),
-      destroyedCount: targetBlockIds.length,
+      destroyedBlockIds: targetBlocks.keys.toList(),
+      destroyedPositions: targetBlocks.values.toList(),
+      destroyedCount: targetBlocks.length,
       color: match.color,
       intensity: intensity,
       duration: duration,

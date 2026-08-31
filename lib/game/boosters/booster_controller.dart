@@ -86,19 +86,16 @@ class BoosterController extends ChangeNotifier {
       return BoosterUseResult(success: false, boosterType: booster, error: "Invalid block");
     }
 
-    Set<String> affectedIds = {};
-    Set<Position> affectedPositions = {};
+    final Map<String, Position> targetBlocks = {};
 
     if (booster == BoosterType.hammer) {
-      affectedIds.add(block.id);
-      affectedPositions.add(block.position);
+      targetBlocks[block.id] = block.position;
     } else if (booster == BoosterType.rowClear) {
       for (int c = 0; c < boardController.columns; c++) {
         final pos = Position(targetPos.row, c);
         final id = boardController.getBlockId(pos);
         if (id != null) {
-          affectedIds.add(id);
-          affectedPositions.add(pos);
+          targetBlocks[id] = pos;
         }
       }
     } else if (booster == BoosterType.colorClear) {
@@ -109,48 +106,55 @@ class BoosterController extends ChangeNotifier {
           if (id != null) {
             final b = getBlock(id);
             if (b != null && b.color == block.color) {
-              affectedIds.add(id);
-              affectedPositions.add(pos);
+              targetBlocks[id] = pos;
             }
+          }
+        }
+      }
+    } else if (booster == BoosterType.areaBlast) {
+      for (int r = (targetPos.row - 1).clamp(0, boardController.rows - 1); r <= (targetPos.row + 1).clamp(0, boardController.rows - 1); r++) {
+        for (int c = (targetPos.column - 1).clamp(0, boardController.columns - 1); c <= (targetPos.column + 1).clamp(0, boardController.columns - 1); c++) {
+          final pos = Position(r, c);
+          final id = boardController.getBlockId(pos);
+          if (id != null) {
+            targetBlocks[id] = pos;
           }
         }
       }
     }
 
     // Check for special activations within targeted blocks
-    final Set<String> specialExpandedIds = {};
-    final Set<Position> specialExpandedPos = {};
-    
-    for (final id in affectedIds) {
-      final b = getBlock(id);
+    final List<MapEntry<String, Position>> initialSpecials = targetBlocks.entries.toList();
+    for (final entry in initialSpecials) {
+      final b = getBlock(entry.key);
       if (b != null && b.specialType != SpecialBlockType.none) {
         final specialResult = specialController.activateSpecial(
           SpecialActivationRequest(
             blockId: b.id,
-            position: b.position,
+            position: entry.value,
             type: b.specialType,
             color: b.color,
-          )
+          ),
         );
-        specialExpandedIds.addAll(specialResult.targetBlockIds);
-        specialExpandedPos.addAll(specialResult.targetPositions);
+        for (int i = 0; i < specialResult.targetBlockIds.length; i++) {
+          final sId = specialResult.targetBlockIds[i];
+          final sPos = specialResult.targetPositions[i];
+          targetBlocks[sId] = sPos;
+        }
       }
     }
-
-    affectedIds.addAll(specialExpandedIds);
-    affectedPositions.addAll(specialExpandedPos);
 
     // Consume the booster
     _inventory = _inventory.decrement(booster);
     
     // Convert to MatchResult to leverage existing BlastController destruction pipeline
-    // It's not a real match, but it holds the targets nicely.
     final matchResult = MatchResult(
       isValid: true,
-      blockIds: affectedIds.toList(),
-      positions: affectedPositions.toList(),
-      length: affectedIds.length,
+      blockIds: targetBlocks.keys.toList(),
+      positions: targetBlocks.values.toList(),
+      length: targetBlocks.length,
       color: block.color,
+      connectionType: ConnectionType.mega,
     );
 
     final blastResult = await blastController.processMatch(matchResult, source: DestructionSource.booster);

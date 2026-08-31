@@ -23,6 +23,7 @@ class AdventureBoard extends StatefulWidget {
 
 class _AdventureBoardState extends State<AdventureBoard> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectedLevelKey = GlobalKey();
 
   // Pattern of tile counts per row from top to bottom
   static const List<int> _rowPatterns = [
@@ -48,18 +49,65 @@ class _AdventureBoardState extends State<AdventureBoard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrent();
+      if (_scrollController.hasClients) {
+        // Start from base of the map (level 1)
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+      // Smoothly slide / scroll up to the player's reached level
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) {
+          _scrollToSelectedLevel(animated: true);
+        }
+      });
     });
   }
 
-  void _scrollToCurrent() {
-    if (_scrollController.hasClients) {
-      // By default the base (levels 1-9) is at the bottom of the map
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutCubic,
+  @override
+  void didUpdateWidget(covariant AdventureBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedLevel != widget.selectedLevel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedLevel(animated: true);
+      });
+    }
+  }
+
+  void _scrollToSelectedLevel({bool animated = true}) {
+    if (!mounted || !_scrollController.hasClients) return;
+
+    final targetContext = _selectedLevelKey.currentContext;
+    if (targetContext != null) {
+      Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.45,
+        duration: animated ? const Duration(milliseconds: 850) : Duration.zero,
+        curve: Curves.easeInOutCubic,
       );
+    } else {
+      // Fallback calculation based on mosaic rows
+      final mosaicRows = _generateMosaicRows();
+      int targetRowIndex = -1;
+      for (int i = 0; i < mosaicRows.length; i++) {
+        if (mosaicRows[i].contains(widget.selectedLevel)) {
+          targetRowIndex = i;
+          break;
+        }
+      }
+
+      if (targetRowIndex != -1) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final fraction = (targetRowIndex + 0.5) / (mosaicRows.isNotEmpty ? mosaicRows.length : 1);
+        final targetOffset = (maxScroll * fraction).clamp(0.0, maxScroll);
+        if (animated) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 850),
+            curve: Curves.easeInOutCubic,
+          );
+        } else {
+          _scrollController.jumpTo(targetOffset);
+        }
+      }
     }
   }
 
@@ -362,7 +410,7 @@ class _AdventureBoardState extends State<AdventureBoard> {
     final progress = widget.progressMap[levelId] ??
         LevelProgress(
           levelId: levelId,
-          unlocked: levelNum <= 4 || prevCompleted,
+          unlocked: levelNum <= 1 || prevCompleted,
           completed: false,
           bestStars: 0,
           bestScore: 0,
@@ -370,15 +418,18 @@ class _AdventureBoardState extends State<AdventureBoard> {
 
     final isCurrent = levelNum == widget.selectedLevel;
 
-    return LevelNode(
-      progress: progress,
-      isCurrent: isCurrent,
-      width: 32,
-      height: 35,
-      onTap: () {
-        HapticFeedback.selectionClick();
-        widget.onSelectLevel(levelNum);
-      },
+    return KeyedSubtree(
+      key: isCurrent ? _selectedLevelKey : null,
+      child: LevelNode(
+        progress: progress,
+        isCurrent: isCurrent,
+        width: 32,
+        height: 35,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          widget.onSelectLevel(levelNum);
+        },
+      ),
     );
   }
 

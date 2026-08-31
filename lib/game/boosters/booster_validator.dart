@@ -16,8 +16,8 @@ class BoosterValidator {
     // Inventory check
     if (inventoryManager.getQuantity(type) <= 0) return false;
 
-    // Game state check
-    if (levelResultController.status != GameStatus.playing) return false;
+    // Game state check - cannot use when game has ended
+    if (levelResultController.hasEnded) return false;
     
     // Resolution check
     if (blastController.isBlasting) return false;

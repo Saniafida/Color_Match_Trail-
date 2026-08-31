@@ -58,15 +58,23 @@ class BoosterManager extends ChangeNotifier {
     required this.specialController,
   }) {
     ServiceLocator.instance.inventoryManager.addListener(_onInventoryChanged);
+    levelResultController.addListener(_onGameStateChanged);
+    blastController.addListener(_onGameStateChanged);
   }
 
   @override
   void dispose() {
     ServiceLocator.instance.inventoryManager.removeListener(_onInventoryChanged);
+    levelResultController.removeListener(_onGameStateChanged);
+    blastController.removeListener(_onGameStateChanged);
     super.dispose();
   }
 
   void _onInventoryChanged() {
+    notifyListeners();
+  }
+
+  void _onGameStateChanged() {
     notifyListeners();
   }
 
@@ -95,7 +103,6 @@ class BoosterManager extends ChangeNotifier {
         return;
       } else {
         cancelSelection();
-        // and we could re-select the new one, but let's just cancel for now.
       }
     }
 
@@ -114,11 +121,14 @@ class BoosterManager extends ChangeNotifier {
         final neededForB = combo.boosterB == type ? 1 : 0;
         final totalNeeded = neededForA + neededForB;
         if (inventory.getQuantity(type) < totalNeeded) {
-          // Can't afford it, just swap selection
+          // Can't afford combo, swap selection
           _selectedBoosterDef = def;
           _activeCombination = null;
           _secondBoosterDef = null;
           notifyListeners();
+          if (def.activationStyle == BoosterActivationStyle.instant) {
+            _executeInstantBooster(def);
+          }
           return;
         }
 
@@ -126,9 +136,6 @@ class BoosterManager extends ChangeNotifier {
         _activeCombination = combo;
         _state = BoosterUseState.selectingCombo;
         notifyListeners();
-        
-        // If both boosters in combination are instant, execute now.
-        // For simplicity, combos currently require targeting.
         return;
       } else {
         // Cannot combine, swap selection
@@ -136,6 +143,9 @@ class BoosterManager extends ChangeNotifier {
         _activeCombination = null;
         _secondBoosterDef = null;
         notifyListeners();
+        if (def.activationStyle == BoosterActivationStyle.instant) {
+          _executeInstantBooster(def);
+        }
         return;
       }
     }
@@ -241,49 +251,53 @@ class BoosterManager extends ChangeNotifier {
       }
     }
 
-    if (affectedPositions.isEmpty) {
+    final Map<String, Position> targetBlocks = {};
+    for (final pos in affectedPositions) {
+      final id = boardController.getBlockId(pos);
+      if (id != null) {
+        final b = getBlock(id);
+        if (b != null && !b.isLocked && !b.isBeingDestroyed) {
+          targetBlocks[id] = pos;
+        }
+      }
+    }
+
+    if (targetBlocks.isEmpty) {
       cancelSelection();
       return BoosterUseResult(success: false, boosterType: def.type, error: "No blocks affected");
     }
 
-    Set<String> affectedIds = {};
-    for (final pos in affectedPositions) {
-      final id = boardController.getBlockId(pos);
-      if (id != null) affectedIds.add(id);
-    }
-
     // Special block expansion
-    final Set<String> specialExpandedIds = {};
-    final Set<Position> specialExpandedPos = {};
-    
-    for (final id in affectedIds) {
-      final b = getBlock(id);
+    final List<MapEntry<String, Position>> initialSpecials = targetBlocks.entries.toList();
+    for (final entry in initialSpecials) {
+      final b = getBlock(entry.key);
       if (b != null && b.specialType != SpecialBlockType.none) {
         final specialResult = specialController.activateSpecial(
           SpecialActivationRequest(
             blockId: b.id,
-            position: b.position,
+            position: entry.value,
             type: b.specialType,
             color: b.color,
-          )
+          ),
         );
-        specialExpandedIds.addAll(specialResult.targetBlockIds);
-        specialExpandedPos.addAll(specialResult.targetPositions);
+        for (int i = 0; i < specialResult.targetBlockIds.length; i++) {
+          final sId = specialResult.targetBlockIds[i];
+          final sPos = specialResult.targetPositions[i];
+          targetBlocks[sId] = sPos;
+        }
       }
     }
-
-    affectedIds.addAll(specialExpandedIds);
-    affectedPositions.addAll(specialExpandedPos);
     
     final targetBlockIdForColor = boardController.getBlockId(targetPos);
     final targetBlockColor = targetBlockIdForColor != null ? getBlock(targetBlockIdForColor)?.color : null;
 
     final matchResult = MatchResult(
       isValid: true,
-      blockIds: affectedIds.toList(),
-      positions: affectedPositions.toList(),
-      length: affectedIds.length,
+      blockIds: targetBlocks.keys.toList(),
+      positions: targetBlocks.values.toList(),
+      length: targetBlocks.length,
       color: targetBlockColor,
+      connectionType: ConnectionType.mega,
     );
 
     final blastResult = await blastController.processMatch(matchResult, source: DestructionSource.booster);

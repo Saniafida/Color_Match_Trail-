@@ -39,18 +39,18 @@ class TrailInputLayer extends StatelessWidget {
     final width = columns * (cellSize + cellSpacing) - cellSpacing;
     final height = rows * (cellSize + cellSpacing) - cellSpacing;
     
-    return GestureDetector(
+    return Listener(
       behavior: HitTestBehavior.opaque,
-      onPanDown: (details) {
-        final pos = _getLocalPosition(details.localPosition);
+      onPointerDown: (event) {
+        final pos = _getLocalPosition(event.localPosition);
         if (pos != null) onDragStart(pos);
       },
-      onPanUpdate: (details) {
-        final pos = _getLocalPosition(details.localPosition);
+      onPointerMove: (event) {
+        final pos = _getLocalPosition(event.localPosition);
         if (pos != null) onDragUpdate(pos);
       },
-      onPanEnd: (details) => onDragEnd(),
-      onPanCancel: () => onDragCancel(),
+      onPointerUp: (event) => onDragEnd(),
+      onPointerCancel: (event) => onDragCancel(),
       child: SizedBox(
         width: width > 0 ? width : 0,
         height: height > 0 ? height : 0,
