@@ -47,6 +47,32 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
   void _playLevel(int levelNumber) async {
     final levelId = 'level_$levelNumber';
+    final isUnlocked = _progressionManager.canPlayLevel(levelId);
+    if (!isUnlocked) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Level $levelNumber is Locked! Complete Level ${levelNumber - 1} first.',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFD32F2F),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     _progressionManager.setCurrentLevel(levelId);
 
     await Navigator.pushNamed(
@@ -66,6 +92,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     final coinManager = ServiceLocator.instance.coinManager;
     final coins = coinManager.balance;
     final progressMap = _progressionManager.state.levels;
+    final isSelectedUnlocked = _progressionManager.canPlayLevel('level_$_selectedLevel');
 
     return Scaffold(
       body: Stack(
@@ -122,6 +149,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                 // Big Glossy 3D Green "LEVEL X" Action Button
                 AdventurePlayButton(
                   levelNumber: _selectedLevel,
+                  isUnlocked: isSelectedUnlocked,
                   onPlay: () => _playLevel(_selectedLevel),
                 ),
               ],
