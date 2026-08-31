@@ -407,14 +407,18 @@ class _AdventureBoardState extends State<AdventureBoard> {
   Widget _buildTile(int levelNum) {
     final levelId = 'level_$levelNum';
     final prevCompleted = levelNum > 1 && (widget.progressMap['level_${levelNum - 1}']?.completed ?? false);
-    final progress = widget.progressMap[levelId] ??
-        LevelProgress(
-          levelId: levelId,
-          unlocked: levelNum <= 1 || prevCompleted,
-          completed: false,
-          bestStars: 0,
-          bestScore: 0,
-        );
+    final recordedProgress = widget.progressMap[levelId];
+    final isUnlocked = levelNum <= 1 || prevCompleted || (recordedProgress?.unlocked ?? false);
+    
+    final progress = recordedProgress != null
+        ? recordedProgress.copyWith(unlocked: isUnlocked)
+        : LevelProgress(
+            levelId: levelId,
+            unlocked: isUnlocked,
+            completed: false,
+            bestStars: 0,
+            bestScore: 0,
+          );
 
     final isCurrent = levelNum == widget.selectedLevel;
 
