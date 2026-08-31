@@ -47,6 +47,20 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   fake_async: ^1.3.3
   image: ^4.5.4
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/game_luncher_iccon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/game_luncher_iccon.png"
+  windows:
+    generate: true
+    image_path: "assets/images/game_luncher_iccon.png"
+    icon_size: 48
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
