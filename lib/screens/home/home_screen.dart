@@ -949,19 +949,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-
-        // 5. Inbox (with badge '3')
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
-            child: _buildBottomNavButton(
-              label: 'Inbox',
-              iconWidget: _buildInboxIcon(),
-              badgeText: '3',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.statistics),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -1129,24 +1116,6 @@ class _HomeScreenState extends State<HomeScreen> {
             shape: BoxShape.circle,
           ),
         ),
-      ),
-    );
-  }
-
-  // 3D Mail Envelope
-  Widget _buildInboxIcon() {
-    return Container(
-      width: 26,
-      height: 18,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF9EC),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF8D5325), width: 1.2),
-      ),
-      child: const Icon(
-        Icons.mail_outline_rounded,
-        color: Color(0xFF8D5325),
-        size: 14,
       ),
     );
   }
