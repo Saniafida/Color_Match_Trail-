@@ -98,35 +98,29 @@ class LevelUnlockValidator {
       return LevelUnlockValidationResult.unlocked();
     }
 
-    // 4. If not explicitly recorded as unlocked, check if it's the first level of the first world
-    if (world != null && world.levelIds.isNotEmpty && world.levelIds.first == levelId) {
-      if (allWorlds.isNotEmpty && allWorlds.first.worldId == world.worldId) {
-        return LevelUnlockValidationResult.unlocked();
-      }
+    // 4. Level 1 is always unlocked
+    final currentLevelNum = int.tryParse(levelId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (currentLevelNum == 1) {
+      return LevelUnlockValidationResult.unlocked();
     }
 
-    // 5. Determine prerequisite level if any
-    String? previousLevelId;
-    if (world != null) {
-      final index = world.levelIds.indexOf(levelId);
-      if (index > 0) {
-        previousLevelId = world.levelIds[index - 1];
-        final prevProgress = state.levels[previousLevelId];
-        if (prevProgress == null || !prevProgress.completed) {
-          final levelNum = previousLevelId.replaceAll(RegExp(r'[^0-9]'), '');
-          return LevelUnlockValidationResult.locked(
-            status: LevelUnlockStatus.lockedPreviousLevel,
-            message: 'Complete level $levelNum to unlock.',
-            requiredLevelId: previousLevelId,
-          );
-        }
+    // 5. If previous level is completed, it is unlocked
+    if (currentLevelNum != null && currentLevelNum > 1) {
+      final prevLevelId = 'level_${currentLevelNum - 1}';
+      final prevProgress = state.levels[prevLevelId];
+      if (prevProgress != null && prevProgress.completed) {
+        return LevelUnlockValidationResult.unlocked();
       }
+      return LevelUnlockValidationResult.locked(
+        status: LevelUnlockStatus.lockedPreviousLevel,
+        message: 'Complete level ${currentLevelNum - 1} to unlock.',
+        requiredLevelId: prevLevelId,
+      );
     }
 
     return LevelUnlockValidationResult.locked(
       status: LevelUnlockStatus.lockedPreviousLevel,
       message: 'Level is locked.',
-      requiredLevelId: previousLevelId,
     );
   }
 }
