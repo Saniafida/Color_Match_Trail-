@@ -216,16 +216,13 @@ class ProgressionManager extends ChangeNotifier {
         // Or check next world unlock
         else if (w + 1 < allWorlds.length) {
           final nextWorld = allWorlds[w + 1];
-          final totalEarnedStars = newLevels.values.fold(0, (sum, lp) => sum + lp.bestStars);
-          if (totalEarnedStars >= nextWorld.unlockRequirement) {
-            newUnlockedWorlds.add(nextWorld.worldId);
-            if (nextWorld.levelIds.isNotEmpty) {
-              final nextLevelId = nextWorld.levelIds.first;
-              nextLevelIdToPlay = nextLevelId;
-              final nextProgress = newLevels[nextLevelId];
-              if (nextProgress == null || !nextProgress.unlocked) {
-                newLevels[nextLevelId] = LevelProgress.unlocked(nextLevelId);
-              }
+          newUnlockedWorlds.add(nextWorld.worldId);
+          if (nextWorld.levelIds.isNotEmpty) {
+            final nextLevelId = nextWorld.levelIds.first;
+            nextLevelIdToPlay = nextLevelId;
+            final nextProgress = newLevels[nextLevelId];
+            if (nextProgress == null || !nextProgress.unlocked) {
+              newLevels[nextLevelId] = LevelProgress.unlocked(nextLevelId);
             }
           }
         }
@@ -250,6 +247,24 @@ class ProgressionManager extends ChangeNotifier {
         }
 
         break;
+      }
+    }
+
+    // 4. Numerical fallback: Ensure sequential next level is always unlocked
+    final currentLevelNum = int.tryParse(levelId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (currentLevelNum != null && currentLevelNum < 147) {
+      final nextNum = currentLevelNum + 1;
+      final numericNextId = 'level_$nextNum';
+      nextLevelIdToPlay ??= numericNextId;
+      final nextProg = newLevels[numericNextId];
+      if (nextProg == null || !nextProg.unlocked) {
+        newLevels[numericNextId] = LevelProgress.unlocked(numericNextId);
+      }
+      for (final world in allWorlds) {
+        if (world.levelIds.contains(numericNextId)) {
+          newUnlockedWorlds.add(world.worldId);
+          break;
+        }
       }
     }
 
