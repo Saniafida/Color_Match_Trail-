@@ -9,14 +9,19 @@ void main() {
       expect(level.levelNumber, 1);
       expect(level.goalTotal, 5);
       expect(level.fallSpeedMultiplier, lessThan(1.0));
-      expect(level.activeColors.length, 2);
+      expect(level.activeColors.contains(BlockColor.red), isTrue);
+      expect(level.activeColors.contains(BlockColor.yellow), isTrue);
+      expect(level.activeColors.contains(BlockColor.blue), isTrue);
+      expect(level.activeColors.contains(BlockColor.green), isTrue);
+      expect(level.activeColors.contains(BlockColor.purple), isTrue);
+      expect(level.activeColors.contains(BlockColor.orange), isTrue);
     });
 
-    test('Level 5 is balanced with goal 20 and 25 moves', () {
+    test('Level 5 is balanced with goal 20 and 30 moves', () {
       final level = BasketCollectLevelGenerator.getLevel(5);
       expect(level.levelNumber, 5);
       expect(level.goalTotal, 20);
-      expect(level.moves, 25);
+      expect(level.moves, 30);
       expect(level.activeColors.contains(BlockColor.red), isTrue);
       expect(level.activeColors.contains(BlockColor.green), isTrue);
       expect(level.activeColors.contains(BlockColor.blue), isTrue);

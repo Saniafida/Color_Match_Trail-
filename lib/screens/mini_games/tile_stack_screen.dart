@@ -261,6 +261,10 @@ class _TileStackScreenState extends State<TileStackScreen>
     _lastTickTime = DateTime.now();
     _lastSpawnTime = DateTime.now();
 
+    // Pre-spawn initial staggered blocks
+    _spawnNextBlock(initialY: 0.20);
+    _spawnNextBlock(initialY: -0.04);
+
     _sparkleController.reset();
     _shakeController.reset();
     _flashController.reset();
@@ -290,12 +294,12 @@ class _TileStackScreenState extends State<TileStackScreen>
         (now.difference(_lastTickTime!).inMicroseconds) / 1_000_000.0;
     _lastTickTime = now;
 
-    // 1. Spawn new block
+    // 1. Spawn new blocks continuously across lanes
+    final interval = currentLevel.spawnIntervalMs.clamp(400, 850);
     if (_lastSpawnTime == null ||
-        now.difference(_lastSpawnTime!).inMilliseconds >=
-            currentLevel.spawnIntervalMs) {
-      // Only one block on screen at a time (per spec)
-      if (_fallingBlocks.isEmpty) {
+        now.difference(_lastSpawnTime!).inMilliseconds >= interval) {
+      // Allow multiple blocks simultaneously on screen (up to 6 active)
+      if (_fallingBlocks.length < 6) {
         _spawnNextBlock();
         _lastSpawnTime = now;
       }
@@ -355,7 +359,7 @@ class _TileStackScreenState extends State<TileStackScreen>
     if (mounted) setState(() {});
   }
 
-  void _spawnNextBlock() {
+  void _spawnNextBlock({double initialY = -0.08}) {
     if (_upcomingQueue.isEmpty) {
       _upcomingQueue.add(BasketCollectLevelGenerator.getRandomColor(currentLevel));
     }
@@ -363,15 +367,29 @@ class _TileStackScreenState extends State<TileStackScreen>
     _upcomingQueue.add(BasketCollectLevelGenerator.getRandomColor(currentLevel));
 
     final rng = Random();
-    final double randomX = 0.12 + (rng.nextDouble() * 0.76);
-    final double baseSpeed = 0.26 * currentLevel.fallSpeedMultiplier;
+    // 5 distributed spawn lanes with subtle jitter
+    final lanes = [0.14, 0.31, 0.50, 0.69, 0.84];
+    lanes.shuffle(rng);
+
+    // Pick lane furthest from the highest block if any
+    double chosenX = lanes.first;
+    if (_fallingBlocks.isNotEmpty) {
+      final highestBlock = _fallingBlocks.reduce((a, b) => a.y < b.y ? a : b);
+      if ((chosenX - highestBlock.x).abs() < 0.16 && lanes.length > 1) {
+        chosenX = lanes[1];
+      }
+    }
+    chosenX += (rng.nextDouble() - 0.5) * 0.04;
+    chosenX = chosenX.clamp(0.12, 0.86);
+
+    final double baseSpeed = (0.23 + (rng.nextDouble() * 0.07)) * currentLevel.fallSpeedMultiplier;
 
     _fallingBlocks.add(FallingBlock(
       id: _blockIdCounter++,
-      x: randomX,
-      y: -0.06,
+      x: chosenX,
+      y: initialY,
       color: color,
-      speed: baseSpeed + (rng.nextDouble() * 0.04),
+      speed: baseSpeed,
       rotation: (rng.nextDouble() - 0.5) * 0.3,
     ));
   }
@@ -464,25 +482,30 @@ class _TileStackScreenState extends State<TileStackScreen>
 
   void _onBlockMissed(FallingBlock block) {
     comboStreak = 0;
-    movesRemaining--;
-    if (movesRemaining < 0) movesRemaining = 0;
-    final lostIndex = livesRemaining - 1;
-    livesRemaining--;
-    if (livesRemaining < 0) livesRemaining = 0;
 
-    setState(() => _lifeAnimatingIndex = lostIndex);
-    _flashController.forward(from: 0);
-    _shakeController.forward(from: 0);
+    // Check if this missed block was an unmet target requirement
+    final isTargetNeeded = currentLevel.targetRequirements.containsKey(block.color) &&
+        ((_caughtPerColor[block.color] ?? 0) < (currentLevel.targetRequirements[block.color] ?? 0));
 
-    Future.delayed(const Duration(milliseconds: 600),
-        () { if (mounted) setState(() => _lifeAnimatingIndex = -1); });
+    if (isTargetNeeded) {
+      final lostIndex = livesRemaining - 1;
+      livesRemaining--;
+      if (livesRemaining < 0) livesRemaining = 0;
 
-    if (livesRemaining <= 0 || movesRemaining <= 0) {
-      // Brief freeze before game-over panel
-      setState(() => _isGameFrozen = true);
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) _triggerGameOver();
-      });
+      setState(() => _lifeAnimatingIndex = lostIndex);
+      _flashController.forward(from: 0);
+      _shakeController.forward(from: 0);
+
+      Future.delayed(const Duration(milliseconds: 600),
+          () { if (mounted) setState(() => _lifeAnimatingIndex = -1); });
+
+      if (livesRemaining <= 0 || movesRemaining <= 0) {
+        // Brief freeze before game-over panel
+        setState(() => _isGameFrozen = true);
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _triggerGameOver();
+        });
+      }
     }
   }
 

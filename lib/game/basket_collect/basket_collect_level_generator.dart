@@ -9,22 +9,21 @@ class BasketCollectLevelGenerator {
     switch (levelNumber) {
       // ══════════════════════════════════════════════
       // LEVEL 1 — Tutorial / Very Easy
-      // Goal: Catch 5 red hearts. 10 moves. 3 lives.
-      // Very slow blocks. Wide basket.
+      // Goal: Catch 5 red hearts. 15 moves. 5 lives.
       // ══════════════════════════════════════════════
       case 1:
         return const BasketCollectLevel(
           levelNumber: 1,
-          moves: 10,
+          moves: 15,
           goalTotal: 5,
-          fallSpeedMultiplier: 0.55,
-          spawnIntervalMs: 1900,
-          activeColors: [BlockColor.red, BlockColor.yellow],
+          fallSpeedMultiplier: 0.65,
+          spawnIntervalMs: 700,
+          activeColors: BlockColor.values,
           targetRequirements: {
             BlockColor.red: 5,
           },
-          maxMisses: 3,
-          basketWidthFactor: 1.15,
+          maxMisses: 5,
+          basketWidthFactor: 1.20,
         );
 
       // ══════════════════════════════════════════════
@@ -33,17 +32,17 @@ class BasketCollectLevelGenerator {
       case 2:
         return const BasketCollectLevel(
           levelNumber: 2,
-          moves: 14,
+          moves: 18,
           goalTotal: 8,
-          fallSpeedMultiplier: 0.65,
-          spawnIntervalMs: 1600,
-          activeColors: [BlockColor.red, BlockColor.yellow],
+          fallSpeedMultiplier: 0.70,
+          spawnIntervalMs: 650,
+          activeColors: BlockColor.values,
           targetRequirements: {
             BlockColor.red: 5,
             BlockColor.yellow: 3,
           },
-          maxMisses: 3,
-          basketWidthFactor: 1.10,
+          maxMisses: 5,
+          basketWidthFactor: 1.15,
         );
 
       // ══════════════════════════════════════════════
@@ -52,18 +51,18 @@ class BasketCollectLevelGenerator {
       case 3:
         return const BasketCollectLevel(
           levelNumber: 3,
-          moves: 18,
+          moves: 22,
           goalTotal: 12,
-          fallSpeedMultiplier: 0.75,
-          spawnIntervalMs: 1400,
-          activeColors: [BlockColor.red, BlockColor.yellow, BlockColor.blue],
+          fallSpeedMultiplier: 0.80,
+          spawnIntervalMs: 600,
+          activeColors: BlockColor.values,
           targetRequirements: {
             BlockColor.red: 5,
             BlockColor.yellow: 4,
             BlockColor.blue: 3,
           },
-          maxMisses: 3,
-          basketWidthFactor: 1.05,
+          maxMisses: 5,
+          basketWidthFactor: 1.10,
         );
 
       // ══════════════════════════════════════════════
@@ -72,18 +71,18 @@ class BasketCollectLevelGenerator {
       case 4:
         return const BasketCollectLevel(
           levelNumber: 4,
-          moves: 20,
+          moves: 25,
           goalTotal: 15,
-          fallSpeedMultiplier: 0.85,
-          spawnIntervalMs: 1250,
-          activeColors: [BlockColor.red, BlockColor.yellow, BlockColor.blue],
+          fallSpeedMultiplier: 0.90,
+          spawnIntervalMs: 550,
+          activeColors: BlockColor.values,
           targetRequirements: {
             BlockColor.red: 6,
             BlockColor.yellow: 5,
             BlockColor.blue: 4,
           },
-          maxMisses: 3,
-          basketWidthFactor: 1.0,
+          maxMisses: 5,
+          basketWidthFactor: 1.05,
         );
 
       // ══════════════════════════════════════════════
@@ -92,23 +91,18 @@ class BasketCollectLevelGenerator {
       case 5:
         return const BasketCollectLevel(
           levelNumber: 5,
-          moves: 25,
+          moves: 30,
           goalTotal: 20,
           fallSpeedMultiplier: 1.0,
-          spawnIntervalMs: 1100,
-          activeColors: [
-            BlockColor.red,
-            BlockColor.yellow,
-            BlockColor.blue,
-            BlockColor.green,
-          ],
+          spawnIntervalMs: 500,
+          activeColors: BlockColor.values,
           targetRequirements: {
             BlockColor.red: 6,
             BlockColor.yellow: 5,
             BlockColor.blue: 5,
             BlockColor.green: 4,
           },
-          maxMisses: 3,
+          maxMisses: 5,
           basketWidthFactor: 1.0,
           hasPowerBlocks: true,
         );
@@ -117,27 +111,18 @@ class BasketCollectLevelGenerator {
         // ══════════════════════════════════════════
         // PROCEDURAL GENERATOR FOR LEVELS 6+
         // ══════════════════════════════════════════
-        final colorCount = levelNumber < 8
-            ? 3
-            : (levelNumber < 15 ? 4 : 5);
-        final colors = [
-          BlockColor.red,
-          BlockColor.yellow,
-          BlockColor.blue,
-          BlockColor.green,
-          BlockColor.purple,
-        ].sublist(0, colorCount);
+        final colorCount = min(3 + (levelNumber ~/ 4), 6);
+        final targetColors = BlockColor.values.sublist(0, colorCount);
 
         final goalTotal = min(15 + (levelNumber * 3), 80);
-        final moves = min(20 + (levelNumber ~/ 2), 40);
-        final speed = min(0.95 + (levelNumber * 0.045), 2.2);
-        final interval = max(1100 - (levelNumber * 35), 400);
-        // Lives decrease as level gets harder (min 2)
-        final misses = levelNumber < 15 ? 3 : (levelNumber < 25 ? 3 : 2);
+        final moves = min(25 + (levelNumber ~/ 2), 50);
+        final speed = min(0.95 + (levelNumber * 0.045), 2.0);
+        final interval = max(600 - (levelNumber * 20), 380);
+        final misses = 5;
 
         final Map<BlockColor, int> targets = {};
         final perColor = goalTotal ~/ colorCount;
-        for (final c in colors) {
+        for (final c in targetColors) {
           targets[c] = perColor;
         }
 
@@ -147,7 +132,7 @@ class BasketCollectLevelGenerator {
           goalTotal: goalTotal,
           fallSpeedMultiplier: speed,
           spawnIntervalMs: interval,
-          activeColors: colors,
+          activeColors: BlockColor.values,
           targetRequirements: targets,
           maxMisses: misses,
           hasPowerBlocks: levelNumber >= 5,
@@ -155,18 +140,15 @@ class BasketCollectLevelGenerator {
     }
   }
 
-  /// Returns a weighted-random color — heavily biases toward target colors.
+  /// Returns random color with all rainbow colors falling and target bias for playability.
   static BlockColor getRandomColor(BasketCollectLevel level) {
-    // 75% chance to spawn a target color, 25% non-target (if any non-target exists)
     final targetColors = level.targetRequirements.keys.toList();
-    final allColors = level.activeColors;
-    final nonTargetColors =
-        allColors.where((c) => !targetColors.contains(c)).toList();
+    final allColors = BlockColor.values;
 
-    final roll = _rng.nextDouble();
-    if (nonTargetColors.isNotEmpty && roll > 0.75) {
-      return nonTargetColors[_rng.nextInt(nonTargetColors.length)];
+    // 40% bias toward target requirements, 60% random across all rainbow colors
+    if (_rng.nextDouble() < 0.40 && targetColors.isNotEmpty) {
+      return targetColors[_rng.nextInt(targetColors.length)];
     }
-    return targetColors[_rng.nextInt(targetColors.length)];
+    return allColors[_rng.nextInt(allColors.length)];
   }
 }
