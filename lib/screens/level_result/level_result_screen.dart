@@ -309,13 +309,14 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
 
             const SizedBox(height: 22),
 
-            // Bottom Buttons (Replay - Blue, Next - Green)
+            // Bottom Buttons (Home - Blue, Next - Green)
             Row(
               children: [
-                // Replay Button (Glossy Blue)
+                // Home Button (Glossy Blue)
                 Expanded(
                   child: _buildCustomGlossyButton(
-                    text: 'Replay',
+                    text: 'Home',
+                    icon: Icons.home_rounded,
                     gradientColors: const [
                       Color(0xFF29B6F6),
                       Color(0xFF1E88E5),
@@ -325,10 +326,10 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                     shadowColor: const Color(0xFF0D47A1),
                     onPressed: () {
                       _resultManager.reset();
-                      Navigator.pushReplacementNamed(
+                      Navigator.pushNamedAndRemoveUntil(
                         context,
-                        AppRoutes.gameplay,
-                        arguments: widget.levelId,
+                        AppRoutes.worldMap,
+                        (route) => route.isFirst,
                       );
                     },
                   ),
@@ -1277,6 +1278,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
 
   Widget _buildCustomGlossyButton({
     required String text,
+    IconData? icon,
     required List<Color> gradientColors,
     required Color borderColor,
     required Color shadowColor,
@@ -1308,17 +1310,27 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
           ],
         ),
         child: Center(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.6,
-              shadows: [
-                Shadow(color: Colors.black54, offset: Offset(1, 2), blurRadius: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: Colors.white, size: 22),
+                const SizedBox(width: 6),
               ],
-            ),
+              Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
+                  shadows: [
+                    Shadow(color: Colors.black54, offset: Offset(1, 2), blurRadius: 2),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
