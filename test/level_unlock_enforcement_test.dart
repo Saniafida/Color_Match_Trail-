@@ -6,10 +6,13 @@ import 'package:color_match_trail/screens/world_map/widgets/adventure_play_butto
 import 'package:color_match_trail/core/services/service_locator.dart';
 import 'package:color_match_trail/game/progression/progression_manager.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
     await ServiceLocator.instance.initialize();
   });
 

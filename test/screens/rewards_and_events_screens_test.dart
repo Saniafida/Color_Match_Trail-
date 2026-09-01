@@ -6,10 +6,13 @@ import 'package:color_match_trail/screens/rewards/daily_bonus_screen.dart';
 import 'package:color_match_trail/screens/rewards/spin_wheel_screen.dart';
 import 'package:color_match_trail/screens/events/events_screen.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
     await ServiceLocator.instance.initialize();
   });
 

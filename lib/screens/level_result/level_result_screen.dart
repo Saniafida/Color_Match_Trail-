@@ -44,18 +44,10 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             color: Colors.black.withAlpha(140),
           ),
 
-          // 3. Top HUD Bar & Back Button
-          const Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: GameTopBar(),
-          ),
-
-          // Top-Left Back Arrow (matching reference image)
+          // 3. Top-Left Back Arrow (matching reference image)
           Positioned(
-            top: 12,
-            left: 12,
+            top: 16,
+            left: 16,
             child: SafeArea(
               child: GestureDetector(
                 onTap: () {
@@ -67,15 +59,15 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   );
                 },
                 child: Container(
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Colors.black.withAlpha(70),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white60, width: 1.2),
+                    border: Border.all(color: Colors.white70, width: 1.5),
                   ),
                   child: const Center(
-                    child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                    child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
                   ),
                 ),
               ),
@@ -83,11 +75,10 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
           ),
 
           // 4. Center Content Dialog
-          Positioned.fill(
-            top: 60,
+          SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: AnimatedBuilder(
                   animation: _resultManager,
                   builder: (context, child) {
@@ -130,7 +121,6 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 20),
             // Outer Main Frame with Star Crest & Garland
             Stack(
               clipBehavior: Clip.none,
@@ -139,7 +129,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                 // 1. Wooden Signboard Board (Main Frame)
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.only(top: 48),
+                  margin: const EdgeInsets.only(top: 86),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
@@ -176,7 +166,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   child: Container(
                     // Inner wood border highlight
                     margin: const EdgeInsets.all(3),
-                    padding: const EdgeInsets.fromLTRB(18, 48, 18, 18),
+                    padding: const EdgeInsets.fromLTRB(18, 36, 18, 18),
                     decoration: BoxDecoration(
                       border: Border.all(color: const Color(0x33FFD54F), width: 1.5),
                       borderRadius: const BorderRadius.only(
@@ -292,25 +282,25 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
 
                 // 2. Flower Clusters on Left and Right Edges
                 Positioned(
-                  top: 72,
+                  top: 110,
                   left: -14,
                   child: _buildSideFlowerGarland(isLeft: true),
                 ),
                 Positioned(
-                  top: 72,
+                  top: 110,
                   right: -14,
                   child: _buildSideFlowerGarland(isLeft: false),
                 ),
 
-                // 3. 3D Stars Arched Crest
+                // 3. 3D Stars Arched Crest (in front of board, below ribbon)
                 Positioned(
-                  top: 2,
+                  top: 42,
                   child: _buildStarCrest(starsEarned),
                 ),
 
-                // 4. Curved Red Ribbon Banner on Top
+                // 4. Curved Red Ribbon Banner at the very top
                 Positioned(
-                  top: -24,
+                  top: 0,
                   child: _buildCurvedRibbonBanner('LEVEL COMPLETE!'),
                 ),
               ],
