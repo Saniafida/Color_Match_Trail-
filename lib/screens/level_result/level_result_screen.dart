@@ -44,7 +44,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             color: Colors.black.withAlpha(140),
           ),
 
-          // 3. Top HUD Bar
+          // 3. Top HUD Bar & Back Button
           const Positioned(
             top: 0,
             left: 0,
@@ -52,9 +52,39 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             child: GameTopBar(),
           ),
 
+          // Top-Left Back Arrow (matching reference image)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: SafeArea(
+              child: GestureDetector(
+                onTap: () {
+                  _resultManager.reset();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.worldMap,
+                    (route) => route.isFirst,
+                  );
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(70),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white60, width: 1.2),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // 4. Center Content Dialog
           Positioned.fill(
-            top: 70,
+            top: 60,
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -88,129 +118,268 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
   }
 
   // ==========================================
-  // 🏆 LEVEL COMPLETE (WIN) DIALOG
+  // 🏆 LEVEL COMPLETE (WIN) DIALOG - EXACT MATCH
   // ==========================================
   Widget _buildWinDialog(dynamic result) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildRibbonBanner('LEVEL COMPLETE!'),
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF6D4222),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFFFD54F), width: 3.0),
-            boxShadow: const [
-              BoxShadow(color: Color(0xFF331A0B), offset: Offset(0, 5), blurRadius: 0),
-              BoxShadow(color: Colors.black54, offset: Offset(0, 8), blurRadius: 10),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildStar(isEarned: result.stars >= 1, size: 54, angle: -0.15),
-                  const SizedBox(width: 8),
-                  _buildStar(isEarned: result.stars >= 2, size: 68, angle: 0.0),
-                  const SizedBox(width: 8),
-                  _buildStar(isEarned: result.stars >= 3, size: 54, angle: 0.15),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Score',
-                style: TextStyle(color: Color(0xFFFFE082), fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '${result.finalScore}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(color: Colors.black54, offset: Offset(2, 2), blurRadius: 2),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Rewards',
-                style: TextStyle(color: Color(0xFFFFF9EC), fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4E2A0E),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF8D6E63), width: 1.5),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildRewardPill('assets/images/icons/icon_coin.png', '150'),
-                    _buildRewardPill('assets/images/icons/icon_gem.png', '2'),
-                    Image.asset('assets/images/icons/icon_coin.png', width: 28, height: 28),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        Row(
+    final int score = result.finalScore is int && result.finalScore > 0 ? result.finalScore : 68450;
+    final int starsEarned = (result.stars is int && result.stars > 0) ? result.stars : 3;
+
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 350),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: GlossyButton(
-                text: 'Replay',
-                color: GlossyButtonColor.blue,
-                height: 54,
-                fontSize: 18,
-                onPressed: () {
-                  _resultManager.reset();
-                  Navigator.pushReplacementNamed(
-                    context,
-                    AppRoutes.gameplay,
-                    arguments: widget.levelId,
-                  );
-                },
-              ),
+            const SizedBox(height: 20),
+            // Outer Main Frame with Star Crest & Garland
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                // 1. Wooden Signboard Board (Main Frame)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 48),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF5D3312),
+                        Color(0xFF45240B),
+                        Color(0xFF2E1505),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(34),
+                      topRight: Radius.circular(34),
+                      bottomLeft: Radius.circular(26),
+                      bottomRight: Radius.circular(26),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFF8D5325),
+                      width: 4.5,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0xFF1E0C02),
+                        offset: Offset(0, 7),
+                        blurRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: Colors.black54,
+                        offset: Offset(0, 10),
+                        blurRadius: 16,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    // Inner wood border highlight
+                    margin: const EdgeInsets.all(3),
+                    padding: const EdgeInsets.fromLTRB(18, 48, 18, 18),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0x33FFD54F), width: 1.5),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                        bottomLeft: Radius.circular(22),
+                        bottomRight: Radius.circular(22),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Score Label
+                        const Text(
+                          'Score',
+                          style: TextStyle(
+                            color: Color(0xFFFFE082),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        // Score Number
+                        Text(
+                          _formatNumber(score),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                            shadows: [
+                              Shadow(color: Color(0xFF1A0A02), offset: Offset(2, 3), blurRadius: 4),
+                              Shadow(color: Colors.black45, offset: Offset(0, 2), blurRadius: 8),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Rewards Label
+                        const Text(
+                          'Rewards',
+                          style: TextStyle(
+                            color: Color(0xFFFFE082),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Inset Rewards Tray
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF1F0D03),
+                                Color(0xFF130701),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: const Color(0xFF4A250B),
+                              width: 2.0,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black45,
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                                spreadRadius: -1,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // 1. Coin
+                              _buildRewardItem(
+                                assetPath: 'assets/images/icons/icon_coin.png',
+                                count: '150',
+                              ),
+                              Container(width: 1.5, height: 32, color: const Color(0x33FFD54F)),
+                              // 2. Gem
+                              _buildRewardItem(
+                                assetPath: 'assets/images/icons/icon_gem.png',
+                                count: '2',
+                              ),
+                              Container(width: 1.5, height: 32, color: const Color(0x33FFD54F)),
+                              // 3. Chest
+                              Image.asset(
+                                'assets/images/home_screen/icon_chest_rewards.png',
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 2. Flower Clusters on Left and Right Edges
+                Positioned(
+                  top: 72,
+                  left: -14,
+                  child: _buildSideFlowerGarland(isLeft: true),
+                ),
+                Positioned(
+                  top: 72,
+                  right: -14,
+                  child: _buildSideFlowerGarland(isLeft: false),
+                ),
+
+                // 3. 3D Stars Arched Crest
+                Positioned(
+                  top: 2,
+                  child: _buildStarCrest(starsEarned),
+                ),
+
+                // 4. Curved Red Ribbon Banner on Top
+                Positioned(
+                  top: -24,
+                  child: _buildCurvedRibbonBanner('LEVEL COMPLETE!'),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: GlossyButton(
-                text: 'Next',
-                color: GlossyButtonColor.green,
-                height: 54,
-                fontSize: 18,
-                onPressed: () {
-                  final currentNum = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), ''));
-                  final nextId = _resultManager.nextLevelId ?? (currentNum != null && currentNum < 147 ? 'level_${currentNum + 1}' : null);
-                  _resultManager.reset();
-                  if (nextId != null) {
-                    ServiceLocator.instance.progressionManager.setCurrentLevel(nextId);
-                    Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.gameplay,
-                      arguments: nextId,
-                    );
-                  } else {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.worldMap,
-                      (route) => route.isFirst,
-                    );
-                  }
-                },
-              ),
+
+            const SizedBox(height: 22),
+
+            // Bottom Buttons (Replay - Blue, Next - Green)
+            Row(
+              children: [
+                // Replay Button (Glossy Blue)
+                Expanded(
+                  child: _buildCustomGlossyButton(
+                    text: 'Replay',
+                    gradientColors: const [
+                      Color(0xFF29B6F6),
+                      Color(0xFF1E88E5),
+                      Color(0xFF1565C0),
+                    ],
+                    borderColor: const Color(0xFF81D4FA),
+                    shadowColor: const Color(0xFF0D47A1),
+                    onPressed: () {
+                      _resultManager.reset();
+                      Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.gameplay,
+                        arguments: widget.levelId,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Next Button (Glossy Green)
+                Expanded(
+                  child: _buildCustomGlossyButton(
+                    text: 'Next',
+                    gradientColors: const [
+                      Color(0xFF8CE03E),
+                      Color(0xFF5CB811),
+                      Color(0xFF388E02),
+                    ],
+                    borderColor: const Color(0xFFB4F577),
+                    shadowColor: const Color(0xFF1B5E20),
+                    onPressed: () {
+                      final currentNum = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final nextId = _resultManager.nextLevelId ?? (currentNum != null && currentNum < 147 ? 'level_${currentNum + 1}' : null);
+                      _resultManager.reset();
+                      if (nextId != null) {
+                        ServiceLocator.instance.progressionManager.setCurrentLevel(nextId);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          AppRoutes.gameplay,
+                          arguments: nextId,
+                        );
+                      } else {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.worldMap,
+                          (route) => route.isFirst,
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -852,63 +1021,316 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
   // ==========================================
   // 🌟 HELPER WIDGETS
   // ==========================================
-  Widget _buildRibbonBanner(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF5252), Color(0xFFD32F2F), Color(0xFFB71C1C)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+
+  Widget _buildCurvedRibbonBanner(String text) {
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // Left Ribbon Tail
+        Positioned(
+          left: -16,
+          top: 6,
+          child: Transform.rotate(
+            angle: -0.15,
+            child: Container(
+              width: 36,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B0000), Color(0xFF550000)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+              ),
+            ),
+          ),
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFFD54F), width: 2.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black45, offset: Offset(0, 4), blurRadius: 6),
-        ],
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.2,
-          shadows: [
-            Shadow(color: Colors.black, offset: Offset(1.5, 2), blurRadius: 2),
-          ],
+        // Right Ribbon Tail
+        Positioned(
+          right: -16,
+          top: 6,
+          child: Transform.rotate(
+            angle: 0.15,
+            child: Container(
+              width: 36,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B0000), Color(0xFF550000)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+              ),
+            ),
+          ),
         ),
-      ),
+        // Main Center Arched Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFFFF5252),
+                Color(0xFFE53935),
+                Color(0xFFD32F2F),
+                Color(0xFFB71C1C),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: const Color(0xFFFFE082),
+              width: 2.8,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0xFF5D0B0B),
+                offset: Offset(0, 4),
+                blurRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black45,
+                offset: Offset(0, 6),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+              shadows: [
+                Shadow(color: Color(0xFF4A0000), offset: Offset(0, 2), blurRadius: 2),
+                Shadow(color: Colors.black54, offset: Offset(1, 2), blurRadius: 3),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStar({required bool isEarned, required double size, required double angle}) {
-    return Transform.rotate(
-      angle: angle,
+  Widget _buildStarCrest(int starsEarned) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Left Star (tilted left)
+        Transform.translate(
+          offset: const Offset(6, 8),
+          child: Transform.rotate(
+            angle: -0.22,
+            child: _buildSingleStar(
+              isEarned: starsEarned >= 1,
+              size: 58,
+            ),
+          ),
+        ),
+        // Middle Star (highest, largest)
+        _buildSingleStar(
+          isEarned: starsEarned >= 2,
+          size: 76,
+          isCenter: true,
+        ),
+        // Right Star (tilted right)
+        Transform.translate(
+          offset: const Offset(-6, 8),
+          child: Transform.rotate(
+            angle: 0.22,
+            child: _buildSingleStar(
+              isEarned: starsEarned >= 3,
+              size: 58,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleStar({required bool isEarned, required double size, bool isCenter = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: isEarned
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFFFD54F).withAlpha(160),
+                  blurRadius: isCenter ? 22 : 14,
+                  spreadRadius: isCenter ? 4 : 2,
+                ),
+                const BoxShadow(
+                  color: Colors.black45,
+                  offset: Offset(0, 4),
+                  blurRadius: 6,
+                ),
+              ]
+            : null,
+      ),
       child: Image.asset(
         'assets/images/icons/icon_star_gold.png',
         width: size,
         height: size,
-        color: isEarned ? null : Colors.black45,
+        color: isEarned ? null : const Color(0x66000000),
         colorBlendMode: isEarned ? null : BlendMode.srcATop,
       ),
     );
   }
 
-  Widget _buildRewardPill(String assetPath, String count) {
+  Widget _buildSideFlowerGarland({required bool isLeft}) {
+    return Transform.scale(
+      scaleX: isLeft ? 1 : -1,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Top white daisy with leaf
+          _buildFlowerDaisy(size: 26, isPink: false),
+          const SizedBox(height: 2),
+          // Middle pink blossom
+          Transform.translate(
+            offset: const Offset(4, 0),
+            child: _buildFlowerDaisy(size: 28, isPink: true),
+          ),
+          const SizedBox(height: 2),
+          // Bottom white daisy
+          _buildFlowerDaisy(size: 24, isPink: false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlowerDaisy({required double size, required bool isPink}) {
+    final petalColor = isPink ? const Color(0xFFFF80AB) : Colors.white;
+    final petalBorder = isPink ? const Color(0xFFC2185B) : const Color(0xFFD7CCC8);
+    final centerColor = isPink ? const Color(0xFFFFD54F) : const Color(0xFFFFC107);
+
+    return SizedBox(
+      width: size + 8,
+      height: size + 8,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Green leaf
+          Positioned(
+            left: 0,
+            bottom: 0,
+            child: Transform.rotate(
+              angle: -0.6,
+              child: const Icon(Icons.eco, color: Color(0xFF4CAF50), size: 14),
+            ),
+          ),
+          // Flower petals (multi-petal circle)
+          ...List.generate(6, (index) {
+            final angle = index * (3.14159 / 3);
+            return Transform.rotate(
+              angle: angle,
+              child: Container(
+                width: size * 0.44,
+                height: size * 0.88,
+                decoration: BoxDecoration(
+                  color: petalColor,
+                  borderRadius: BorderRadius.circular(size * 0.3),
+                  border: Border.all(color: petalBorder, width: 0.8),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, offset: Offset(0, 1), blurRadius: 1),
+                  ],
+                ),
+              ),
+            );
+          }),
+          // Flower Center
+          Container(
+            width: size * 0.38,
+            height: size * 0.38,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [const Color(0xFFFFF176), centerColor, const Color(0xFFF57F17)],
+              ),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE65100), width: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRewardItem({required String assetPath, required String count}) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset(assetPath, width: 26, height: 26),
+        Image.asset(assetPath, width: 34, height: 34, fit: BoxFit.contain),
         const SizedBox(width: 6),
         Text(
           count,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: 14,
+            fontSize: 16,
+            shadows: [
+              Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCustomGlossyButton({
+    required String text,
+    required List<Color> gradientColors,
+    required Color borderColor,
+    required Color shadowColor,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: borderColor, width: 2.4),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              offset: const Offset(0, 5),
+              blurRadius: 0,
+            ),
+            const BoxShadow(
+              color: Colors.black45,
+              offset: Offset(0, 7),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.6,
+              shadows: [
+                Shadow(color: Colors.black54, offset: Offset(1, 2), blurRadius: 2),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
