@@ -121,6 +121,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: 12),
             // Outer Main Frame with Star Crest & Garland
             Stack(
               clipBehavior: Clip.none,
@@ -129,7 +130,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                 // 1. Wooden Signboard Board (Main Frame)
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.only(top: 86),
+                  margin: const EdgeInsets.only(top: 116),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
@@ -282,19 +283,19 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
 
                 // 2. Flower Clusters on Left and Right Edges
                 Positioned(
-                  top: 110,
+                  top: 136,
                   left: -14,
                   child: _buildSideFlowerGarland(isLeft: true),
                 ),
                 Positioned(
-                  top: 110,
+                  top: 136,
                   right: -14,
                   child: _buildSideFlowerGarland(isLeft: false),
                 ),
 
-                // 3. 3D Stars Arched Crest (in front of board, below ribbon)
+                // 3. 3D Stars Arched Crest (in front of board, completely below ribbon)
                 Positioned(
-                  top: 42,
+                  top: 56,
                   child: _buildStarCrest(starsEarned),
                 ),
 
