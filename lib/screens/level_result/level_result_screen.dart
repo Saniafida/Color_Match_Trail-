@@ -5,6 +5,7 @@ import '../../game/results/level_result_state.dart';
 import '../../app/routes/routes.dart';
 import '../../widgets/buttons/glossy_button.dart';
 import '../../widgets/common/game_top_bar.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class LevelResultScreen extends StatefulWidget {
   final String levelId;
@@ -559,13 +560,20 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                           colorGradient: const [Color(0xFF42A5F5), Color(0xFF1976D2), Color(0xFF0D47A1)],
                           shadowColor: const Color(0xFF0D47A1),
                           borderColor: const Color(0xFF90CAF9),
-                          onPressed: () {
+                          onPressed: () async {
+                            final livesManager = ServiceLocator.instance.livesManager;
+                            if (!livesManager.hasLives) {
+                              final refilled = await OutOfHeartsDialog.show(context);
+                              if (!refilled || !livesManager.hasLives) return;
+                            }
                             _resultManager.reset();
-                            Navigator.pushReplacementNamed(
-                              context,
-                              AppRoutes.gameplay,
-                              arguments: widget.levelId,
-                            );
+                            if (context.mounted) {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                AppRoutes.gameplay,
+                                arguments: widget.levelId,
+                              );
+                            }
                           },
                         ),
                       ),
@@ -580,13 +588,34 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                           colorGradient: const [Color(0xFF81C784), Color(0xFF43A047), Color(0xFF2E7D32)],
                           shadowColor: const Color(0xFF1B5E20),
                           borderColor: const Color(0xFFA5D6A7),
-                          onPressed: () {
-                            _resultManager.reset();
-                            Navigator.pushReplacementNamed(
-                              context,
-                              AppRoutes.gameplay,
-                              arguments: widget.levelId,
-                            );
+                          onPressed: () async {
+                            final coinManager = ServiceLocator.instance.coinManager;
+                            final livesManager = ServiceLocator.instance.livesManager;
+                            if (coinManager.balance >= 900) {
+                              await coinManager.spendCoins(900);
+                              await livesManager.refillLives(1);
+                              _resultManager.reset();
+                              if (context.mounted) {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  AppRoutes.gameplay,
+                                  arguments: widget.levelId,
+                                );
+                              }
+                            } else {
+                              if (!livesManager.hasLives) {
+                                final refilled = await OutOfHeartsDialog.show(context);
+                                if (!refilled || !livesManager.hasLives) return;
+                              }
+                              _resultManager.reset();
+                              if (context.mounted) {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  AppRoutes.gameplay,
+                                  arguments: widget.levelId,
+                                );
+                              }
+                            }
                           },
                         ),
                       ),

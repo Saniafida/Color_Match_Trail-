@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
 import '../../game/lives/lives_manager.dart';
+import '../dialogs/out_of_hearts_dialog.dart';
 
 class GameTopBar extends StatelessWidget {
   final bool showSettings;
@@ -160,82 +161,7 @@ class GameTopBar extends StatelessWidget {
   }
 
   void _showLivesRefillDialog(BuildContext context) {
-    final livesManager = ServiceLocator.instance.livesManager;
-    final coinManager = ServiceLocator.instance.coinManager;
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF4A250B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFFFFD54F), width: 2.5),
-        ),
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_rounded, color: Color(0xFFFF1744), size: 28),
-            SizedBox(width: 8),
-            Text(
-              'Lives / Hearts',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'You have ${livesManager.lives} / ${LivesManager.maxLives} Lives',
-              style: const TextStyle(color: Color(0xFFFFE082), fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '❤️ 5 full lives are given each day automatically!\n1 life is lost when you fail a level.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            if (!livesManager.isFull)
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF43A047),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                icon: Image.asset('assets/images/icons/icon_coin.png', width: 20, height: 20),
-                label: const Text(
-                  'Refill Full (200 Coins)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                onPressed: () async {
-                  final success = await livesManager.refillWithCoins(coinManager);
-                  if (context.mounted) {
-                    Navigator.pop(dialogCtx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success ? '❤️ Lives Refilled to Full 5!' : 'Not enough coins to refill!',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Close', style: TextStyle(color: Colors.white70, fontSize: 15)),
-          ),
-        ],
-      ),
-    );
+    OutOfHeartsDialog.show(context);
   }
 
   Widget _buildStatPill({

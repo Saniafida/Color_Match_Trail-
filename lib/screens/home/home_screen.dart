@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 import '../achievements/widgets/achievement_unlock_popup.dart';
 import '../achievements/widgets/milestone_unlock_popup.dart';
 
@@ -34,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onPlay() async {
+    final livesManager = ServiceLocator.instance.livesManager;
+    if (!livesManager.hasLives) {
+      final refilled = await OutOfHeartsDialog.show(context);
+      if (!refilled || !livesManager.hasLives) return;
+    }
     await Navigator.pushNamed(
       context,
       AppRoutes.worldMap,
@@ -158,122 +164,142 @@ class _HomeScreenState extends State<HomeScreen> {
   // 🏆 TOP HUD STAT BAR
   // ==========================================
   Widget _buildTopHudBar(int coins) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 1. Hearts Pill (5 Full +)
-          _buildStatPill(
-            iconPath: 'assets/images/icons/icon_heart.png',
-            value: '5',
-            subLabel: 'Full',
-          ),
-          const SizedBox(width: 8),
+    final coinManager = ServiceLocator.instance.coinManager;
+    final livesManager = ServiceLocator.instance.livesManager;
 
-            // 2. Coins Pill (1250 +)
-            _buildStatPill(
-              iconPath: 'assets/images/icons/icon_coin.png',
-              value: '$coins',
-            ),
+    return AnimatedBuilder(
+      animation: Listenable.merge([coinManager, livesManager]),
+      builder: (context, _) {
+        final currentCoins = coinManager.balance;
+        final lives = livesManager.lives;
+        final livesLabel = livesManager.isFull ? 'Full' : null;
+        final livesCount = livesManager.isFull ? '5' : '$lives/5';
 
-            // 3. Gems Pill (230 +)
-            _buildStatPill(
-              iconPath: 'assets/images/icons/icon_gem.png',
-              value: '230',
-            ),
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Hearts Pill (5 Full +)
+              _buildStatPill(
+                iconPath: 'assets/images/icons/icon_heart.png',
+                value: livesCount,
+                subLabel: livesLabel,
+                onTap: () => OutOfHeartsDialog.show(context),
+              ),
+              const SizedBox(width: 8),
 
-            // 4. Settings Gear Button
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6D4C41), Color(0xFF4E342E), Color(0xFF3E2723)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+              // 2. Coins Pill (1250 +)
+              _buildStatPill(
+                iconPath: 'assets/images/icons/icon_coin.png',
+                value: '$currentCoins',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.shop),
+              ),
+
+              // 3. Gems Pill (230 +)
+              _buildStatPill(
+                iconPath: 'assets/images/icons/icon_gem.png',
+                value: '230',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.shop),
+              ),
+
+              // 4. Settings Gear Button
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6D4C41), Color(0xFF4E342E), Color(0xFF3E2723)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: const Color(0xFFFFD54F), width: 2.0),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0xFF1B0D05), offset: Offset(0, 3), blurRadius: 0),
+                      BoxShadow(color: Colors.black38, offset: Offset(0, 3), blurRadius: 4),
+                    ],
                   ),
-                  border: Border.all(color: const Color(0xFFFFD54F), width: 2.0),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFF1B0D05), offset: Offset(0, 3), blurRadius: 0),
-                    BoxShadow(color: Colors.black38, offset: Offset(0, 3), blurRadius: 4),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(Icons.settings, color: Colors.white, size: 22),
+                  child: const Center(
+                    child: Icon(Icons.settings, color: Colors.white, size: 22),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStatPill({
     required String iconPath,
     required String value,
     String? subLabel,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.fromLTRB(3, 2, 4, 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF9EC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
-        boxShadow: const [
-          BoxShadow(color: Color(0x33000000), offset: Offset(0, 2), blurRadius: 3),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(iconPath, width: 24, height: 24, fit: BoxFit.contain),
-          const SizedBox(width: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF3E200C),
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          if (subLabel != null) ...[
-            const SizedBox(width: 3),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.fromLTRB(3, 2, 4, 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF9EC),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+          boxShadow: const [
+            BoxShadow(color: Color(0x33000000), offset: Offset(0, 2), blurRadius: 3),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(iconPath, width: 24, height: 24, fit: BoxFit.contain),
+            const SizedBox(width: 4),
             Text(
-              subLabel,
+              value,
               style: const TextStyle(
-                color: Color(0xFF5D3A1A),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                color: Color(0xFF3E200C),
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (subLabel != null) ...[
+              const SizedBox(width: 3),
+              Text(
+                subLabel,
+                style: const TextStyle(
+                  color: Color(0xFF5D3A1A),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+            const SizedBox(width: 4),
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF81C784), Color(0xFF388E3C)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                border: Border.all(color: Colors.white, width: 1.2),
+                boxShadow: const [
+                  BoxShadow(color: Color(0xFF1B5E20), offset: Offset(0, 1), blurRadius: 0),
+                ],
+              ),
+              child: const Center(
+                child: Icon(Icons.add, color: Colors.white, size: 12),
               ),
             ),
           ],
-          const SizedBox(width: 4),
-          Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF81C784), Color(0xFF388E3C)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              border: Border.all(color: Colors.white, width: 1.2),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF1B5E20), offset: Offset(0, 1), blurRadius: 0),
-              ],
-            ),
-            child: const Center(
-              child: Icon(Icons.add, color: Colors.white, size: 12),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

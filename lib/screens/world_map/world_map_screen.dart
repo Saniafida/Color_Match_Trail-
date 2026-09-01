@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
 import '../../game/progression/progression_manager.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 import 'widgets/adventure_top_bar.dart';
 import 'widgets/adventure_board.dart';
 import 'widgets/adventure_play_button.dart';
@@ -75,8 +76,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
     final livesManager = ServiceLocator.instance.livesManager;
     if (!livesManager.hasLives) {
-      _showOutOfLivesDialog();
-      return;
+      final refilled = await OutOfHeartsDialog.show(context);
+      if (!refilled || !livesManager.hasLives) return;
     }
 
     _progressionManager.setCurrentLevel(levelId);
@@ -91,85 +92,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
         _initSelectedLevel();
       });
     }
-  }
-
-  void _showOutOfLivesDialog() {
-    final livesManager = ServiceLocator.instance.livesManager;
-    final coinManager = ServiceLocator.instance.coinManager;
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF4A250B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFFFFD54F), width: 2.5),
-        ),
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_border_rounded, color: Color(0xFFFF5252), size: 28),
-            SizedBox(width: 8),
-            Text(
-              'No Lives Left!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/lose_screen/broken_heart.png',
-              height: 60,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'You have 0 lives left for today.\n5 fresh lives will refill tomorrow automatically!\nOr refill immediately with coins.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF43A047),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              icon: Image.asset('assets/images/icons/icon_coin.png', width: 20, height: 20),
-              label: const Text(
-                'Refill 5 Lives (200 Coins)',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              onPressed: () async {
-                final success = await livesManager.refillWithCoins(coinManager);
-                if (context.mounted) {
-                  Navigator.pop(dialogCtx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success ? '❤️ Lives Refilled to Full 5!' : 'Not enough coins to refill!',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Wait for Tomorrow', style: TextStyle(color: Colors.white70, fontSize: 15)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override

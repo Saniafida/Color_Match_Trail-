@@ -6,7 +6,7 @@ class LivesManager extends ChangeNotifier {
   static const int maxLives = 5;
   static const String _keyLives = 'player_daily_lives_count';
   static const String _keyLastRefillDate = 'player_lives_last_refill_date';
-  static const int refillCostInCoins = 200;
+  static const int refillCostInCoins = 100;
 
   final DateService _dateService;
   int _lives = maxLives;
@@ -94,7 +94,12 @@ class LivesManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Refill with coins (costs 200 coins)
+  /// Refill with rewarded ad
+  Future<void> refillWithAd() async {
+    await refillLives(maxLives);
+  }
+
+  /// Refill with coins (costs 100 coins)
   Future<bool> refillWithCoins(dynamic coinManager) async {
     if (coinManager.balance >= refillCostInCoins) {
       final success = await coinManager.spendCoins(refillCostInCoins);
