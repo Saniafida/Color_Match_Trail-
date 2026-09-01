@@ -44,32 +44,22 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             color: Colors.black.withAlpha(140),
           ),
 
-          // 3. Top-Left Back Arrow (matching reference image)
+          // 3. Top HUD Bar (Hearts, Coins, Gems) on failed screen
           Positioned(
-            top: 16,
-            left: 16,
+            top: 0,
+            left: 0,
+            right: 0,
             child: SafeArea(
-              child: GestureDetector(
-                onTap: () {
-                  _resultManager.reset();
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.worldMap,
-                    (route) => route.isFirst,
-                  );
+              bottom: false,
+              child: AnimatedBuilder(
+                animation: _resultManager,
+                builder: (context, _) {
+                  final result = _resultManager.currentResult;
+                  if (result != null && !result.completed) {
+                    return const GameTopBar();
+                  }
+                  return const SizedBox.shrink();
                 },
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(70),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white70, width: 1.5),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
-                  ),
-                ),
               ),
             ),
           ),
@@ -77,29 +67,27 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
           // 4. Center Content Dialog
           SafeArea(
             child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                child: AnimatedBuilder(
-                  animation: _resultManager,
-                  builder: (context, child) {
-                    final state = _resultManager.state;
-                    final result = _resultManager.currentResult;
+              child: AnimatedBuilder(
+                animation: _resultManager,
+                builder: (context, child) {
+                  final state = _resultManager.state;
+                  final result = _resultManager.currentResult;
 
-                    if (state == LevelResultState.calculating || state == LevelResultState.saving) {
-                      return const Center(child: CircularProgressIndicator(color: Colors.white));
-                    }
+                  if (state == LevelResultState.calculating || state == LevelResultState.saving) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.white));
+                  }
 
-                    if (result == null) {
-                      return const Center(child: Text('Result missing.', style: TextStyle(color: Colors.white)));
-                    }
+                  if (result == null) {
+                    return const Center(child: Text('Result missing.', style: TextStyle(color: Colors.white)));
+                  }
 
-                    if (result.completed) {
-                      return _buildWinDialog(result);
-                    } else {
-                      return _buildLoseDialog(result);
-                    }
-                  },
-                ),
+                  final isLose = !result.completed;
+
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(20, isLose ? 56 : 16, 20, 16),
+                    child: isLose ? _buildLoseDialog(result) : _buildWinDialog(result),
+                  );
+                },
               ),
             ),
           ),
@@ -376,316 +364,338 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
   }
 
   // ==========================================
-  // 💔 LEVEL FAILED (LOSE) DIALOG - EXACT ASSET THEME
+  // 💔 LEVEL FAILED (LOSE) DIALOG - EXACT MATCH
   // ==========================================
   Widget _buildLoseDialog(dynamic result) {
-    final int score = result.finalScore ?? 5620;
-    final int bestScore = 28750;
+    final int score = result.finalScore is int && result.finalScore > 0 ? result.finalScore : 5620;
+    const int bestScore = 28750;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        // 1. Main Outer Wood Dialog Image Frame
-        Container(
-          width: 360,
-          margin: const EdgeInsets.only(top: 48),
-          child: Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              // High-resolution Dialog Frame Asset
-              Image.asset(
-                'assets/images/lose_screen/lose_dialog_frame.png',
-                width: 360,
-                fit: BoxFit.contain,
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 356),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            // 1. Main Outer Wood Dialog Board
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 42),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF5D3312),
+                    Color(0xFF45240B),
+                    Color(0xFF2E1505),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: const Color(0xFF8D5325),
+                  width: 4.5,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0xFF1E0C02),
+                    offset: Offset(0, 7),
+                    blurRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: Colors.black54,
+                    offset: Offset(0, 10),
+                    blurRadius: 16,
+                  ),
+                ],
               ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 52), // Space for Mascot clearance
 
-              // Content overlaid directly inside the parchment area of the frame
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 68, 26, 16),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.topCenter,
-                    child: SizedBox(
-                      width: 308,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Heading message
-                          const Text(
-                            'You ran out of moves!',
-                            style: TextStyle(
-                              color: Color(0xFF3E200C),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                            ),
+                  // 2. Parchment Inner Card (Warm Cream Paper)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9ECCF),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE5D2A6), width: 1.8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 3),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Heading message
+                        const Text(
+                          'You ran out of moves!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF3E200C),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Try again and do better!',
-                            style: TextStyle(
-                              color: Color(0xFF5D3A1A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Try again and do better!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF5D3A1A),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
                           ),
-                          const SizedBox(height: 8),
+                        ),
+                        const SizedBox(height: 10),
 
-                          // GOAL vs YOU GOT Panel (Real Game Blocks)
-                          _buildGoalComparisonPanel(),
+                        // GOAL vs YOU GOT Panel
+                        _buildGoalComparisonPanel(),
 
-                          const SizedBox(height: 8),
+                        const SizedBox(height: 10),
 
-                          // SCORE & BEST SCORE Row
-                          Row(
-                            children: [
-                              // Left: Score
-                              Expanded(
+                        // SCORE & BEST SCORE Row
+                        Row(
+                          children: [
+                            // Left: Score
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'SCORE',
+                                    style: TextStyle(
+                                      color: Color(0xFF7A4E24),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatNumber(score),
+                                    style: const TextStyle(
+                                      color: Color(0xFF3E200C),
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Right: Best Score Badge
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF8D4F1E), Color(0xFF5E310E)],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      offset: Offset(0, 2),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     const Text(
-                                      'SCORE',
+                                      'BEST SCORE',
                                       style: TextStyle(
-                                        color: Color(0xFF7A4E24),
-                                        fontSize: 11,
+                                        color: Color(0xFFFFE082),
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.8,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
+                                    const SizedBox(height: 1),
                                     Text(
-                                      _formatNumber(score),
+                                      _formatNumber(bestScore),
                                       style: const TextStyle(
-                                        color: Color(0xFF3E200C),
-                                        fontSize: 24,
+                                        color: Colors.white,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.w900,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-
-                              // Right: Best Score Badge
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF8D4F1E), Color(0xFF5E310E)],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        offset: Offset(0, 2),
-                                        blurRadius: 3,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        'BEST SCORE',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFE082),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        _formatNumber(bestScore),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // DON'T GIVE UP! Boosters Section
-                          _buildBoostersSuggestionSection(),
-
-                          const SizedBox(height: 10),
-
-                      // Bottom 3 Action Buttons matching frame button slots
-                      Row(
-                        children: [
-                          // 1. Retry Button (Blue)
-                          Expanded(
-                            flex: 11,
-                            child: _buildActionButton(
-                              text: 'RETRY',
-                              icon: Icons.refresh_rounded,
-                              colorGradient: const [Color(0xFF42A5F5), Color(0xFF1976D2), Color(0xFF0D47A1)],
-                              shadowColor: const Color(0xFF0D47A1),
-                              borderColor: const Color(0xFF90CAF9),
-                              onPressed: () {
-                                _resultManager.reset();
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  AppRoutes.gameplay,
-                                  arguments: widget.levelId,
-                                );
-                              },
                             ),
-                          ),
-                          const SizedBox(width: 8),
+                          ],
+                        ),
 
-                          // 2. Play On Button (Green with 900 Coins)
-                          Expanded(
-                            flex: 13,
-                            child: _buildActionButton(
-                              text: 'PLAY ON',
-                              subText: '🪙 900',
-                              colorGradient: const [Color(0xFF81C784), Color(0xFF43A047), Color(0xFF2E7D32)],
-                              shadowColor: const Color(0xFF1B5E20),
-                              borderColor: const Color(0xFFA5D6A7),
-                              onPressed: () {
-                                _resultManager.reset();
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  AppRoutes.gameplay,
-                                  arguments: widget.levelId,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
+                        const SizedBox(height: 10),
 
-                          // 3. Back To Map Button (Gold/Orange)
-                          Expanded(
-                            flex: 11,
-                            child: _buildActionButton(
-                              text: 'BACK\nTO MAP',
-                              colorGradient: const [Color(0xFFFFB74D), Color(0xFFFB8C00), Color(0xFFE65100)],
-                              shadowColor: const Color(0xFFBF360C),
-                              borderColor: const Color(0xFFFFE082),
-                              onPressed: () {
-                                _resultManager.reset();
-                                Navigator.pushNamedAndRemoveUntil(
-                                  context,
-                                  AppRoutes.worldMap,
-                                  (route) => route.isFirst,
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                        // DON'T GIVE UP! Boosters Section
+                        _buildBoostersSuggestionSection(),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 3. Bottom 3 Action Buttons Row
+                  Row(
+                    children: [
+                      // 1. Retry Button (Blue)
+                      Expanded(
+                        flex: 11,
+                        child: _buildActionButton(
+                          text: 'RETRY',
+                          icon: Icons.refresh_rounded,
+                          colorGradient: const [Color(0xFF42A5F5), Color(0xFF1976D2), Color(0xFF0D47A1)],
+                          shadowColor: const Color(0xFF0D47A1),
+                          borderColor: const Color(0xFF90CAF9),
+                          onPressed: () {
+                            _resultManager.reset();
+                            Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.gameplay,
+                              arguments: widget.levelId,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // 2. Play On Button (Green with 900 Coins)
+                      Expanded(
+                        flex: 13,
+                        child: _buildActionButton(
+                          text: 'PLAY ON',
+                          subText: '🪙 900',
+                          colorGradient: const [Color(0xFF81C784), Color(0xFF43A047), Color(0xFF2E7D32)],
+                          shadowColor: const Color(0xFF1B5E20),
+                          borderColor: const Color(0xFFA5D6A7),
+                          onPressed: () {
+                            _resultManager.reset();
+                            Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.gameplay,
+                              arguments: widget.levelId,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // 3. Back To Map Button (Gold/Orange)
+                      Expanded(
+                        flex: 11,
+                        child: _buildActionButton(
+                          text: 'BACK\nTO MAP',
+                          colorGradient: const [Color(0xFFFFB74D), Color(0xFFFB8C00), Color(0xFFE65100)],
+                          shadowColor: const Color(0xFFBF360C),
+                          borderColor: const Color(0xFFFFE082),
+                          onPressed: () {
+                            _resultManager.reset();
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              AppRoutes.worldMap,
+                              (route) => route.isFirst,
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-    ),
 
-        // 2. Sad Bear Mascot & Broken Heart (Leaning over the board)
-        Positioned(
-          top: 18,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Image.asset(
-                'assets/images/lose_screen/sad_bear.png',
-                height: 105,
-                fit: BoxFit.contain,
+            // 2. Sad Bear Mascot & Broken Heart (Leaning on the top of the board)
+            Positioned(
+              top: 8,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Image.asset(
+                    'assets/images/lose_screen/sad_bear.png',
+                    height: 102,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 22.0),
+                    child: Image.asset(
+                      'assets/images/lose_screen/broken_heart.png',
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24.0),
-                child: Image.asset(
-                  'assets/images/lose_screen/broken_heart.png',
-                  height: 52,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
 
-        // 3. Ribbon Header: "LEVEL FAILED!"
-        Positioned(
-          top: -10,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Image.asset(
-                'assets/images/lose_screen/lose_ribbon_banner.png',
-                width: 320,
-                fit: BoxFit.contain,
-              ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 14.0),
-                child: Text(
-                  'LEVEL FAILED!',
-                  style: TextStyle(
-                    color: Color(0xFFFFF7E6),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                    shadows: [
-                      Shadow(color: Color(0xFF5D0000), offset: Offset(0, 2), blurRadius: 3),
-                      Shadow(color: Colors.black54, offset: Offset(1, 2), blurRadius: 2),
+            // 3. Ribbon Header: "LEVEL FAILED!"
+            Positioned(
+              top: -14,
+              child: _buildCurvedRibbonBanner('LEVEL FAILED!'),
+            ),
+
+            // 4. Close Button (Top-Right X)
+            Positioned(
+              top: 36,
+              right: 6,
+              child: GestureDetector(
+                onTap: () {
+                  _resultManager.reset();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.worldMap,
+                    (route) => route.isFirst,
+                  );
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF5252), Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: const Color(0xFFFFD54F), width: 2.2),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black45, offset: Offset(0, 3), blurRadius: 4),
                     ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.close_rounded, color: Colors.white, size: 22),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-
-        // 4. Close Button (Top-Right X)
-        Positioned(
-          top: 48,
-          right: 4,
-          child: GestureDetector(
-            onTap: () {
-              _resultManager.reset();
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.worldMap,
-                (route) => route.isFirst,
-              );
-            },
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                border: Border.all(color: const Color(0xFFFFD54F), width: 2.5),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black45, offset: Offset(0, 3), blurRadius: 4),
-                ],
-              ),
-              child: const Center(
-                child: Icon(Icons.close_rounded, color: Colors.white, size: 24),
-              ),
             ),
-          ),
+
+            // 5. Corner Floral Clusters
+            Positioned(
+              top: 48,
+              left: -8,
+              child: _buildSideFlowerGarland(isLeft: true),
+            ),
+            Positioned(
+              top: 48,
+              right: -8,
+              child: _buildSideFlowerGarland(isLeft: false),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -989,17 +999,30 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   ],
                 ),
                 if (subText != null) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    subText,
-                    style: const TextStyle(
-                      color: Color(0xFFFFE082),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      shadows: [
-                        Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 2),
-                      ],
-                    ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/icons/icon_coin.png',
+                        width: 14,
+                        height: 14,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        subText.replaceAll('🪙', '').trim(),
+                        style: const TextStyle(
+                          color: Color(0xFFFFE082),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          shadows: [
+                            Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 2),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
