@@ -380,7 +380,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             // 1. Main Outer Wood Dialog Board
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.only(top: 42),
+              margin: const EdgeInsets.only(top: 36),
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -413,7 +413,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 52), // Space for Mascot clearance
+                  const SizedBox(height: 118), // Space for large Sad Bear clearance
 
                   // 2. Parchment Inner Card (Warm Cream Paper)
                   Container(
@@ -616,24 +616,24 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
               ),
             ),
 
-            // 2. Sad Bear Mascot & Broken Heart (Leaning on the top of the board)
+            // 2. Sad Bear Mascot & Broken Heart (Prominently seated below Ribbon, leaning on parchment)
             Positioned(
-              top: 8,
+              top: 44,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Image.asset(
                     'assets/images/lose_screen/sad_bear.png',
-                    height: 102,
+                    height: 130,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 22.0),
+                    padding: const EdgeInsets.only(bottom: 28.0),
                     child: Image.asset(
                       'assets/images/lose_screen/broken_heart.png',
-                      height: 50,
+                      height: 58,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -641,15 +641,15 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
               ),
             ),
 
-            // 3. Ribbon Header: "LEVEL FAILED!"
+            // 3. Curved Ribbon Header: "LEVEL FAILED!"
             Positioned(
-              top: -14,
+              top: 0,
               child: _buildCurvedRibbonBanner('LEVEL FAILED!'),
             ),
 
             // 4. Close Button (Top-Right X)
             Positioned(
-              top: 36,
+              top: 16,
               right: 6,
               child: GestureDetector(
                 onTap: () {
@@ -684,12 +684,12 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
 
             // 5. Corner Floral Clusters
             Positioned(
-              top: 48,
+              top: 36,
               left: -8,
               child: _buildSideFlowerGarland(isLeft: true),
             ),
             Positioned(
-              top: 48,
+              top: 36,
               right: -8,
               child: _buildSideFlowerGarland(isLeft: false),
             ),
