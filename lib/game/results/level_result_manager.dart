@@ -126,6 +126,9 @@ class LevelResultManager extends ChangeNotifier {
           _nextLevelId = null;
           _isCampaignComplete = _progressionManager.isCampaignCompleted;
         }
+      } else {
+        // Player failed / ran out of moves: Deduct 1 life!
+        await ServiceLocator.instance.livesManager.consumeLife();
       }
       
       _state = LevelResultState.saved;
