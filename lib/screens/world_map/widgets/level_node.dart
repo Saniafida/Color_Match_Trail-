@@ -16,7 +16,7 @@ class LevelNode extends StatefulWidget {
   final bool reducedMotion;
   final double width;
   final double height;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const LevelNode({
     super.key,
@@ -25,7 +25,7 @@ class LevelNode extends StatefulWidget {
     this.reducedMotion = false,
     this.width = 34.0,
     this.height = 38.0,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
@@ -33,42 +33,48 @@ class LevelNode extends StatefulWidget {
 }
 
 class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+  AnimationController? _pulseController;
+  Animation<double>? _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
+    if (widget.isCurrent && !widget.reducedMotion) {
+      _startPulse();
+    }
+  }
+
+  void _startPulse() {
+    _pulseController ??= AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    _pulseAnimation ??= Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController!, curve: Curves.easeInOut),
     );
-
-    if (widget.isCurrent && !widget.reducedMotion) {
-      _pulseController.repeat(reverse: true);
+    if (!_pulseController!.isAnimating) {
+      _pulseController!.repeat(reverse: true);
     }
+  }
+
+  void _stopPulse() {
+    _pulseController?.stop();
+    _pulseController?.value = 0.0;
   }
 
   @override
   void didUpdateWidget(covariant LevelNode oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isCurrent && !widget.reducedMotion) {
-      if (!_pulseController.isAnimating) {
-        _pulseController.repeat(reverse: true);
-      }
+      _startPulse();
     } else {
-      _pulseController.stop();
-      _pulseController.value = 0.0;
+      _stopPulse();
     }
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _pulseController?.dispose();
     super.dispose();
   }
 
@@ -85,162 +91,169 @@ class _LevelNodeState extends State<LevelNode> with SingleTickerProviderStateMix
     final state = _visualState;
     final levelNumber = widget.progress.levelId.replaceAll(RegExp(r'[^0-9]'), '');
 
-    return Semantics(
-      label: 'Level $levelNumber, ${state.name}',
-      button: true,
-      enabled: widget.progress.unlocked,
-      child: AnimatedBuilder(
-        animation: _pulseAnimation,
-        builder: (context, child) {
-          final scale = (widget.isCurrent && !widget.reducedMotion) ? _pulseAnimation.value : 1.0;
-          return Transform.scale(
-            scale: scale,
-            child: child,
-          );
-        },
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            widget.onTap();
-          },
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              // Golden Crown above current active level
-              if (state == LevelNodeVisualState.current)
-                Positioned(
-                  top: -9,
-                  child: const Icon(
-                    Icons.workspace_premium_rounded,
-                    color: Color(0xFFFFB300),
-                    size: 13,
-                    shadows: [
-                      Shadow(color: Color(0x99FF8F00), blurRadius: 4, offset: Offset(0, 1)),
-                    ],
-                  ),
-                ),
+    Widget tileContent = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.progress.unlocked && widget.onTap != null
+          ? () {
+              HapticFeedback.selectionClick();
+              widget.onTap!();
+            }
+          : null,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Golden Crown above current active level
+          if (state == LevelNodeVisualState.current)
+            Positioned(
+              top: -9,
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFFFB300),
+                size: 13,
+                shadows: [
+                  Shadow(color: Color(0x99FF8F00), blurRadius: 4, offset: Offset(0, 1)),
+                ],
+              ),
+            ),
 
-              // Main Rounded Tile Box
-              Container(
-                width: widget.width,
-                height: widget.height,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  gradient: _getGradient(state),
-                  border: Border.all(
-                    color: _getBorderColor(state),
-                    width: widget.isCurrent ? 1.8 : 1.2,
-                  ),
-                  boxShadow: [
-                    // Deep drop shadow
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: widget.isCurrent ? 0.35 : 0.2),
-                      blurRadius: widget.isCurrent ? 6 : 3,
-                      offset: const Offset(0, 2),
-                    ),
-                    // Current tile golden glow
-                    if (widget.isCurrent)
-                      const BoxShadow(
+          // Main Rounded Tile Box
+          Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              gradient: _getGradient(state),
+              border: Border.all(
+                color: _getBorderColor(state),
+                width: widget.isCurrent ? 1.8 : 1.2,
+              ),
+              boxShadow: widget.isCurrent
+                  ? const [
+                      BoxShadow(
                         color: Color(0x66FFB300),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: Stack(
-                    children: [
-                      // Top Gloss highlight
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: widget.height * 0.42,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.white.withValues(alpha: state == LevelNodeVisualState.locked ? 0.15 : 0.4),
-                                Colors.white.withValues(alpha: 0.0),
-                              ],
-                            ),
-                          ),
-                        ),
+                      BoxShadow(
+                        color: Colors.black38,
+                        blurRadius: 3,
+                        offset: Offset(0, 2),
                       ),
-
-                      // Content Column (Number + 3 Stars or Lock Icon)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
-                        child: state == LevelNodeVisualState.locked
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.lock_rounded,
-                                      size: (widget.width * 0.36).clamp(10.0, 14.0),
-                                      color: const Color(0xFFD7CCC8),
-                                      shadows: const [
-                                        Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
-                                      ],
-                                    ),
-                                    Flexible(
-                                      child: Text(
-                                        levelNumber,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: const Color(0xFFD7CCC8),
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: (widget.width * 0.25).clamp(7.0, 9.5),
-                                          height: 1.0,
-                                          shadows: const [
-                                            Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Level Number
-                                  Flexible(
-                                    child: Text(
-                                      levelNumber,
-                                      style: TextStyle(
-                                        color: _getTextColor(state),
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: widget.width * 0.38,
-                                        height: 1.05,
-                                        shadows: _getTextShadows(state),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  // 3 Stars row
-                                  _buildStars(widget.progress.bestStars, state),
-                                ],
-                              ),
+                    ]
+                  : const [
+                      BoxShadow(
+                        color: Color(0x33000000),
+                        offset: Offset(0, 1.5),
+                        blurRadius: 0,
                       ),
                     ],
+            ),
+            child: Stack(
+              children: [
+                // Top Gloss highlight (curved to fit without ClipRRect saveLayer)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: widget.height * 0.42,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(5),
+                        topRight: Radius.circular(5),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: state == LevelNodeVisualState.locked ? 0.15 : 0.4),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+
+                // Content Column (Number + 3 Stars or Lock Icon)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
+                  child: state == LevelNodeVisualState.locked
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.lock_rounded,
+                                size: (widget.width * 0.36).clamp(10.0, 14.0),
+                                color: const Color(0xFFD7CCC8),
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
+                                ],
+                              ),
+                              Flexible(
+                                child: Text(
+                                  levelNumber,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: const Color(0xFFD7CCC8),
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: (widget.width * 0.25).clamp(7.0, 9.5),
+                                    height: 1.0,
+                                    shadows: const [
+                                      Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Level Number
+                            Flexible(
+                              child: Text(
+                                levelNumber,
+                                style: TextStyle(
+                                  color: _getTextColor(state),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: widget.width * 0.38,
+                                  height: 1.05,
+                                  shadows: _getTextShadows(state),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            // 3 Stars row
+                            _buildStars(widget.progress.bestStars, state),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
+
+    if (widget.isCurrent && !widget.reducedMotion && _pulseAnimation != null) {
+      return AnimatedBuilder(
+        animation: _pulseAnimation!,
+        builder: (context, child) => Transform.scale(
+          scale: _pulseAnimation!.value,
+          child: child,
+        ),
+        child: tileContent,
+      );
+    }
+
+    return tileContent;
   }
 
   Widget _buildStars(int stars, LevelNodeVisualState state) {
