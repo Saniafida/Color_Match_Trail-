@@ -46,7 +46,6 @@ class BoosterBar extends StatelessWidget {
     return AnimatedBuilder(
       animation: Listenable.merge(listenables),
       builder: (context, child) {
-        // Display all 6 booster power-ups
         const displayTypes = [
           BoosterType.hammer,
           BoosterType.rowClear,
@@ -57,18 +56,33 @@ class BoosterBar extends StatelessWidget {
         ];
 
         return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF3E200C).withAlpha(220),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: const Border(
-              top: BorderSide(color: Color(0xFFFFD54F), width: 2.5),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF7A431D),
+                Color(0xFF53280B),
+                Color(0xFF381705),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: const Color(0xFFFFD54F),
+              width: 2.4,
             ),
             boxShadow: const [
               BoxShadow(
-                color: Colors.black45,
-                offset: Offset(0, -3),
-                blurRadius: 6,
+                color: Color(0xFF1E0C02),
+                offset: Offset(0, 4),
+                blurRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black54,
+                offset: Offset(0, 6),
+                blurRadius: 8,
               ),
             ],
           ),
@@ -80,7 +94,7 @@ class BoosterBar extends StatelessWidget {
               final count = boosterManager.inventory.getQuantity(type);
               final isAvailable = (count > 0 && boosterManager.canActivateBooster(type)) || isSelected;
 
-              return _buildBoosterButton(type, isSelected, isAvailable, count);
+              return _buildBoosterSlot(type, isSelected, isAvailable, count);
             }).toList(),
           ),
         );
@@ -88,8 +102,9 @@ class BoosterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildBoosterButton(BoosterType type, bool isSelected, bool isAvailable, int count) {
+  Widget _buildBoosterSlot(BoosterType type, bool isSelected, bool isAvailable, int count) {
     final assetPath = _getBoosterAsset(type);
+    const double slotSize = 48.0;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -109,37 +124,37 @@ class BoosterBar extends StatelessWidget {
             }
           : null,
       child: AnimatedScale(
-        scale: isSelected ? 1.15 : 1.0,
+        scale: isSelected ? 1.14 : 1.0,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutBack,
         child: AnimatedOpacity(
-          opacity: isAvailable ? 1.0 : 0.6,
+          opacity: isAvailable ? 1.0 : 0.65,
           duration: const Duration(milliseconds: 180),
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              // Glowing golden aura when selected
+              // Golden Glow Aura when selected
               if (isSelected)
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: slotSize + 10,
+                  height: slotSize + 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFFD700).withValues(alpha: 0.85),
-                        blurRadius: 12,
-                        spreadRadius: 2,
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.9),
+                        blurRadius: 14,
+                        spreadRadius: 3,
                       ),
                     ],
                   ),
                 ),
 
-              // Wooden / Gold Circular Container
+              // Circular Slot Container
               Container(
-                width: 48,
-                height: 48,
+                width: slotSize,
+                height: slotSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: isSelected
@@ -148,13 +163,21 @@ class BoosterBar extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         )
-                      : const LinearGradient(
-                          colors: [Color(0xFF8D582A), Color(0xFF5D3512)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
+                      : (type == BoosterType.extraMoves
+                          ? const LinearGradient(
+                              colors: [Color(0xFF29B6F6), Color(0xFF0288D1), Color(0xFF01579B)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            )
+                          : const LinearGradient(
+                              colors: [Color(0xFF5D3312), Color(0xFF3E1F08), Color(0xFF261203)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            )),
                   border: Border.all(
-                    color: isSelected ? Colors.white : const Color(0xFFFFD54F),
+                    color: isSelected
+                        ? Colors.white
+                        : (type == BoosterType.extraMoves ? const Color(0xFFB3E5FC) : const Color(0xFFFFD54F)),
                     width: isSelected ? 2.5 : 1.8,
                   ),
                   boxShadow: [
@@ -166,40 +189,64 @@ class BoosterBar extends StatelessWidget {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(3.5),
-                  child: ClipOval(
-                    child: Image.asset(
-                      assetPath,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  padding: const EdgeInsets.all(5.0),
+                  child: type == BoosterType.extraMoves
+                      ? const Center(
+                          child: Text(
+                            '+5',
+                            style: TextStyle(
+                              color: Color(0xFFFFD54F),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0xFF01579B),
+                                  offset: Offset(0, 2),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          assetPath,
+                          fit: BoxFit.contain,
+                        ),
                 ),
               ),
 
-              // Count Badge (Red / Coral Pill)
+              // Red Circular Count Badge on Bottom Right
               Positioned(
-                bottom: -2,
-                right: -2,
+                bottom: -3,
+                right: -3,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  width: 20,
+                  height: 20,
                   decoration: BoxDecoration(
-                    color: count > 0 ? const Color(0xFFE53935) : Colors.grey.shade700,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white, width: 1.2),
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF5350), Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: Colors.white, width: 1.4),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black45,
-                        offset: Offset(0, 1),
+                        offset: Offset(0, 1.5),
                         blurRadius: 2,
                       ),
                     ],
                   ),
-                  child: Text(
-                    count > 0 ? '$count' : '0',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
+                  child: Center(
+                    child: Text(
+                      count > 0 ? '$count' : '0',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        height: 1.0,
+                      ),
                     ),
                   ),
                 ),
