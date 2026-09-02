@@ -80,6 +80,11 @@ class _DailyBonusScreenState extends State<DailyBonusScreen> {
     final currentReward = _days[_currentStreak - 1];
     if (currentReward.type == 'coins') {
       ServiceLocator.instance.coinManager.addCoins(currentReward.amount);
+    } else if (currentReward.type == 'gems') {
+      ServiceLocator.instance.gemManager.addGems(currentReward.amount);
+    } else if (currentReward.type == 'chest') {
+      ServiceLocator.instance.coinManager.addCoins(500);
+      ServiceLocator.instance.gemManager.addGems(20);
     }
 
     ScaffoldMessenger.of(context).showSnackBar(

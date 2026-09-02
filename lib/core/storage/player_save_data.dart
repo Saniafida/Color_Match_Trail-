@@ -2,6 +2,7 @@ class PlayerSaveData {
   final int saveVersion;
   final Map<String, dynamic> campaignProgress;
   final int coins;
+  final int gems;
   final Map<String, dynamic> boosterInventory;
   final Map<String, dynamic> dailyChallengeState;
   final Map<String, dynamic> eventProgress;
@@ -19,6 +20,7 @@ class PlayerSaveData {
     required this.saveVersion,
     this.campaignProgress = const {},
     this.coins = 0,
+    this.gems = 0,
     this.boosterInventory = const {},
     this.dailyChallengeState = const {},
     this.eventProgress = const {},
@@ -37,6 +39,7 @@ class PlayerSaveData {
     int? saveVersion,
     Map<String, dynamic>? campaignProgress,
     int? coins,
+    int? gems,
     Map<String, dynamic>? boosterInventory,
     Map<String, dynamic>? dailyChallengeState,
     Map<String, dynamic>? eventProgress,
@@ -54,6 +57,7 @@ class PlayerSaveData {
       saveVersion: saveVersion ?? this.saveVersion,
       campaignProgress: campaignProgress ?? this.campaignProgress,
       coins: coins ?? this.coins,
+      gems: gems ?? this.gems,
       boosterInventory: boosterInventory ?? this.boosterInventory,
       dailyChallengeState: dailyChallengeState ?? this.dailyChallengeState,
       eventProgress: eventProgress ?? this.eventProgress,
@@ -74,6 +78,7 @@ class PlayerSaveData {
       'saveVersion': saveVersion,
       'campaignProgress': campaignProgress,
       'coins': coins,
+      'gems': gems,
       'boosterInventory': boosterInventory,
       'dailyChallengeState': dailyChallengeState,
       'eventProgress': eventProgress,
@@ -94,6 +99,7 @@ class PlayerSaveData {
       saveVersion: json['saveVersion'] as int? ?? 1,
       campaignProgress: json['campaignProgress'] as Map<String, dynamic>? ?? {},
       coins: json['coins'] as int? ?? 0,
+      gems: json['gems'] as int? ?? 0,
       boosterInventory: json['boosterInventory'] as Map<String, dynamic>? ?? {},
       dailyChallengeState: json['dailyChallengeState'] as Map<String, dynamic>? ?? {},
       eventProgress: json['eventProgress'] as Map<String, dynamic>? ?? {},

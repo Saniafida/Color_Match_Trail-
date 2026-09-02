@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../coins/coin_manager.dart';
+import '../gems/gem_manager.dart';
 import '../inventory/inventory_manager.dart';
 import '../../models/booster.dart';
 import 'reward_definition.dart';
@@ -8,6 +9,7 @@ import 'reward_claim_store.dart';
 
 class RewardManager extends ChangeNotifier {
   final CoinManager coinManager;
+  final GemManager? gemManager;
   final InventoryManager inventoryManager;
   final RewardClaimStore claimStore;
 
@@ -15,6 +17,7 @@ class RewardManager extends ChangeNotifier {
 
   RewardManager({
     required this.coinManager,
+    this.gemManager,
     required this.inventoryManager,
     required this.claimStore,
   });
@@ -54,6 +57,8 @@ class RewardManager extends ChangeNotifier {
     try {
       if (reward.type == RewardType.coins) {
         success = await coinManager.addCoins(reward.amount);
+      } else if (reward.type == RewardType.gems && gemManager != null) {
+        success = await gemManager!.addGems(reward.amount);
       } else if (reward.type == RewardType.booster && reward.itemId != null) {
         final type = BoosterType.values.firstWhere(
           (e) => e.name == reward.itemId,

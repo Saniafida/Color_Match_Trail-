@@ -3,6 +3,7 @@ import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
 import '../../widgets/common/wood_sign_header.dart';
 import '../../widgets/buttons/glossy_button.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class DailyChallengeScreen extends StatefulWidget {
   const DailyChallengeScreen({super.key});
@@ -111,12 +112,19 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
                     color: GlossyButtonColor.green,
                     height: 56,
                     fontSize: 22,
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.gameplay,
-                        arguments: 'level_1',
-                      );
+                    onPressed: () async {
+                      final livesManager = ServiceLocator.instance.livesManager;
+                      if (!livesManager.hasLives) {
+                        final refilled = await OutOfHeartsDialog.show(context);
+                        if (!refilled || !livesManager.hasLives) return;
+                      }
+                      if (context.mounted) {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.gameplay,
+                          arguments: 'level_1',
+                        );
+                      }
                     },
                   ),
                 ),

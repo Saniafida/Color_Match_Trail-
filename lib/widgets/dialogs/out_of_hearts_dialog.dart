@@ -18,36 +18,37 @@ class OutOfHeartsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final livesManager = ServiceLocator.instance.livesManager;
     final coinManager = ServiceLocator.instance.coinManager;
+    final gemManager = ServiceLocator.instance.gemManager;
 
     return Center(
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 340,
+          width: 335,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.topCenter,
             children: [
-              // 1. Main Purple / Indigo Dialog Body
+              // 1. Main Wood Signboard Body Frame (Warm Mahogany & Walnut Wood)
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.only(top: 20, bottom: 18),
-                padding: const EdgeInsets.fromLTRB(14, 26, 14, 12),
+                margin: const EdgeInsets.only(top: 22, bottom: 18),
+                padding: const EdgeInsets.fromLTRB(14, 28, 14, 16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      Color(0xFF381C5C),
-                      Color(0xFF24103E),
-                      Color(0xFF160A29),
+                      Color(0xFF6D3C18),
+                      Color(0xFF4A250B),
+                      Color(0xFF2E1505),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: const Color(0xFFFFD54F),
-                    width: 3.0,
+                    color: const Color(0xFF9E5D2A),
+                    width: 4.0,
                   ),
                   boxShadow: const [
                     BoxShadow(
@@ -63,251 +64,320 @@ class OutOfHeartsDialog extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 2. Broken Heart Graphic with "0" Count Badge
-                      Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Image.asset(
-                              'assets/images/lose_screen/broken_heart.png',
-                              height: 70,
-                              fit: BoxFit.contain,
+                child: Container(
+                  // Inner Parchment / Cream Card Box
+                  padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFFFFFDF5),
+                        Color(0xFFFBF1DB),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFE5D2A6),
+                      width: 1.8,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        offset: Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 2. Broken Heart Graphic with "0" Count Badge
+                        Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Image.asset(
+                                'assets/images/lose_screen/broken_heart.png',
+                                height: 72,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                          ),
-                          // Circular Red Zero Badge
-                          Positioned(
-                            bottom: 2,
-                            right: 4,
-                            child: Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFF5252), Color(0xFFD32F2F), Color(0xFFB71C1C)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
+                            // Circular Red Zero Badge
+                            Positioned(
+                              bottom: 2,
+                              right: 4,
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFFF5252), Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1.8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black54,
+                                      offset: Offset(0, 2),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
                                 ),
+                                child: const Center(
+                                  child: Text(
+                                    '0',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // Headings
+                        const Text(
+                          'You are out of hearts!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF3E200C),
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Get more hearts and keep playing.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF7A4E24),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // 3. Option 1 Card (Spend 5 Gems)
+                        _buildOptionCard(
+                          leading: _buildHeartWithPlusFive(),
+                          title: 'Continue',
+                          subtitle: 'Play by spending\n5 Gems.',
+                          actionButton: _buildGlossyButton(
+                            key: const ValueKey('out_of_hearts_gems_btn'),
+                            text: '5',
+                            leadingWidget: Container(
+                              padding: const EdgeInsets.all(2.5),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.8),
-                                boxShadow: const [
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black54,
-                                    offset: Offset(0, 2),
-                                    blurRadius: 3,
+                                    color: Colors.black26,
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
                                   ),
                                 ],
                               ),
-                              child: const Center(
-                                child: Text(
-                                  '0',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
+                              child: Image.asset(
+                                'assets/images/icons/icon_gem.png',
+                                width: 17,
+                                height: 17,
+                                fit: BoxFit.contain,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      // Headings
-                      const Text(
-                        'You are out of hearts!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.3,
-                          shadows: [
-                            Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Get more hearts and keep playing.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFFCE93D8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // 3. Option 1 Card (Watch Ad)
-                      _buildOptionCard(
-                        leading: _buildHeartWithPlusFive(),
-                        title: 'Continue',
-                        subtitle: 'Watch an ad to get\n5 Hearts.',
-                        actionButton: _buildGlossyButton(
-                          key: const ValueKey('out_of_hearts_watch_btn'),
-                          text: 'Watch',
-                          icon: Icons.movie_creation_rounded,
-                          gradientColors: const [
-                            Color(0xFF76D636),
-                            Color(0xFF4CAF50),
-                            Color(0xFF2E7D32),
-                          ],
-                          borderColor: const Color(0xFFDCEDC8),
-                          shadowColor: const Color(0xFF1B5E20),
-                          onTap: () async {
-                            await livesManager.refillWithAd();
-                            if (context.mounted) {
-                              Navigator.pop(context, true);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    '❤️ 5 Hearts Added! Keep Playing!',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  backgroundColor: Color(0xFF2E7D32),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      // 4. "OR" Divider Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF512DA8), Color(0xFF311B92)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFFFD54F), width: 1.2),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black45, offset: Offset(0, 2), blurRadius: 2),
-                          ],
-                        ),
-                        child: const Text(
-                          'OR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
+                            gradientColors: const [
+                              Color(0xFF76D636),
+                              Color(0xFF4CAF50),
+                              Color(0xFF2E7D32),
+                            ],
+                            borderColor: const Color(0xFFDCEDC8),
+                            shadowColor: const Color(0xFF1B5E20),
+                            onTap: () async {
+                              final success = await livesManager.refillWithGems(gemManager);
+                              if (context.mounted) {
+                                if (success) {
+                                  Navigator.pop(context, true);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        '❤️ 5 Hearts Refilled! Keep Playing!',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: Color(0xFF2E7D32),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Not enough gems! Need 5 Gems to refill hearts.',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: Color(0xFFC62828),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 6),
+                        const SizedBox(height: 8),
 
-                      // 5. Option 2 Card (Spend 100 Coins)
-                      _buildOptionCard(
-                        leading: Image.asset(
-                          'assets/images/icons/icon_coin.png',
-                          width: 38,
-                          height: 38,
-                          fit: BoxFit.contain,
+                        // 4. "OR" Divider Pill (Wood & Gold)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF8D5325), Color(0xFF5D3312)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFFD54F), width: 1.4),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 2),
+                            ],
+                          ),
+                          child: const Text(
+                            'OR',
+                            style: TextStyle(
+                              color: Color(0xFFFFE082),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
                         ),
-                        title: 'Continue',
-                        subtitle: 'Play by spending\n100 Coins.',
-                        actionButton: _buildGlossyButton(
-                          key: const ValueKey('out_of_hearts_coins_btn'),
-                          text: '100',
-                          leadingWidget: Image.asset(
+
+                        const SizedBox(height: 8),
+
+                        // 5. Option 2 Card (Spend 100 Coins)
+                        _buildOptionCard(
+                          leading: Image.asset(
                             'assets/images/icons/icon_coin.png',
-                            width: 18,
-                            height: 18,
+                            width: 38,
+                            height: 38,
                             fit: BoxFit.contain,
                           ),
-                          gradientColors: const [
-                            Color(0xFFFFD54F),
-                            Color(0xFFFFB300),
-                            Color(0xFFFF8F00),
-                          ],
-                          borderColor: const Color(0xFFFFF9C4),
-                          shadowColor: const Color(0xFFBF360C),
-                          onTap: () async {
-                            final success = await livesManager.refillWithCoins(coinManager);
-                            if (context.mounted) {
-                              if (success) {
-                                Navigator.pop(context, true);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      '❤️ 5 Hearts Refilled! Keep Playing!',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    backgroundColor: Color(0xFF2E7D32),
-                                    duration: Duration(seconds: 2),
+                          title: 'Continue',
+                          subtitle: 'Play by spending\n100 Coins.',
+                          actionButton: _buildGlossyButton(
+                            key: const ValueKey('out_of_hearts_coins_btn'),
+                            text: '100',
+                            leadingWidget: Container(
+                              padding: const EdgeInsets.all(2.5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFF9C4),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
                                   ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Not enough coins! Watch an ad or get coins.',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                ],
+                              ),
+                              child: Image.asset(
+                                'assets/images/icons/icon_coin.png',
+                                width: 17,
+                                height: 17,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            gradientColors: const [
+                              Color(0xFFFFD54F),
+                              Color(0xFFFFB300),
+                              Color(0xFFFF8F00),
+                            ],
+                            borderColor: const Color(0xFFFFF9C4),
+                            shadowColor: const Color(0xFFBF360C),
+                            onTap: () async {
+                              final success = await livesManager.refillWithCoins(coinManager);
+                              if (context.mounted) {
+                                if (success) {
+                                  Navigator.pop(context, true);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        '❤️ 5 Hearts Refilled! Keep Playing!',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: Color(0xFF2E7D32),
+                                      duration: Duration(seconds: 2),
                                     ),
-                                    backgroundColor: Color(0xFFC62828),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Not enough coins! Need 100 Coins to refill hearts.',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: Color(0xFFC62828),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
                               }
-                            }
-                          },
+                            },
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 10),
 
-                      // 6. Subtitle: "♥ Don't lose your progress! ♥"
-                      const Text(
-                        '♥ Don\'t lose your progress! ♥',
-                        style: TextStyle(
-                          color: Color(0xFFE1BEE7),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          fontStyle: FontStyle.italic,
+                        // 6. Subtitle: "♥ Don't lose your progress! ♥"
+                        const Text(
+                          '♥ Don\'t lose your progress! ♥',
+                          style: TextStyle(
+                            color: Color(0xFF8D5325),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
 
-              // 7. Top Header Ribbon / Pill ("Out of Hearts!")
+              // 7. Top Header Ribbon / Banner ("Out of Hearts!")
               Positioned(
-                top: 4,
+                top: 6,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildFlowerGarland(isLeft: true),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
-                            Color(0xFFE91E63),
-                            Color(0xFFC2185B),
-                            Color(0xFF880E4F),
+                            Color(0xFFE53935),
+                            Color(0xFFC62828),
+                            Color(0xFFB71C1C),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFFFD54F), width: 2.0),
+                        border: Border.all(color: const Color(0xFFFFD54F), width: 2.2),
                         boxShadow: const [
                           BoxShadow(
                             color: Colors.black54,
@@ -324,7 +394,7 @@ class OutOfHeartsDialog extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.6,
                           shadows: [
-                            Shadow(color: Color(0xFF4A0020), offset: Offset(1, 2), blurRadius: 2),
+                            Shadow(color: Color(0xFF4A0000), offset: Offset(1, 2), blurRadius: 2),
                           ],
                         ),
                       ),
@@ -346,7 +416,7 @@ class OutOfHeartsDialog extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF6A1B9A), Color(0xFF4A148C), Color(0xFF2E0854)],
+                        colors: [Color(0xFF8D5325), Color(0xFF5D3312), Color(0xFF3E200C)],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -362,7 +432,7 @@ class OutOfHeartsDialog extends StatelessWidget {
                     child: const Center(
                       child: Icon(
                         Icons.close_rounded,
-                        color: Colors.white,
+                        color: Color(0xFFFFF7EA),
                         size: 22,
                       ),
                     ),
@@ -383,14 +453,14 @@ class OutOfHeartsDialog extends StatelessWidget {
     required Widget actionButton,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF6E5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFFFE082), width: 1.6),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black26,
+            color: Colors.black12,
             offset: Offset(0, 2),
             blurRadius: 3,
           ),

@@ -1,5 +1,6 @@
 enum RewardType {
   coins,
+  gems,
   booster,
   extraMoves,
   avatar,

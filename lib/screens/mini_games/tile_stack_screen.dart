@@ -516,7 +516,10 @@ class _TileStackScreenState extends State<TileStackScreen>
   void _triggerLevelComplete() {
     _gameTicker.stop();
     currentScore += 1500 + (movesRemaining * 50);
-    try { ServiceLocator.instance.coinManager.addCoins(250); } catch (_) {}
+    try {
+      ServiceLocator.instance.coinManager.addCoins(250);
+      ServiceLocator.instance.gemManager.addGems(1);
+    } catch (_) {}
     currentCoins += 250;
 
     // Generate confetti
@@ -1862,12 +1865,24 @@ class _TileStackScreenState extends State<TileStackScreen>
                       Row(
                         children: [
                           Image.asset('assets/images/icons/icon_coin.png',
-                              width: 24, height: 24),
-                          const SizedBox(width: 4),
+                              width: 22, height: 22),
+                          const SizedBox(width: 3),
                           const Text('+250',
                               style: TextStyle(
                                   color: Color(0xFF3E200C),
-                                  fontSize: 16,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Image.asset('assets/images/icons/icon_gem.png',
+                              width: 22, height: 22),
+                          const SizedBox(width: 3),
+                          const Text('+1',
+                              style: TextStyle(
+                                  color: Color(0xFF3E200C),
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w900)),
                         ],
                       ),

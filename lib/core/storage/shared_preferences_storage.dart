@@ -4,6 +4,7 @@ import 'storage.dart';
 class SharedPreferencesGameStorage implements GameStorage {
   static const String _keyCoins = 'coins';
   static const String _keyLives = 'lives';
+  static const String _keyGems = 'gems';
   static const String _keyBoosterInventory = 'booster_inventory';
   static const String _keyAudioEnabled = 'audio_enabled';
 
@@ -33,6 +34,16 @@ class SharedPreferencesGameStorage implements GameStorage {
   @override
   Future<void> setLives(int lives) async {
     await _prefs.setInt(_keyLives, lives);
+  }
+
+  @override
+  Future<int> getGems() async {
+    return _prefs.getInt(_keyGems) ?? 0;
+  }
+
+  @override
+  Future<void> setGems(int gems) async {
+    await _prefs.setInt(_keyGems, gems);
   }
 
   // Boosters

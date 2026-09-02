@@ -165,12 +165,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // ==========================================
   Widget _buildTopHudBar(int coins) {
     final coinManager = ServiceLocator.instance.coinManager;
+    final gemManager = ServiceLocator.instance.gemManager;
     final livesManager = ServiceLocator.instance.livesManager;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([coinManager, livesManager]),
+      animation: Listenable.merge([coinManager, gemManager, livesManager]),
       builder: (context, _) {
         final currentCoins = coinManager.balance;
+        final currentGems = gemManager.balance;
         final lives = livesManager.lives;
         final livesLabel = livesManager.isFull ? 'Full' : null;
         final livesCount = livesManager.isFull ? '5' : '$lives/5';
@@ -196,11 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 value: '$currentCoins',
                 onTap: () => Navigator.pushNamed(context, AppRoutes.shop),
               ),
+              const SizedBox(width: 8),
 
-              // 3. Gems Pill (230 +)
+              // 3. Gems Pill
               _buildStatPill(
                 iconPath: 'assets/images/icons/icon_gem.png',
-                value: '230',
+                value: '$currentGems',
                 onTap: () => Navigator.pushNamed(context, AppRoutes.shop),
               ),
 

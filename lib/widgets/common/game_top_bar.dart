@@ -19,13 +19,15 @@ class GameTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coinManager = ServiceLocator.instance.coinManager;
+    final gemManager = ServiceLocator.instance.gemManager;
     final livesManager = ServiceLocator.instance.livesManager;
     final progression = ServiceLocator.instance.progressionManager;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([coinManager, livesManager, progression]),
+      animation: Listenable.merge([coinManager, gemManager, livesManager, progression]),
       builder: (context, _) {
         final coins = coinManager.balance;
+        final gems = gemManager.balance;
         final livesLabel = livesManager.label;
         final level = progression.unlockedLevels.length;
 
@@ -115,7 +117,7 @@ class GameTopBar extends StatelessWidget {
               // Gems Pill
               _buildStatPill(
                 imagePath: 'assets/images/icons/icon_gem.png',
-                value: '230',
+                value: '$gems',
                 pillBgColor: const Color(0xFF8E24AA),
                 hasPlus: true,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.shop),

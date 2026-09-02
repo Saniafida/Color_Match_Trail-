@@ -42,6 +42,7 @@ import 'widgets/visual_fx/gameplay_fx_controller.dart';
 import 'widgets/visual_fx/screen_shake_container.dart';
 import '../../game/blocks/block_color_mapper.dart';
 import '../tutorial/tutorial_overlay.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class GameplayScreen extends StatefulWidget {
   final String levelId;
@@ -101,6 +102,20 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 
   Future<void> _initGame() async {
+    final livesManager = ServiceLocator.instance.livesManager;
+    if (!livesManager.hasLives) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final refilled = await OutOfHeartsDialog.show(context);
+        if (!refilled || !livesManager.hasLives) {
+          if (mounted) {
+            Navigator.pop(context);
+          }
+          return;
+        }
+      });
+    }
+
     final parsedId = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
     _level = await ServiceLocator.instance.levelRepository.getLevel(parsedId);
     
@@ -791,9 +806,16 @@ class _GameplayScreenState extends State<GameplayScreen> {
           if (_level.timeLimit != null) _timerController.start();
           _levelResultController.setResolving(false);
         },
-        onRestart: () {
+        onRestart: () async {
           Navigator.pop(context);
-          Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
+          final livesManager = ServiceLocator.instance.livesManager;
+          if (!livesManager.hasLives) {
+            final refilled = await OutOfHeartsDialog.show(context);
+            if (!refilled || !livesManager.hasLives) return;
+          }
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
+          }
         },
         onExit: () {
           Navigator.pop(context);

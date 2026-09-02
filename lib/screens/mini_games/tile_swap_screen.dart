@@ -722,6 +722,7 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
     try {
       ServiceLocator.instance.coinManager.addCoins(bonusCoins);
+      ServiceLocator.instance.gemManager.addGems(1);
     } catch (_) {}
   }
 
@@ -1730,11 +1731,22 @@ class _TileSwapScreenState extends State<TileSwapScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset('assets/images/icons/icon_coin.png', width: 22, height: 22),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 4),
                   Text(
                     '+${100 + (movesRemaining * 10)} Coins',
                     style: const TextStyle(
                       color: Color(0xFF2E7D32),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Image.asset('assets/images/icons/icon_gem.png', width: 22, height: 22),
+                  const SizedBox(width: 4),
+                  const Text(
+                    '+1 Gem',
+                    style: TextStyle(
+                      color: Color(0xFF7B1FA2),
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
                     ),

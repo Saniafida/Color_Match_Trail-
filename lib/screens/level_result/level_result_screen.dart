@@ -252,7 +252,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                               // 2. Gem
                               _buildRewardItem(
                                 assetPath: 'assets/images/icons/icon_gem.png',
-                                count: '2',
+                                count: '1',
                               ),
                               Container(width: 1.5, height: 32, color: const Color(0x33FFD54F)),
                               // 3. Chest
@@ -335,10 +335,16 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                     ],
                     borderColor: const Color(0xFFB4F577),
                     shadowColor: const Color(0xFF1B5E20),
-                    onPressed: () {
+                    onPressed: () async {
+                      final livesManager = ServiceLocator.instance.livesManager;
+                      if (!livesManager.hasLives) {
+                        final refilled = await OutOfHeartsDialog.show(context);
+                        if (!refilled || !livesManager.hasLives) return;
+                      }
                       final currentNum = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), ''));
                       final nextId = _resultManager.nextLevelId ?? (currentNum != null && currentNum < 147 ? 'level_${currentNum + 1}' : null);
                       _resultManager.reset();
+                      if (!context.mounted) return;
                       if (nextId != null) {
                         ServiceLocator.instance.progressionManager.setCurrentLevel(nextId);
                         Navigator.pushReplacementNamed(
@@ -603,18 +609,16 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                                 );
                               }
                             } else {
-                              if (!livesManager.hasLives) {
-                                final refilled = await OutOfHeartsDialog.show(context);
-                                if (!refilled || !livesManager.hasLives) return;
-                              }
-                              _resultManager.reset();
-                              if (context.mounted) {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  AppRoutes.gameplay,
-                                  arguments: widget.levelId,
-                                );
-                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Not enough coins! Need 900 coins to Play On.',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  backgroundColor: Color(0xFFC62828),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
                             }
                           },
                         ),

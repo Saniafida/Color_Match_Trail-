@@ -116,36 +116,59 @@ class _GlossyButtonState extends State<GlossyButton> {
           ],
         ),
         child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                widget.icon!,
-                const SizedBox(width: 8),
-              ],
-              Text(
-                widget.text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: widget.fontSize,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
-                  shadows: [
-                    Shadow(
-                      color: bottomShadowColor,
-                      offset: const Offset(1, 2),
-                      blurRadius: 2,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: widget.icon != null
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      widget.icon!,
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.text,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: widget.fontSize,
+                          fontWeight: FontWeight.w900,
+                          shadows: [
+                            Shadow(
+                              color: bottomShadowColor,
+                              offset: const Offset(1, 2),
+                              blurRadius: 2,
+                            ),
+                            const Shadow(
+                              color: Colors.black45,
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    widget.text,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: widget.fontSize,
+                      fontWeight: FontWeight.w900,
+                      shadows: [
+                        Shadow(
+                          color: bottomShadowColor,
+                          offset: const Offset(1, 2),
+                          blurRadius: 2,
+                        ),
+                        const Shadow(
+                          color: Colors.black45,
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
                     ),
-                    const Shadow(
-                      color: Colors.black45,
-                      offset: Offset(0, 1),
-                      blurRadius: 2,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
           ),
         ),
       ),

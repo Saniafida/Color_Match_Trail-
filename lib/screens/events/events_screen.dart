@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
+import '../../core/services/service_locator.dart';
 import '../../widgets/common/wood_panel_modal.dart';
 import '../../widgets/common/game_bottom_nav_bar.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class GameEventItem {
   final String title;
@@ -108,8 +110,15 @@ class EventsScreen extends StatelessWidget {
 
   Widget _buildEventCard(BuildContext context, GameEventItem event) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, AppRoutes.gameplay, arguments: event.targetLevelId);
+      onTap: () async {
+        final livesManager = ServiceLocator.instance.livesManager;
+        if (!livesManager.hasLives) {
+          final refilled = await OutOfHeartsDialog.show(context);
+          if (!refilled || !livesManager.hasLives) return;
+        }
+        if (context.mounted) {
+          Navigator.pushNamed(context, AppRoutes.gameplay, arguments: event.targetLevelId);
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

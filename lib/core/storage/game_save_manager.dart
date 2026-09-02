@@ -143,6 +143,11 @@ class GameSaveManager extends ChangeNotifier {
     requestSave();
   }
 
+  void updateGems(int gems) {
+    _playerData = _playerData.copyWith(gems: gems);
+    requestSave();
+  }
+
   void updateBoosterInventory(Map<String, dynamic> data) {
     _playerData = _playerData.copyWith(boosterInventory: data);
     requestSave();

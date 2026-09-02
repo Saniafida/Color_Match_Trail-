@@ -457,6 +457,10 @@ class _TileDropScreenState extends State<TileDropScreen>
     HapticFeedback.heavyImpact();
     setState(() => isLevelComplete = true);
     _confettiController.forward(from: 0);
+    try {
+      ServiceLocator.instance.coinManager.addCoins(250);
+      ServiceLocator.instance.gemManager.addGems(1);
+    } catch (_) {}
   }
 
   void _triggerGameOver() {
@@ -1670,9 +1674,16 @@ class _TileDropScreenState extends State<TileDropScreen>
                         ),
                         Row(
                           children: [
-                            Image.asset('assets/images/icons/icon_coin.png', width: 22, height: 22),
-                            const SizedBox(width: 4),
-                            const Text('+250', style: TextStyle(color: Color(0xFF3E200C), fontSize: 15, fontWeight: FontWeight.w900)),
+                            Image.asset('assets/images/icons/icon_coin.png', width: 20, height: 20),
+                            const SizedBox(width: 3),
+                            const Text('+250', style: TextStyle(color: Color(0xFF3E200C), fontSize: 14, fontWeight: FontWeight.w900)),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Image.asset('assets/images/icons/icon_gem.png', width: 20, height: 20),
+                            const SizedBox(width: 3),
+                            const Text('+1', style: TextStyle(color: Color(0xFF3E200C), fontSize: 14, fontWeight: FontWeight.w900)),
                           ],
                         ),
                       ],

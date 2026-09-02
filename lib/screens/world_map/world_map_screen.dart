@@ -97,8 +97,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   @override
   Widget build(BuildContext context) {
     final coinManager = ServiceLocator.instance.coinManager;
+    final gemManager = ServiceLocator.instance.gemManager;
     final livesManager = ServiceLocator.instance.livesManager;
-    final coins = coinManager.balance;
     final progressMap = _progressionManager.state.levels;
     final isSelectedUnlocked = _progressionManager.canPlayLevel('level_$_selectedLevel');
 
@@ -130,14 +130,14 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
           // 3. Screen Main Layout
           SafeArea(
             child: AnimatedBuilder(
-              animation: Listenable.merge([coinManager, livesManager, _progressionManager]),
+              animation: Listenable.merge([coinManager, gemManager, livesManager, _progressionManager]),
               builder: (context, _) {
                 return Column(
                   children: [
                     // Top HUD Bar: Back Button, Hearts, Coins, Gems, Settings
                     AdventureTopBar(
                       coins: coinManager.balance,
-                      gems: 230,
+                      gems: gemManager.balance,
                       hearts: livesManager.lives,
                       heartsLabel: livesManager.label,
                       onBack: () => Navigator.pop(context),

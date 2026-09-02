@@ -99,6 +99,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
     final prize = _prizes[winningIndex];
     if (prize.type == 'coins') {
       ServiceLocator.instance.coinManager.addCoins(prize.amount);
+    } else if (prize.type == 'gems') {
+      ServiceLocator.instance.gemManager.addGems(prize.amount);
     }
 
     _showPrizeDialog(prize);

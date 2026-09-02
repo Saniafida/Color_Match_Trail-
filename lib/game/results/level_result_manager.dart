@@ -117,6 +117,11 @@ class LevelResultManager extends ChangeNotifier {
           completed: _currentResult!.completed,
         );
 
+        // Award 1 Gem for completing level
+        try {
+          await ServiceLocator.instance.gemManager.addGems(1);
+        } catch (_) {}
+
         // Determine if next level exists or campaign complete
         final currentGlobalLevel = _progressionManager.state.currentLevel;
         if (currentGlobalLevel != null && currentGlobalLevel != _currentResult!.levelId) {

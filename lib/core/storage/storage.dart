@@ -14,6 +14,9 @@ abstract class GameStorage {
   
   Future<int> getLives();
   Future<void> setLives(int lives);
+
+  Future<int> getGems();
+  Future<void> setGems(int gems);
   
   // Boosters
   Future<String?> getBoosterInventoryRaw();

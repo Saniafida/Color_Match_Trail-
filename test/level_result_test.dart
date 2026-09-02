@@ -16,6 +16,8 @@ class MockGameStorage implements GameStorage {
   @override Future<void> setCoins(int coins) async {}
   @override Future<int> getLives() async => 0;
   @override Future<void> setLives(int lives) async {}
+  @override Future<int> getGems() async => 0;
+  @override Future<void> setGems(int gems) async {}
   @override
   Future<bool> getAudioEnabled() async => true;
   @override

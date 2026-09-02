@@ -18,6 +18,22 @@ void main() {
 
   group('Rewards, Daily Bonus, Spin Wheel & Events Screens Tests', () {
     testWidgets('1. RewardsScreen builds and displays quests and Claim All button', (tester) async {
+      final coinManager = ServiceLocator.instance.coinManager;
+      final gemManager = ServiceLocator.instance.gemManager;
+      final statsManager = ServiceLocator.instance.statisticsManager;
+
+      // Complete quests via real stats
+      statsManager.onLevelCompleted(3, 6000);
+      statsManager.onLevelCompleted(3, 6000);
+      statsManager.onLevelCompleted(3, 6000);
+      statsManager.onBlocksCleared(60);
+      statsManager.onBoosterUsed();
+      statsManager.onBoosterUsed();
+      statsManager.onDailyChallengeCompleted();
+
+      final initialCoins = coinManager.balance;
+      final initialGems = gemManager.balance;
+
       await tester.pumpWidget(
         const MaterialApp(
           home: RewardsScreen(),
@@ -27,13 +43,25 @@ void main() {
 
       expect(find.text('Rewards'), findsWidgets);
       expect(find.text('Play games and win amazing rewards!'), findsOneWidget);
-      expect(find.text('Complete 10 Moves'), findsOneWidget);
-      expect(find.text('Clear 3 Lines'), findsOneWidget);
-      expect(find.text('Score 5000 Points'), findsOneWidget);
+      expect(find.text('7-Day Login Bonus Available!'), findsNothing); // Removed
+      expect(find.text('Complete 3 Levels'), findsOneWidget);
+      expect(find.text('Clear 50 Blocks'), findsOneWidget);
+      expect(find.text('Score 5,000 Points'), findsOneWidget);
       expect(find.text('Claim All'), findsOneWidget);
+
+      // Tap Claim All
+      await tester.tap(find.text('Claim All'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(coinManager.balance, initialCoins + 350);
+      expect(gemManager.balance, initialGems + 5);
     });
 
-    testWidgets('2. DailyBonusScreen builds and displays 7 days rewards and chest', (tester) async {
+    testWidgets('2. DailyBonusScreen builds and displays 7 days rewards and chest and claims reward', (tester) async {
+      final gemManager = ServiceLocator.instance.gemManager;
+      final initialGems = gemManager.balance;
+
       await tester.pumpWidget(
         const MaterialApp(
           home: DailyBonusScreen(),
@@ -60,6 +88,14 @@ void main() {
       expect(find.text('Day 7'), findsOneWidget);
       expect(find.text('Big Reward!'), findsOneWidget);
       expect(find.text('Claim'), findsOneWidget);
+
+      // Tap Claim button (Day 4 reward is 10 gems)
+      await tester.tap(find.text('Claim'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(gemManager.balance, initialGems + 10);
+      expect(find.text('Claimed'), findsOneWidget);
     });
 
     testWidgets('3. SpinWheelScreen builds and displays wheel and Spin button', (tester) async {

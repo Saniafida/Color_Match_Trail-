@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../core/services/service_locator.dart';
 import '../../shop/shop_screen.dart';
 import '../../settings/settings_screen.dart';
+import '../../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class AdventureTopBar extends StatelessWidget {
   final int coins;
@@ -27,6 +28,12 @@ class AdventureTopBar extends StatelessWidget {
       context,
       MaterialPageRoute(builder: (_) => const ShopScreen()),
     );
+  }
+
+  void _openHeartsRefill(BuildContext context) {
+    HapticFeedback.selectionClick();
+    ServiceLocator.instance.audioManager.playButtonClick();
+    OutOfHeartsDialog.show(context);
   }
 
   void _openSettings(BuildContext context) {
@@ -70,7 +77,7 @@ class AdventureTopBar extends StatelessWidget {
                     context: context,
                     leading: _buildHeartBadge(hearts),
                     label: heartsLabel,
-                    onAdd: () => _openShop(context),
+                    onAdd: () => _openHeartsRefill(context),
                   ),
                   const SizedBox(width: 6),
 

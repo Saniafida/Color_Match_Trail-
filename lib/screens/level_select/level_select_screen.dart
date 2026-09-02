@@ -4,6 +4,7 @@ import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
 import '../../game/progression/progression_manager.dart';
 import '../../core/data/game_data_manager.dart';
+import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class LevelSelectScreen extends StatefulWidget {
   const LevelSelectScreen({super.key});
@@ -75,7 +76,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
     if (mounted) setState(() {});
   }
 
-  void _playLevel(String levelId) {
+  void _playLevel(String levelId) async {
     final validation = _progressionManager.validateLevelAccess(levelId);
     if (!validation.isUnlocked) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,8 +88,16 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
       return;
     }
 
+    final livesManager = ServiceLocator.instance.livesManager;
+    if (!livesManager.hasLives) {
+      final refilled = await OutOfHeartsDialog.show(context);
+      if (!refilled || !livesManager.hasLives) return;
+    }
+
     _progressionManager.setCurrentLevel(levelId);
-    Navigator.pushNamed(context, AppRoutes.gameplay, arguments: levelId);
+    if (mounted) {
+      Navigator.pushNamed(context, AppRoutes.gameplay, arguments: levelId);
+    }
   }
 
   @override

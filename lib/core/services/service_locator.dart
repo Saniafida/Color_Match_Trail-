@@ -12,6 +12,7 @@ import '../../game/challenges/daily_challenge_manager.dart';
 import '../../game/events/event_storage.dart';
 import '../../game/events/event_manager.dart';
 import '../../game/coins/coin_manager.dart';
+import '../../game/gems/gem_manager.dart';
 import '../../game/lives/lives_manager.dart';
 import '../../game/inventory/inventory_manager.dart';
 import '../../game/rewards/reward_claim_store.dart';
@@ -75,6 +76,7 @@ class ServiceLocator {
   late final EventManager eventManager;
 
   late final CoinManager coinManager;
+  late final GemManager gemManager;
   late final LivesManager livesManager;
   late final InventoryManager inventoryManager;
   late final RewardClaimStore rewardClaimStore;
@@ -164,6 +166,9 @@ class ServiceLocator {
     coinManager = CoinManager(storage: storage);
     await coinManager.initialize();
 
+    gemManager = GemManager(storage: storage);
+    await gemManager.initialize();
+
     livesManager = LivesManager(dateService: dateService);
     await livesManager.initialize();
 
@@ -173,6 +178,7 @@ class ServiceLocator {
     rewardClaimStore = RewardClaimStore(saveManager: gameSaveManager);
     rewardManager = RewardManager(
       coinManager: coinManager,
+      gemManager: gemManager,
       inventoryManager: inventoryManager,
       claimStore: rewardClaimStore,
     );

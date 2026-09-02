@@ -7,6 +7,7 @@ class LivesManager extends ChangeNotifier {
   static const String _keyLives = 'player_daily_lives_count';
   static const String _keyLastRefillDate = 'player_lives_last_refill_date';
   static const int refillCostInCoins = 100;
+  static const int refillCostInGems = 5;
 
   final DateService _dateService;
   int _lives = maxLives;
@@ -97,6 +98,18 @@ class LivesManager extends ChangeNotifier {
   /// Refill with rewarded ad
   Future<void> refillWithAd() async {
     await refillLives(maxLives);
+  }
+
+  /// Refill with gems (costs 5 gems)
+  Future<bool> refillWithGems(dynamic gemManager) async {
+    if (gemManager.balance >= refillCostInGems) {
+      final success = await gemManager.spendGems(refillCostInGems);
+      if (success) {
+        await refillLives(maxLives);
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Refill with coins (costs 100 coins)

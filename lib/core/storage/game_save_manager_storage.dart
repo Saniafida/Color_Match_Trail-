@@ -23,6 +23,16 @@ class GameSaveManagerStorage implements GameStorage {
   }
 
   @override
+  Future<int> getGems() async {
+    return saveManager.playerData.gems;
+  }
+
+  @override
+  Future<void> setGems(int gems) async {
+    saveManager.updateGems(gems);
+  }
+
+  @override
   Future<int> getLives() async {
     // Lives are unused, returning mock
     return 5; 
