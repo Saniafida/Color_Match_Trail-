@@ -31,12 +31,12 @@ import '../../core/services/service_locator.dart';
 import '../../app/routes/routes.dart';
 
 import 'widgets/gameplay_hud.dart';
-import 'widgets/goal_panel.dart';
 import 'widgets/booster_bar.dart';
 import 'widgets/booster_target_overlay.dart';
 import 'widgets/combo_display.dart';
 import 'widgets/feedback/feedback_layer.dart';
 import 'widgets/pause_dialog.dart';
+import 'widgets/exit_level_dialog.dart';
 import 'widgets/visual_fx/gameplay_fx_layer.dart';
 import 'widgets/visual_fx/gameplay_fx_controller.dart';
 import 'widgets/visual_fx/screen_shake_container.dart';
@@ -793,6 +793,23 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _levelResultController.setResolving(false);
   }
 
+  void _onBack() {
+    ServiceLocator.instance.audioManager.playButtonClick();
+    if (_level.timeLimit != null) _timerController.stop();
+    _levelResultController.setResolving(true);
+
+    ExitLevelDialog.show(
+      context: context,
+      onResume: () {
+        if (_level.timeLimit != null) _timerController.start();
+        _levelResultController.setResolving(false);
+      },
+      onExit: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
   void _onPause() {
     if (_level.timeLimit != null) _timerController.stop();
     _levelResultController.setResolving(true);
@@ -825,6 +842,16 @@ class _GameplayScreenState extends State<GameplayScreen> {
     );
   }
 
+  void _onSettings() {
+    ServiceLocator.instance.audioManager.playButtonClick();
+    if (_level.timeLimit != null) _timerController.stop();
+    _levelResultController.setResolving(true);
+    Navigator.pushNamed(context, AppRoutes.settings).then((_) {
+      if (_level.timeLimit != null) _timerController.start();
+      _levelResultController.setResolving(false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -836,41 +863,46 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     final renderBoard = _boardController.board.copyWith(blocks: _blocks);
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Garden background
-          Image.asset(
-            'assets/images/backgrounds/bg_garden.jpg',
-            fit: BoxFit.cover,
-          ),
-          // 2. Dark board contrast overlay
-          Container(
-            color: const Color(0xFF1E2A38).withAlpha(220),
-          ),
-          // 3. Gameplay Content
-          SafeArea(
-            child: TutorialOverlay(
-              tutorialManager: ServiceLocator.instance.tutorialManager,
-              child: Column(
-            children: [
-              RepaintBoundary(
-                child: GameplayHud(
-                  levelId: widget.levelId,
-                  onPause: _onPause,
-                  scoreController: _scoreController,
-                  moveController: _moveController,
-                  timerController: _timerController,
-                  hasTimeLimit: _level.timeLimit != null,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Garden background
+            Image.asset(
+              'assets/images/backgrounds/bg_garden.jpg',
+              fit: BoxFit.cover,
+            ),
+            // 2. Subtle board contrast overlay (letting the sunny garden background show through)
+            Container(
+              color: Colors.black.withValues(alpha: 0.25),
+            ),
+            // 3. Gameplay Content
+            SafeArea(
+              child: TutorialOverlay(
+                tutorialManager: ServiceLocator.instance.tutorialManager,
+                child: Column(
+              children: [
+                RepaintBoundary(
+                  child: GameplayHud(
+                    levelId: widget.levelId,
+                    onPause: _onPause,
+                    onSettings: _onSettings,
+                    onBack: _onBack,
+                    scoreController: _scoreController,
+                    moveController: _moveController,
+                    timerController: _timerController,
+                    goalController: _goalController,
+                    hasTimeLimit: _level.timeLimit != null,
+                  ),
                 ),
-              ),
               
-              RepaintBoundary(
-                child: GoalPanel(goalController: _goalController),
-              ),
-              
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               
               Expanded(
                 child: Stack(
@@ -963,20 +995,32 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 ),
               ),
               
+              // 1. Boosters Dock (shifted upwards)
               Padding(
-                padding: const EdgeInsets.only(bottom: 24, top: 8),
+                padding: const EdgeInsets.only(top: 2, bottom: 4),
                 child: BoosterBar(
                   boosterManager: _boosterManager,
                   levelResultController: _levelResultController,
                   blastController: _blastController,
                 ),
               ),
+
+              // 2. Reserved slot for Ad Banner at the bottom
+              _buildBottomBannerAdPlaceholder(),
             ],
           ),
         ),
       ),
         ],
       ),
+    ),
+  );
+}
+
+  Widget _buildBottomBannerAdPlaceholder() {
+    return const SizedBox(
+      height: 52,
+      width: double.infinity,
     );
   }
 }
