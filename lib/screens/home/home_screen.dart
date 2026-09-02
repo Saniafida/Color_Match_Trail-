@@ -77,82 +77,109 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 3. Scrollable Main Layout with Responsive Padding
+          // 3. Main Layout: Top HUD, Scrollable Hero & Games, Fixed Bottom Nav & Ad Space
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-              child: Column(
-                children: [
-                  // Top HUD: Hearts, Coins, Gems, Settings
-                  _buildTopHudBar(coins),
+            child: Column(
+              children: [
+                // Top HUD: Hearts, Coins, Gems, Settings
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                  child: _buildTopHudBar(coins),
+                ),
 
-                  const SizedBox(height: 6),
+                // Center Scrollable Content (Hero Bear, Play, Challenges/Events, Mini Games)
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          child: IntrinsicHeight(
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 54),
 
-                  // TOP HERO SECTION: Floating Rewards (Left), Wood Logo + Baby Bear (Center), Daily Bonus (Right)
-                  _buildHeroLogoSection(),
+                                // TOP HERO SECTION: Floating Rewards (Left), Wood Logo + Baby Bear (Center), Daily Bonus (Right)
+                                _buildHeroLogoSection(),
 
-                  const SizedBox(height: 8),
+                                const Spacer(),
+                                const SizedBox(height: 8),
 
-                  // BIG GLOSSY GREEN "PLAY" BUTTON
-                  _buildPlayButton(),
+                                // BIG GLOSSY GREEN "PLAY" BUTTON (Touching right above challenges & events)
+                                _buildPlayButton(),
 
-                  const SizedBox(height: 10),
+                                const SizedBox(height: 8),
 
-                  // 2 MAIN FEATURE CARDS (Daily Challenge & Events)
-                  SizedBox(
-                    height: 72,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 1. Daily Challenge Card (Blue)
-                        Expanded(
-                          child: _buildFeatureCard(
-                            title: 'Daily Challenge',
-                            subtitle: 'Complete daily puzzles and win amazing rewards!',
-                            badgeWidget: _buildCalendarBadge(),
-                            colorGradient: const [Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF1565C0)],
-                            borderColor: const Color(0xFF90CAF9),
-                            hasProgressBar: true,
-                            onTap: () => Navigator.pushNamed(context, AppRoutes.challenges),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                                // 2 MAIN FEATURE CARDS (Daily Challenge & Events) - Grouped right between Play and Mini Games
+                                SizedBox(
+                                  height: 72,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // 1. Daily Challenge Card (Blue)
+                                      Expanded(
+                                        child: _buildFeatureCard(
+                                          title: 'Daily Challenge',
+                                          subtitle: 'Complete daily puzzles and win amazing rewards!',
+                                          badgeWidget: _buildCalendarBadge(),
+                                          colorGradient: const [Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF1565C0)],
+                                          borderColor: const Color(0xFF90CAF9),
+                                          hasProgressBar: true,
+                                          onTap: () => Navigator.pushNamed(context, AppRoutes.challenges),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
 
-                        // 2. Events Card (Purple)
-                        Expanded(
-                          child: _buildFeatureCard(
-                            title: 'Events',
-                            subtitle: 'Join exciting events and win awesome prizes!',
-                            badgeWidget: Image.asset(
-                              'assets/images/home_screen/icon_events_trophy.png',
-                              width: 26,
-                              height: 26,
-                              fit: BoxFit.contain,
+                                      // 2. Events Card (Purple)
+                                      Expanded(
+                                        child: _buildFeatureCard(
+                                          title: 'Events',
+                                          subtitle: 'Join exciting events and win awesome prizes!',
+                                          badgeWidget: Image.asset(
+                                            'assets/images/home_screen/icon_events_trophy.png',
+                                            width: 26,
+                                            height: 26,
+                                            fit: BoxFit.contain,
+                                          ),
+                                          colorGradient: const [Color(0xFFAB47BC), Color(0xFF8E24AA), Color(0xFF6A1B9A)],
+                                          borderColor: const Color(0xFFCE93D8),
+                                          hasProgressBar: false,
+                                          onTap: () => Navigator.pushNamed(context, AppRoutes.events),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // ⭐ MINI GAMES ⭐ WOODEN PANEL (Touching right below challenges & events)
+                                _buildMiniGamesPanel(),
+
+                                const SizedBox(height: 4),
+                              ],
                             ),
-                            colorGradient: const [Color(0xFFAB47BC), Color(0xFF8E24AA), Color(0xFF6A1B9A)],
-                            borderColor: const Color(0xFFCE93D8),
-                            hasProgressBar: false,
-                            onTap: () => Navigator.pushNamed(context, AppRoutes.events),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
+                ),
 
-                  const SizedBox(height: 12),
+                // BOTTOM 5 WOODEN NAVIGATION BUTTONS (Shop, Achievements, Spin, Events) - Pinned above ad
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                  child: _buildBottomNavBar(),
+                ),
 
-                  // ⭐ MINI GAMES ⭐ WOODEN PANEL
-                  _buildMiniGamesPanel(),
-
-                  const SizedBox(height: 12),
-
-                  // BOTTOM 5 WOODEN NAVIGATION BUTTONS (Shop, Friends, Spin, Pass, Inbox)
-                  _buildBottomNavBar(),
-
-                  const SizedBox(height: 8),
-                ],
-              ),
+                // RESERVED AD BANNER SPACE (Clean & Transparent 52px)
+                const SizedBox(
+                  height: 52,
+                  width: double.infinity,
+                ),
+              ],
             ),
           ),
         ],
@@ -312,14 +339,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // ==========================================
   Widget _buildHeroLogoSection() {
     return SizedBox(
-      height: 195,
+      height: 230,
       child: Stack(
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          // 1. Center 3D Wooden Logo
+          // 1. Center 3D Wooden Logo (Shifted down more)
           Positioned(
-            top: 0,
+            top: 28,
             child: Image.asset(
               'assets/images/logo_wood.png',
               height: 155,
@@ -327,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 2. 3D Mascot Bear with Toy Blocks (leaning in from left)
+          // 2. 3D Mascot Bear with Toy Blocks (Shifted down more)
           Positioned(
             left: 2,
             bottom: 0,
@@ -341,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // 3. Top-Left Floating Button: Rewards (with chest & badge '2')
           Positioned(
             left: 2,
-            top: 2,
+            top: 24,
             child: _buildTopBadgeButton(
               label: 'Rewards',
               imagePath: 'assets/images/home_screen/icon_chest_rewards.png',
@@ -353,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // 4. Top-Right Floating Button: Daily Bonus (with green gift & badge '!')
           Positioned(
             right: 2,
-            top: 2,
+            top: 24,
             child: _buildTopBadgeButton(
               label: 'Daily Bonus',
               imagePath: 'assets/images/home_screen/icon_daily_bonus.png',
@@ -693,14 +720,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMiniGamesPanel() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(6, 26, 6, 10),
+      padding: const EdgeInsets.fromLTRB(5, 18, 5, 6),
       decoration: BoxDecoration(
         color: const Color(0xFF633A18),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF8D5325), width: 4.0),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF8D5325), width: 3.0),
         boxShadow: const [
-          BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 6), blurRadius: 0),
-          BoxShadow(color: Colors.black45, offset: Offset(0, 8), blurRadius: 8),
+          BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 4), blurRadius: 0),
+          BoxShadow(color: Colors.black45, offset: Offset(0, 6), blurRadius: 6),
         ],
       ),
       child: Stack(
@@ -719,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPlay: () => Navigator.pushNamed(context, AppRoutes.tileSort),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Expanded(
                 child: _buildMiniGameCard(
                   title: 'TILE STACK',
@@ -729,7 +756,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPlay: () => Navigator.pushNamed(context, AppRoutes.tileStack),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Expanded(
                 child: _buildMiniGameCard(
                   title: 'TILE DROP',
@@ -739,7 +766,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPlay: () => Navigator.pushNamed(context, AppRoutes.tileDrop),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Expanded(
                 child: _buildMiniGameCard(
                   title: 'TILE SWAP',
@@ -754,41 +781,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // ⭐ MINI GAMES ⭐ Wooden Sign Header
           Positioned(
-            top: -42,
+            top: -28,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF8D5325), Color(0xFF5D3512)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFFD54F), width: 2.0),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
                 boxShadow: const [
-                  BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 3), blurRadius: 0),
-                  BoxShadow(color: Colors.black38, offset: Offset(0, 3), blurRadius: 4),
+                  BoxShadow(color: Color(0xFF2C1605), offset: Offset(0, 2.5), blurRadius: 0),
+                  BoxShadow(color: Colors.black38, offset: Offset(0, 2.5), blurRadius: 3),
                 ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 17),
-                  SizedBox(width: 4),
+                  Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 14),
+                  SizedBox(width: 3),
                   Text(
                     'MINI GAMES',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 13.5,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
+                      letterSpacing: 0.8,
                       shadows: [
-                        Shadow(color: Colors.black87, offset: Offset(0, 1.5), blurRadius: 2),
+                        Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 2),
                       ],
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 17),
+                  SizedBox(width: 3),
+                  Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 14),
                 ],
               ),
             ),
@@ -808,10 +835,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF7E8CE),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2CCAE), width: 1.5),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: const Color(0xFFE2CCAE), width: 1.2),
         boxShadow: const [
-          BoxShadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 3),
+          BoxShadow(color: Colors.black26, offset: Offset(0, 1.5), blurRadius: 2.5),
         ],
       ),
       child: Column(
@@ -819,12 +846,12 @@ class _HomeScreenState extends State<HomeScreen> {
           // Top Title Bar
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
               color: headerColor,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
               ),
             ),
             child: FittedBox(
@@ -836,7 +863,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 9.5,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.3,
                   ),
@@ -847,12 +874,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Screenshot Preview
           Padding(
-            padding: const EdgeInsets.all(3.0),
+            padding: const EdgeInsets.all(2.5),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               child: Image.asset(
                 imagePath,
-                height: 60,
+                height: 42,
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
@@ -863,7 +890,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2.0),
             child: SizedBox(
-              height: 22,
+              height: 18,
               child: Center(
                 child: Text(
                   subtitle,
@@ -871,23 +898,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   maxLines: 2,
                   style: const TextStyle(
                     color: Color(0xFF5D3A1A),
-                    fontSize: 8.5,
+                    fontSize: 7.5,
                     fontWeight: FontWeight.w700,
-                    height: 1.1,
+                    height: 1.05,
                   ),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
 
           // Mini Glossy Play Button
           GestureDetector(
             onTap: onPlay,
             child: Container(
-              margin: const EdgeInsets.fromLTRB(4, 0, 4, 5),
-              height: 22,
+              margin: const EdgeInsets.fromLTRB(3, 0, 3, 4),
+              height: 18,
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -895,10 +922,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFFA5F062), width: 1.0),
                 boxShadow: const [
-                  BoxShadow(color: Color(0xFF286403), offset: Offset(0, 1.5), blurRadius: 0),
+                  BoxShadow(color: Color(0xFF286403), offset: Offset(0, 1), blurRadius: 0),
                 ],
               ),
               child: const Center(
@@ -906,7 +933,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Play',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 10.5,
+                    fontSize: 9.0,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
