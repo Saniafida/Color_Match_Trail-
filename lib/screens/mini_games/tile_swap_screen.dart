@@ -1020,6 +1020,33 @@ class _TileSwapScreenState extends State<TileSwapScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // 1. Back Button
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF0D47A1)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                border: Border.all(color: const Color(0xFFE3F2FD), width: 1.6),
+                boxShadow: const [
+                  BoxShadow(color: Color(0xFF072658), offset: Offset(0, 2), blurRadius: 0),
+                  BoxShadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 3),
+                ],
+              ),
+              child: const Center(
+                child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 19),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 6),
+
           // Coins Pill
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
