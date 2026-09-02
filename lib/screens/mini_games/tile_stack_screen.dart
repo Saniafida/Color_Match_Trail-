@@ -6,6 +6,7 @@ import '../../game/blocks/block_color_mapper.dart';
 import '../../game/basket_collect/basket_collect_level_model.dart';
 import '../../game/basket_collect/basket_collect_level_generator.dart';
 import '../../core/services/service_locator.dart';
+import '../gameplay/widgets/pause_dialog.dart';
 
 // ─────────────────────────────────────────────
 // DATA MODELS
@@ -730,22 +731,113 @@ class _TileStackScreenState extends State<TileStackScreen>
 
   Widget _buildTopHud() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Coins
+          // 1. Back Button
+          _buildBackCircleButton(),
+          const SizedBox(width: 6),
+
+          // 2. Coins
           _buildCoinsCapsule(),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
-          // Center: Per-color goals
+          // 3. Center: Per-color goals
           Expanded(child: _buildGoalPanel()),
+          const SizedBox(width: 6),
 
-          const SizedBox(width: 8),
-
-          // Right: Moves + Lives
+          // 4. Moves + Lives
           _buildMovesAndLivesPanel(),
+          const SizedBox(width: 6),
+
+          // 5. Pause Button
+          _buildPauseCircleButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackCircleButton() {
+    return GestureDetector(
+      onTap: () {
+        _isGameFrozen = true;
+        _gameTicker.stop();
+        Navigator.pop(context);
+      },
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF0D47A1)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          border: Border.all(color: const Color(0xFFE3F2FD), width: 1.6),
+          boxShadow: const [
+            BoxShadow(color: Color(0xFF072658), offset: Offset(0, 2), blurRadius: 0),
+            BoxShadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 3),
+          ],
+        ),
+        child: const Center(
+          child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 19),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPauseCircleButton() {
+    return GestureDetector(
+      onTap: _showPauseDialog,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8D582A), Color(0xFF5D3312), Color(0xFF3E1F08)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          border: Border.all(color: const Color(0xFFFFD54F), width: 1.6),
+          boxShadow: const [
+            BoxShadow(color: Color(0xFF160A02), offset: Offset(0, 2), blurRadius: 0),
+            BoxShadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 3),
+          ],
+        ),
+        child: const Center(
+          child: Icon(Icons.pause_rounded, color: Colors.white, size: 19),
+        ),
+      ),
+    );
+  }
+
+  void _showPauseDialog() {
+    _isGameFrozen = true;
+    _gameTicker.stop();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PauseDialog(
+        onResume: () {
+          Navigator.pop(context);
+          _isGameFrozen = false;
+          _lastTickTime = DateTime.now();
+          if (!_gameTicker.isAnimating) {
+            _gameTicker.repeat();
+          }
+        },
+        onRestart: () {
+          Navigator.pop(context);
+          _loadLevel(currentLevelNumber);
+        },
+        onExit: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        },
       ),
     );
   }
