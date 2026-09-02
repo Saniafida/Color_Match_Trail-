@@ -175,10 +175,12 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> with SingleTicker
               return KeyedSubtree(
                 key: isCurrent ? _currentLevelKey : null,
                 child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _playLevel(levelId);
-                  },
+                  onTap: isUnlocked
+                      ? () {
+                          HapticFeedback.lightImpact();
+                          _playLevel(levelId);
+                        }
+                      : null,
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                   decoration: BoxDecoration(
