@@ -6,6 +6,7 @@ import '../../game/blocks/block_color_mapper.dart';
 import '../../game/tile_sort/tile_sort_level_model.dart';
 import '../../game/tile_sort/tile_sort_level_generator.dart';
 import '../../core/services/service_locator.dart';
+import '../gameplay/widgets/pause_dialog.dart';
 
 class TileSortScreen extends StatefulWidget {
   final int startingLevel;
@@ -438,7 +439,18 @@ class _TileSortScreenState extends State<TileSortScreen>
             ),
           ),
 
-          // 5. Settings Gear Button
+          // 5. Pause Button
+          _buildCircleIconButton(
+            icon: Icons.pause_rounded,
+            colorGradient: const [Color(0xFF8D582A), Color(0xFF5D3312)],
+            shadowColor: const Color(0xFF3E1F08),
+            borderColor: const Color(0xFFFFD54F),
+            onTap: _showPauseDialog,
+          ),
+
+          const SizedBox(width: 4),
+
+          // 6. Settings Gear Button
           _buildCircleIconButton(
             icon: Icons.settings_rounded,
             colorGradient: const [Color(0xFF42A5F5), Color(0xFF1976D2)],
@@ -447,6 +459,24 @@ class _TileSortScreenState extends State<TileSortScreen>
             onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPauseDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PauseDialog(
+        onResume: () => Navigator.pop(context),
+        onRestart: () {
+          Navigator.pop(context);
+          _loadLevel(currentLevelNumber);
+        },
+        onExit: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        },
       ),
     );
   }
