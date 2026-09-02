@@ -65,11 +65,7 @@ class _AdventureBoardState extends State<AdventureBoard> {
   @override
   void didUpdateWidget(covariant AdventureBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedLevel != widget.selectedLevel) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToSelectedLevel(animated: true);
-      });
-    }
+    // Note: Do not auto-scroll on user selection to prevent fighting user drag/scroll gestures.
   }
 
   void _scrollToSelectedLevel({bool animated = true}) {
@@ -188,43 +184,53 @@ class _AdventureBoardState extends State<AdventureBoard> {
               ),
             ),
 
-            // Scrollable Content
-            SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(8, 48, 8, 16),
-              child: Column(
-                children: [
-                  // 1. Golden Trophy Banner on Grass
-                  _buildTrophySection(),
+            // Scrollable Content with smooth, fluid sliding physics
+            RepaintBoundary(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(8, 48, 8, 16),
+                child: Column(
+                  children: [
+                    // 1. Golden Trophy Banner on Grass
+                    RepaintBoundary(
+                      child: _buildTrophySection(),
+                    ),
 
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  // 2. Motivational Text & Divider
-                  _buildMotivationText(),
+                    // 2. Motivational Text & Divider
+                    RepaintBoundary(
+                      child: _buildMotivationText(),
+                    ),
 
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
 
-                  // 3. Tapering Diamond Mosaic Grid of Level Tiles
-                  for (final row in mosaicRows)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2.0),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final levelNum in row)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 1.2),
-                                child: _buildTile(levelNum),
-                              ),
-                          ],
+                    // 3. Tapering Diamond Mosaic Grid of Level Tiles (each row cached with RepaintBoundary)
+                    for (final row in mosaicRows)
+                      RepaintBoundary(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (final levelNum in row)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 1.2),
+                                    child: _buildTile(levelNum),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -429,10 +435,12 @@ class _AdventureBoardState extends State<AdventureBoard> {
         isCurrent: isCurrent,
         width: 32,
         height: 35,
-        onTap: () {
-          HapticFeedback.selectionClick();
-          widget.onSelectLevel(levelNum);
-        },
+        onTap: isUnlocked
+            ? () {
+                HapticFeedback.selectionClick();
+                widget.onSelectLevel(levelNum);
+              }
+            : null,
       ),
     );
   }
