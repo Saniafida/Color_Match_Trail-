@@ -113,31 +113,49 @@ class BoardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(7.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1712), // Deep warm tray bed
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFC7A774), // Golden / wood bezel
-          width: 4.5,
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF7A431D),
+            Color(0xFF53280B),
+            Color(0xFF381705),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFFFFD54F),
+          width: 3.0,
+        ),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Color(0xFF1E0C02),
+            offset: Offset(0, 5),
+            blurRadius: 0,
           ),
-          const BoxShadow(
-            color: Color(0xFFDFC298),
-            blurRadius: 1,
-            offset: Offset(0, -1),
+          BoxShadow(
+            color: Colors.black54,
+            offset: Offset(0, 8),
+            blurRadius: 16,
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
+      child: Container(
+        padding: const EdgeInsets.all(3.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B1006),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: const Color(0xFFC7A774).withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
               // 1. Static background grid — rarely rebuilds
@@ -195,6 +213,7 @@ class BoardWidget extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
