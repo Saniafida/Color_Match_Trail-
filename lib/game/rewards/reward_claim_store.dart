@@ -14,6 +14,16 @@ class RewardClaimStore {
     return {};
   }
 
+  bool hasClaimedSync(String claimId) {
+    if (claimId.isEmpty) return false;
+    final stats = saveManager.playerData.statistics;
+    if (stats.containsKey('claimed_rewards')) {
+      final list = stats['claimed_rewards'] as List<dynamic>;
+      return list.contains(claimId);
+    }
+    return false;
+  }
+
   Future<bool> hasClaimed(String claimId) async {
     if (claimId.isEmpty) return false;
     final claims = await _getClaimed();

@@ -59,8 +59,8 @@ void main() {
     });
 
     testWidgets('2. DailyBonusScreen builds and displays 7 days rewards and chest and claims reward', (tester) async {
-      final gemManager = ServiceLocator.instance.gemManager;
-      final initialGems = gemManager.balance;
+      final coinManager = ServiceLocator.instance.coinManager;
+      final initialCoins = coinManager.balance;
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -89,13 +89,17 @@ void main() {
       expect(find.text('Big Reward!'), findsOneWidget);
       expect(find.text('Claim'), findsOneWidget);
 
-      // Tap Claim button (Day 4 reward is 10 gems)
+      // Tap Claim button (Day 1 reward is 100 coins)
       await tester.tap(find.text('Claim'));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 3));
 
-      expect(gemManager.balance, initialGems + 10);
+      expect(coinManager.balance, initialCoins + 100);
       expect(find.text('Claimed'), findsOneWidget);
+
+      // Dispose widget and clear timers
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('3. SpinWheelScreen builds and displays wheel and Spin button', (tester) async {
@@ -110,6 +114,30 @@ void main() {
       expect(find.text('Spin and win exciting prizes!'), findsOneWidget);
       expect(find.text('Spin'), findsWidgets);
       expect(find.text('Daily Free Spin: 1'), findsOneWidget);
+    });
+
+    testWidgets('3b. SpinWheelScreen shows Come Back Tomorrow when already spun today', (tester) async {
+      final dateService = ServiceLocator.instance.dateService;
+      final saveManager = ServiceLocator.instance.gameSaveManager;
+      final stats = Map<String, dynamic>.from(saveManager.playerData.statistics);
+      stats['last_spin_date'] = dateService.getTodayDateKey();
+      saveManager.updateStatistics(stats);
+      await saveManager.saveNow();
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SpinWheelScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Come Back Tomorrow'), findsWidgets);
+      expect(find.text('Spun Today!'), findsOneWidget);
+      expect(find.textContaining('Come back tomorrow!'), findsWidgets);
+      
+      // Dispose widget and clear any periodic timers
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('4. EventsScreen builds and displays 3 active event cards', (tester) async {

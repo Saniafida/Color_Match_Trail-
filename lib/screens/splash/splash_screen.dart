@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
-import '../../core/services/service_locator.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,11 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigate() {
     if (!mounted) return;
-    final onboardingManager = ServiceLocator.instance.onboardingManager;
-    final destination = onboardingManager.isOnboardingRequired
-        ? AppRoutes.onboarding
-        : AppRoutes.home;
-    Navigator.pushReplacementNamed(context, destination);
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   @override

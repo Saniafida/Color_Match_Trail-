@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/services/service_locator.dart';
@@ -31,7 +32,9 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
   late Animation<double> _animation;
   double _currentAngle = 0;
   bool _isSpinning = false;
-  int _freeSpins = 1;
+  bool _canSpinToday = true;
+  Timer? _countdownTimer;
+  Duration _timeUntilTomorrow = Duration.zero;
 
   final List<SpinPrize> _prizes = const [
     SpinPrize(label: '10', type: 'gems', amount: 10, color: Color(0xFF9C27B0)),
@@ -51,20 +54,80 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(seconds: 4),
     );
+
+    _canSpinToday = _checkCanSpinToday();
+    if (!_canSpinToday) {
+      _startCountdownTimer();
+    }
   }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _spinController.dispose();
     super.dispose();
   }
 
+  bool _checkCanSpinToday() {
+    try {
+      final dateService = ServiceLocator.instance.dateService;
+      final todayKey = dateService.getTodayDateKey();
+      final stats = ServiceLocator.instance.gameSaveManager.playerData.statistics;
+      final lastSpinDate = stats['last_spin_date'] as String?;
+      return lastSpinDate != todayKey;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Duration _calculateTimeUntilTomorrow() {
+    try {
+      final now = ServiceLocator.instance.dateService.now();
+      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+      final diff = tomorrow.difference(now);
+      return diff.isNegative ? Duration.zero : diff;
+    } catch (_) {
+      final now = DateTime.now();
+      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+      final diff = tomorrow.difference(now);
+      return diff.isNegative ? Duration.zero : diff;
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours.toString().padLeft(2, '0');
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '${hours}h ${minutes}m ${seconds}s';
+  }
+
+  void _startCountdownTimer() {
+    _countdownTimer?.cancel();
+    _timeUntilTomorrow = _calculateTimeUntilTomorrow();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final remaining = _calculateTimeUntilTomorrow();
+      if (remaining.inSeconds <= 0) {
+        timer.cancel();
+        setState(() {
+          _canSpinToday = _checkCanSpinToday();
+        });
+      } else {
+        setState(() {
+          _timeUntilTomorrow = remaining;
+        });
+      }
+    });
+  }
+
   void _spin() {
-    if (_isSpinning) return;
+    if (_isSpinning || !_canSpinToday) return;
 
     setState(() {
       _isSpinning = true;
-      if (_freeSpins > 0) _freeSpins--;
     });
 
     final random = Random();
@@ -92,9 +155,22 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
   }
 
   void _onSpinComplete(int winningIndex) {
+    // Record today's spin in save data immediately
+    try {
+      final todayKey = ServiceLocator.instance.dateService.getTodayDateKey();
+      final saveManager = ServiceLocator.instance.gameSaveManager;
+      final stats = Map<String, dynamic>.from(saveManager.playerData.statistics);
+      stats['last_spin_date'] = todayKey;
+      saveManager.updateStatistics(stats);
+      saveManager.saveNow();
+    } catch (_) {}
+
     setState(() {
       _isSpinning = false;
+      _canSpinToday = false;
     });
+
+    _startCountdownTimer();
 
     final prize = _prizes[winningIndex];
     if (prize.type == 'coins') {
@@ -176,16 +252,27 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
       subtitle: 'Spin and win exciting prizes!',
       activeTab: GameBottomTab.spin,
       onClose: () => Navigator.pop(context),
-      bottomButton: GlossyButton(
-        text: 'Spin',
-        icon: const Icon(Icons.movie_filter_rounded, color: Colors.white, size: 22),
-        color: _isSpinning ? GlossyButtonColor.blue : GlossyButtonColor.green,
-        height: 52,
-        fontSize: 18,
-        onPressed: _isSpinning ? null : _spin,
-      ),
+      bottomButton: _canSpinToday
+          ? GlossyButton(
+              text: 'Spin',
+              icon: const Icon(Icons.movie_filter_rounded, color: Colors.white, size: 22),
+              color: _isSpinning ? GlossyButtonColor.blue : GlossyButtonColor.green,
+              height: 52,
+              fontSize: 18,
+              onPressed: _isSpinning ? null : _spin,
+            )
+          : GlossyButton(
+              text: 'Come Back Tomorrow',
+              icon: const Icon(Icons.lock_clock_rounded, color: Colors.white70, size: 20),
+              color: GlossyButtonColor.wood,
+              height: 52,
+              fontSize: 16,
+              onPressed: null,
+            ),
       footerInfo: Text(
-        'Daily Free Spin: $_freeSpins',
+        _canSpinToday
+            ? 'Daily Free Spin: 1'
+            : 'Come back tomorrow! Next spin in ${_formatDuration(_timeUntilTomorrow)}',
         style: const TextStyle(
           color: Color(0xFFFFE082),
           fontSize: 12.5,
@@ -233,6 +320,46 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
               top: -16,
               child: _buildPointer(),
             ),
+
+            // Locked / Already Spun overlay banner
+            if (!_canSpinToday && !_isSpinning)
+              Container(
+                width: 210,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xE62A1408),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFD54F), width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFF81C784), size: 26),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Spun Today!',
+                      style: TextStyle(
+                        color: Color(0xFFFFD54F),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Come back tomorrow for your next free spin',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

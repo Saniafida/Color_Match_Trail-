@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
@@ -13,6 +14,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
@@ -24,6 +27,59 @@ class _HomeScreenState extends State<HomeScreen> {
       AchievementUnlockOverlay.initialize(context);
       MilestoneUnlockOverlay.initialize(context);
     });
+
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  bool _isDailyBonusAvailable() {
+    try {
+      final dateService = ServiceLocator.instance.dateService;
+      final todayKey = dateService.getTodayDateKey();
+      final stats = ServiceLocator.instance.gameSaveManager.playerData.statistics;
+      final lastClaimedDate = stats['daily_bonus_last_claimed_date'] as String?;
+      return lastClaimedDate != todayKey;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  bool _isSpinWheelAvailable() {
+    try {
+      final dateService = ServiceLocator.instance.dateService;
+      final todayKey = dateService.getTodayDateKey();
+      final stats = ServiceLocator.instance.gameSaveManager.playerData.statistics;
+      final lastSpinDate = stats['last_spin_date'] as String?;
+      return lastSpinDate != todayKey;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  String? _getAvailableRewardsBadgeText() {
+    try {
+      final stats = ServiceLocator.instance.statisticsManager.stats;
+      final prog = ServiceLocator.instance.progressionManager.state;
+      final levelsDone = stats.levelsCompleted > prog.levels.length
+          ? stats.levelsCompleted
+          : prog.levels.length;
+      final claimStore = ServiceLocator.instance.rewardClaimStore;
+
+      int claimable = 0;
+      if (levelsDone >= 3 && !claimStore.hasClaimedSync('quest_1')) claimable++;
+      if (stats.totalBlocksCleared >= 50 && !claimStore.hasClaimedSync('quest_2')) claimable++;
+      if (stats.highestScore >= 5000 && !claimStore.hasClaimedSync('quest_3')) claimable++;
+      return claimable > 0 ? '$claimable' : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _loadProgress() {
@@ -40,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final refilled = await OutOfHeartsDialog.show(context);
       if (!refilled || !livesManager.hasLives) return;
     }
+    if (!mounted) return;
     await Navigator.pushNamed(
       context,
       AppRoutes.worldMap,
@@ -365,27 +422,33 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 3. Top-Left Floating Button: Rewards (with chest & badge '2')
+          // 3. Top-Left Floating Button: Rewards (with chest & badge if claimable)
           Positioned(
             left: 2,
             top: 24,
             child: _buildTopBadgeButton(
               label: 'Rewards',
               imagePath: 'assets/images/home_screen/icon_chest_rewards.png',
-              badgeText: '2',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.rewards),
+              badgeText: _getAvailableRewardsBadgeText(),
+              onTap: () async {
+                await Navigator.pushNamed(context, AppRoutes.rewards);
+                if (mounted) setState(() {});
+              },
             ),
           ),
 
-          // 4. Top-Right Floating Button: Daily Bonus (with green gift & badge '!')
+          // 4. Top-Right Floating Button: Daily Bonus (with green gift & badge '1' when ready)
           Positioned(
             right: 2,
             top: 24,
             child: _buildTopBadgeButton(
               label: 'Daily Bonus',
               imagePath: 'assets/images/home_screen/icon_daily_bonus.png',
-              badgeText: '!',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.dailyBonus),
+              badgeText: _isDailyBonusAvailable() ? '1' : null,
+              onTap: () async {
+                await Navigator.pushNamed(context, AppRoutes.dailyBonus);
+                if (mounted) setState(() {});
+              },
             ),
           ),
         ],
@@ -396,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTopBadgeButton({
     required String label,
     required String imagePath,
-    required String badgeText,
+    String? badgeText,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -442,36 +505,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Red notification badge
-          Positioned(
-            top: -5,
-            right: -5,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+          if (badgeText != null && badgeText.isNotEmpty)
+            Positioned(
+              top: -5,
+              right: -5,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black38, offset: Offset(0, 1), blurRadius: 2),
+                  ],
                 ),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black38, offset: Offset(0, 1), blurRadius: 2),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  badgeText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
+                child: Center(
+                  child: Text(
+                    badgeText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -983,7 +1047,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _buildBottomNavButton(
               label: 'Spin',
               iconWidget: _buildSpinWheelIcon(),
-              onTap: () => Navigator.pushNamed(context, AppRoutes.spinWheel),
+              badgeText: _isSpinWheelAvailable() ? '1' : null,
+              onTap: () async {
+                await Navigator.pushNamed(context, AppRoutes.spinWheel);
+                if (mounted) setState(() {});
+              },
             ),
           ),
         ),
