@@ -37,6 +37,7 @@ import 'widgets/combo_display.dart';
 import 'widgets/feedback/feedback_layer.dart';
 import 'widgets/pause_dialog.dart';
 import 'widgets/exit_level_dialog.dart';
+import 'widgets/restart_level_dialog.dart';
 import 'widgets/visual_fx/gameplay_fx_layer.dart';
 import 'widgets/visual_fx/gameplay_fx_controller.dart';
 import 'widgets/visual_fx/screen_shake_container.dart';
@@ -804,8 +805,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
         if (_level.timeLimit != null) _timerController.start();
         _levelResultController.setResolving(false);
       },
-      onExit: () {
-        Navigator.pop(context);
+      onExit: () async {
+        await ServiceLocator.instance.livesManager.consumeLife();
+        if (mounted) {
+          Navigator.pop(context);
+        }
       },
     );
   }
@@ -817,26 +821,55 @@ class _GameplayScreenState extends State<GameplayScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PauseDialog(
+      builder: (pauseCtx) => PauseDialog(
         onResume: () {
-          Navigator.pop(context);
+          Navigator.pop(pauseCtx);
           if (_level.timeLimit != null) _timerController.start();
           _levelResultController.setResolving(false);
         },
-        onRestart: () async {
-          Navigator.pop(context);
-          final livesManager = ServiceLocator.instance.livesManager;
-          if (!livesManager.hasLives) {
-            final refilled = await OutOfHeartsDialog.show(context);
-            if (!refilled || !livesManager.hasLives) return;
-          }
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, AppRoutes.gameplay, arguments: widget.levelId);
-          }
+        onRestart: () {
+          Navigator.pop(pauseCtx);
+          RestartLevelDialog.show(
+            context: context,
+            onResume: () {
+              if (_level.timeLimit != null) _timerController.start();
+              _levelResultController.setResolving(false);
+            },
+            onRestart: () async {
+              final livesManager = ServiceLocator.instance.livesManager;
+              await livesManager.consumeLife();
+              if (!mounted) return;
+              if (!livesManager.hasLives) {
+                final refilled = await OutOfHeartsDialog.show(context);
+                if (!mounted) return;
+                if (!refilled || !livesManager.hasLives) {
+                  Navigator.pop(context);
+                  return;
+                }
+              }
+              Navigator.pushReplacementNamed(
+                context,
+                AppRoutes.gameplay,
+                arguments: widget.levelId,
+              );
+            },
+          );
         },
         onExit: () {
-          Navigator.pop(context);
-          Navigator.pop(context);
+          Navigator.pop(pauseCtx);
+          ExitLevelDialog.show(
+            context: context,
+            onResume: () {
+              if (_level.timeLimit != null) _timerController.start();
+              _levelResultController.setResolving(false);
+            },
+            onExit: () async {
+              await ServiceLocator.instance.livesManager.consumeLife();
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            },
+          );
         },
       ),
     );

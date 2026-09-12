@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
 import '../../../core/services/service_locator.dart';
 
-class PauseDialog extends StatefulWidget {
+class RestartLevelDialog extends StatefulWidget {
   final VoidCallback onResume;
   final VoidCallback onRestart;
-  final VoidCallback onExit;
 
-  const PauseDialog({
+  const RestartLevelDialog({
     super.key,
     required this.onResume,
     required this.onRestart,
-    required this.onExit,
   });
 
+  static Future<void> show({
+    required BuildContext context,
+    required VoidCallback onResume,
+    required VoidCallback onRestart,
+  }) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) => RestartLevelDialog(
+        onResume: onResume,
+        onRestart: onRestart,
+      ),
+    );
+  }
+
   @override
-  State<PauseDialog> createState() => _PauseDialogState();
+  State<RestartLevelDialog> createState() => _RestartLevelDialogState();
 }
 
-class _PauseDialogState extends State<PauseDialog>
+class _RestartLevelDialogState extends State<RestartLevelDialog>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
@@ -44,17 +58,14 @@ class _PauseDialogState extends State<PauseDialog>
 
   void _handleResume() {
     ServiceLocator.instance.audioManager.playButtonClick();
+    Navigator.of(context).pop();
     widget.onResume();
   }
 
   void _handleRestart() {
     ServiceLocator.instance.audioManager.playButtonClick();
+    Navigator.of(context).pop();
     widget.onRestart();
-  }
-
-  void _handleExit() {
-    ServiceLocator.instance.audioManager.playButtonClick();
-    widget.onExit();
   }
 
   @override
@@ -65,7 +76,7 @@ class _PauseDialogState extends State<PauseDialog>
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: Container(
-            width: 310,
+            width: 320,
             margin: const EdgeInsets.symmetric(horizontal: 20),
             child: Stack(
               clipBehavior: Clip.none,
@@ -107,7 +118,7 @@ class _PauseDialogState extends State<PauseDialog>
                   ),
                   child: Container(
                     // Inner Parchment / Cream Card Box
-                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+                    padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
@@ -133,61 +144,94 @@ class _PauseDialogState extends State<PauseDialog>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
 
-                        // Glowing Amber Pause Badge
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFFFE082),
-                                Color(0xFFFFB74D),
-                                Color(0xFFF57C00),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            border: Border.all(color: Colors.white, width: 2.2),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x44F57C00),
-                                offset: Offset(0, 4),
-                                blurRadius: 8,
+                        // Broken Heart Graphic with "-1 ❤️" Badge
+                        Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Image.asset(
+                              'assets/images/lose_screen/broken_heart.png',
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                Icons.heart_broken_rounded,
+                                color: Color(0xFFE53935),
+                                size: 56,
                               ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.pause_rounded,
-                              color: Colors.white,
-                              size: 34,
                             ),
-                          ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFEF5350), Color(0xFFC62828)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white, width: 1.5),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black38,
+                                    offset: Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                '-1 ❤️',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
                         // Title text
                         const Text(
-                          'Game Paused',
+                          'Restart Level?',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF3E200C),
-                            fontSize: 18,
+                            fontSize: 19,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.2,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black12,
+                                offset: Offset(0, 1),
+                                blurRadius: 1,
+                              ),
+                            ],
                           ),
                         ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 8),
 
-                        // 1. Primary "RESUME" (Glossy Green Button)
+                        // Warning message text
+                        const Text(
+                          'If you restart now, your current progress will be lost and you will lose 1 life!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF7A4E24),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.35,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // 1. Primary "KEEP PLAYING" (Glossy Green Button)
                         _buildActionButton(
-                          key: const Key('pause_resume_btn'),
-                          text: 'RESUME',
+                          key: const Key('restart_level_cancel_btn'),
+                          text: 'KEEP PLAYING',
                           icon: Icons.play_arrow_rounded,
                           gradientColors: const [
                             Color(0xFF5CD82B),
@@ -202,10 +246,10 @@ class _PauseDialogState extends State<PauseDialog>
 
                         const SizedBox(height: 10),
 
-                        // 2. Secondary "RESTART" (Glossy Amber/Orange Button)
+                        // 2. Secondary "RESTART LEVEL" (Glossy Amber/Orange Button)
                         _buildActionButton(
-                          key: const Key('pause_restart_btn'),
-                          text: 'RESTART',
+                          key: const Key('restart_level_confirm_btn'),
+                          text: 'RESTART LEVEL',
                           icon: Icons.refresh_rounded,
                           gradientColors: const [
                             Color(0xFFFFB74D),
@@ -216,24 +260,6 @@ class _PauseDialogState extends State<PauseDialog>
                           shadowColor: const Color(0xFFBF360C),
                           textColor: Colors.white,
                           onTap: _handleRestart,
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // 3. Danger "EXIT" (Glossy Red/Crimson Button)
-                        _buildActionButton(
-                          key: const Key('pause_exit_btn'),
-                          text: 'EXIT',
-                          icon: Icons.exit_to_app_rounded,
-                          gradientColors: const [
-                            Color(0xFFEF5350),
-                            Color(0xFFE53935),
-                            Color(0xFFC62828),
-                          ],
-                          borderColor: const Color(0xFFFF8A80),
-                          shadowColor: const Color(0xFFB71C1C),
-                          textColor: Colors.white,
-                          onTap: _handleExit,
                         ),
                       ],
                     ),
@@ -262,7 +288,7 @@ class _PauseDialogState extends State<PauseDialog>
 
   Widget _buildTopBanner() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 7),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
@@ -295,10 +321,10 @@ class _PauseDialogState extends State<PauseDialog>
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pause_circle_rounded, color: Color(0xFFFFD54F), size: 20),
+          Icon(Icons.refresh_rounded, color: Color(0xFFFFD54F), size: 20),
           SizedBox(width: 6),
           Text(
-            'PAUSED',
+            'RESTART LEVEL',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,

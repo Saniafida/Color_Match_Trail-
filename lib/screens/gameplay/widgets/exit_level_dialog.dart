@@ -18,7 +18,7 @@ class ExitLevelDialog extends StatefulWidget {
   }) {
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.65),
       builder: (ctx) => ExitLevelDialog(
         onResume: onResume,
@@ -198,6 +198,7 @@ class _ExitLevelDialogState extends State<ExitLevelDialog>
 
                         // 1. Primary "KEEP PLAYING" (Glossy Green Button)
                         _buildActionButton(
+                          key: const Key('exit_level_cancel_btn'),
                           text: 'KEEP PLAYING',
                           icon: Icons.play_arrow_rounded,
                           gradientColors: const [
@@ -215,6 +216,7 @@ class _ExitLevelDialogState extends State<ExitLevelDialog>
 
                         // 2. Secondary "QUIT LEVEL" (Glossy Red/Crimson Button)
                         _buildActionButton(
+                          key: const Key('exit_level_confirm_btn'),
                           text: 'QUIT LEVEL',
                           icon: Icons.exit_to_app_rounded,
                           gradientColors: const [
@@ -342,6 +344,7 @@ class _ExitLevelDialogState extends State<ExitLevelDialog>
   }
 
   Widget _buildActionButton({
+    Key? key,
     required String text,
     required IconData icon,
     required List<Color> gradientColors,
@@ -351,6 +354,7 @@ class _ExitLevelDialogState extends State<ExitLevelDialog>
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         width: double.infinity,
