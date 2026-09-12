@@ -19,6 +19,8 @@ class DailyChallengeManager extends ChangeNotifier {
 
   DailyChallengeDefinition? _currentChallenge;
   DailyChallengeProgress? _currentProgress;
+  int _streak = 1;
+  String? _lastCompletedDate;
 
   DailyChallengeManager({
     required this.dateService,
@@ -30,31 +32,68 @@ class DailyChallengeManager extends ChangeNotifier {
   DailyChallengeDefinition? get currentChallenge => _currentChallenge;
   DailyChallengeProgress? get currentProgress => _currentProgress;
 
+  int get streak => _streak;
+  int get currentDay => ((_streak - 1) % 7) + 1; // 1 to 7
+  String? get lastCompletedDate => _lastCompletedDate;
+
   bool get isCompleted => _currentProgress?.completed ?? false;
   bool get isRewardClaimed => _currentProgress?.rewardClaimed ?? false;
   bool get canClaimReward => isCompleted && !isRewardClaimed;
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool force = false}) async {
     final dateKey = dateService.getTodayDateKey();
+    if (!force && _currentChallenge != null && _currentChallenge!.dateKey == dateKey && _currentProgress != null) {
+      notifyListeners();
+      return;
+    }
+    _streak = challengeStorage.loadStreak();
+    _lastCompletedDate = challengeStorage.loadLastCompletedDate();
     
     // Load from storage
     var def = await challengeStorage.loadDefinition();
     var prog = await challengeStorage.loadProgress();
 
-    // If it's empty or from a different day, generate a new one
+    // Check if new calendar day
     if (def == null || def.dateKey != dateKey || prog == null) {
-      def = generator.generateForDate(dateKey);
+      if (_lastCompletedDate != null && _lastCompletedDate != dateKey) {
+        final yesterday = _getYesterdayDateKey();
+        if (_lastCompletedDate == yesterday) {
+          // Completed yesterday -> advance streak to next day in 7-day cycle
+          if (prog != null && prog.rewardClaimed) {
+            _streak = (_streak >= 7) ? 1 : _streak + 1;
+          }
+        } else {
+          // Missed more than a day -> reset to Day 1
+          _streak = 1;
+        }
+      }
+
+      final dayToGenerate = ((_streak - 1) % 7) + 1;
+      def = generator.generateForDate(dateKey, dayToGenerate);
       prog = DailyChallengeProgress(
         challengeId: def.id,
         targetValue: def.primaryTarget,
         targetValue2: def.secondaryTarget,
       );
-      await challengeStorage.saveChallenge(def, prog);
+      await challengeStorage.saveChallenge(
+        def,
+        prog,
+        streak: _streak,
+        lastCompletedDate: _lastCompletedDate,
+      );
     }
 
     _currentChallenge = def;
     _currentProgress = prog;
     notifyListeners();
+  }
+
+  String _getYesterdayDateKey() {
+    final yesterday = dateService.now().subtract(const Duration(days: 1));
+    final y = yesterday.year.toString();
+    final m = yesterday.month.toString().padLeft(2, '0');
+    final d = yesterday.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   Future<void> onColorBlocksCleared(BlockColor color, int count) async {
@@ -89,7 +128,12 @@ class DailyChallengeManager extends ChangeNotifier {
       completed: isCompleted,
     );
 
-    await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+    await challengeStorage.saveChallenge(
+      _currentChallenge!,
+      _currentProgress!,
+      streak: _streak,
+      lastCompletedDate: _lastCompletedDate,
+    );
     
     if (isCompleted) {
       final evt = ChallengeCompletedEvent(_currentChallenge!.id);
@@ -119,7 +163,12 @@ class DailyChallengeManager extends ChangeNotifier {
       completed: isCompleted,
     );
 
-    await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+    await challengeStorage.saveChallenge(
+      _currentChallenge!,
+      _currentProgress!,
+      streak: _streak,
+      lastCompletedDate: _lastCompletedDate,
+    );
     
     if (isCompleted) {
       final evt = ChallengeCompletedEvent(_currentChallenge!.id);
@@ -145,7 +194,12 @@ class DailyChallengeManager extends ChangeNotifier {
         currentValue: value,
         completed: isCompleted,
       );
-      await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+      await challengeStorage.saveChallenge(
+        _currentChallenge!,
+        _currentProgress!,
+        streak: _streak,
+        lastCompletedDate: _lastCompletedDate,
+      );
       
       if (isCompleted) {
         final evt = ChallengeCompletedEvent(_currentChallenge!.id);
@@ -175,13 +229,36 @@ class DailyChallengeManager extends ChangeNotifier {
     final result = await rewardManager.grantReward(rewardDef, uniqueClaimId: _currentChallenge!.id);
 
     if (result.isSuccess) {
+      _lastCompletedDate = dateService.getTodayDateKey();
       _currentProgress = _currentProgress!.copyWith(rewardClaimed: true);
-      await challengeStorage.saveChallenge(_currentChallenge!, _currentProgress!);
+      await challengeStorage.saveChallenge(
+        _currentChallenge!,
+        _currentProgress!,
+        streak: _streak,
+        lastCompletedDate: _lastCompletedDate,
+      );
+
+      try {
+        ServiceLocator.instance.statisticsManager.onDailyChallengeCompleted();
+      } catch (_) {}
+
       notifyListeners();
       return true;
     }
     
     return false;
   }
-}
 
+  /// Testing helper
+  void setStreakForTesting(int streak, {String? lastCompletedDate}) {
+    _streak = streak.clamp(1, 7);
+    _lastCompletedDate = lastCompletedDate;
+    notifyListeners();
+  }
+
+  /// Testing helper
+  void setProgressForTesting(DailyChallengeProgress progress) {
+    _currentProgress = progress;
+    notifyListeners();
+  }
+}

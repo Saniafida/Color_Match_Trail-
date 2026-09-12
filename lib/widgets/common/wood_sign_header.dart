@@ -24,7 +24,10 @@ class WoodSignHeader extends StatelessWidget {
           // Center Wood Signboard
           Container(
             height: height,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 6),
+            margin: EdgeInsets.symmetric(
+              horizontal: (onBack != null || trailing != null) ? 48 : 0,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [
@@ -60,29 +63,35 @@ class WoodSignHeader extends StatelessWidget {
               children: [
                 // Small gold rivets on wood sign
                 _buildRivet(),
-                const SizedBox(width: 14),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFFFFFDE7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                    shadows: [
-                      Shadow(
-                        color: Color(0xFF3E200C),
-                        offset: Offset(1.5, 2.5),
-                        blurRadius: 1,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Color(0xFFFFFDE7),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                        shadows: [
+                          Shadow(
+                            color: Color(0xFF3E200C),
+                            offset: Offset(1.5, 2.5),
+                            blurRadius: 1,
+                          ),
+                          Shadow(
+                            color: Colors.black45,
+                            offset: Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                       ),
-                      Shadow(
-                        color: Colors.black45,
-                        offset: Offset(0, 1),
-                        blurRadius: 2,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 8),
                 _buildRivet(),
               ],
             ),

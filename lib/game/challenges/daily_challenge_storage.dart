@@ -7,11 +7,18 @@ class DailyChallengeStorage {
 
   DailyChallengeStorage({required this.saveManager});
 
-  Future<void> saveChallenge(DailyChallengeDefinition def, DailyChallengeProgress prog) async {
-    saveManager.updateDailyChallenge({
-      'definition': def.toJson(),
-      'progress': prog.toJson(),
-    });
+  Future<void> saveChallenge(
+    DailyChallengeDefinition def,
+    DailyChallengeProgress prog, {
+    int? streak,
+    String? lastCompletedDate,
+  }) async {
+    final currentMap = Map<String, dynamic>.from(saveManager.playerData.dailyChallengeState);
+    currentMap['definition'] = def.toJson();
+    currentMap['progress'] = prog.toJson();
+    if (streak != null) currentMap['streak'] = streak;
+    if (lastCompletedDate != null) currentMap['lastCompletedDate'] = lastCompletedDate;
+    saveManager.updateDailyChallenge(currentMap);
   }
 
   Future<DailyChallengeDefinition?> loadDefinition() async {
@@ -36,6 +43,20 @@ class DailyChallengeStorage {
       }
     }
     return null;
+  }
+
+  int loadStreak() {
+    final state = saveManager.playerData.dailyChallengeState;
+    final saved = state['streak'];
+    if (saved is num) {
+      return saved.toInt().clamp(1, 7);
+    }
+    return 1;
+  }
+
+  String? loadLastCompletedDate() {
+    final state = saveManager.playerData.dailyChallengeState;
+    return state['lastCompletedDate'] as String?;
   }
 
   Future<void> clear() async {
