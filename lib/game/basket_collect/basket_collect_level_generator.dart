@@ -145,8 +145,8 @@ class BasketCollectLevelGenerator {
     final targetColors = level.targetRequirements.keys.toList();
     final allColors = BlockColor.values;
 
-    // 40% bias toward target requirements, 60% random across all rainbow colors
-    if (_rng.nextDouble() < 0.40 && targetColors.isNotEmpty) {
+    // 60% bias toward target requirements, 40% random across all rainbow colors
+    if (_rng.nextDouble() < 0.60 && targetColors.isNotEmpty) {
       return targetColors[_rng.nextInt(targetColors.length)];
     }
     return allColors[_rng.nextInt(allColors.length)];

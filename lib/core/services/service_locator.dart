@@ -22,6 +22,7 @@ import '../../game/shop/shop_manager.dart';
 import '../../game/results/level_result_manager.dart';
 import '../../game/settings/settings_storage.dart';
 import '../../game/settings/settings_manager.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../storage/game_save_manager.dart';
 import '../storage/game_save_manager_storage.dart';
 
@@ -124,6 +125,7 @@ class ServiceLocator {
   late final SecurityManager securityManager;
 
   late final PlayerProfileManager playerProfileManager;
+  MiniGameProgressManager get miniGameProgressManager => MiniGameProgressManager.instance;
 
   Future<void> initialize() async {
     securityConfig = const SecurityConfig();
@@ -135,6 +137,7 @@ class ServiceLocator {
       integrityManager: saveIntegrityManager,
     );
     await gameSaveManager.initialize();
+    await MiniGameProgressManager.instance.initialize(saveManager: gameSaveManager);
 
     storage = GameSaveManagerStorage(saveManager: gameSaveManager);
     await storage.init();

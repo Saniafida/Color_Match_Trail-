@@ -73,6 +73,7 @@ class LevelUnlockValidator {
         break;
       }
     }
+    world ??= dataManager.getWorld(levelData.worldId);
 
     if (world != null) {
       if (!world.enabled) {

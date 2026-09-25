@@ -203,6 +203,11 @@ class GameSaveManager extends ChangeNotifier {
     requestSave();
   }
 
+  void updateMiniGameProgress(Map<String, dynamic> data) {
+    _playerData = _playerData.copyWith(miniGameProgress: data);
+    requestSave();
+  }
+
   Future<void> resetAllPlayerData() async {
     await backupManager.clearAll();
     _playerData = const PlayerSaveData(
@@ -216,6 +221,7 @@ class GameSaveManager extends ChangeNotifier {
       scheduledNotifications: {},
       monetization: {},
       analytics: {},
+      miniGameProgress: {},
     );
     await saveNow();
   }

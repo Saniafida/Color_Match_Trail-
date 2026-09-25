@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../game/blocks/block_color_mapper.dart';
 import '../../game/basket_collect/basket_collect_level_model.dart';
 import '../../game/basket_collect/basket_collect_level_generator.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../../core/services/service_locator.dart';
 import '../gameplay/widgets/pause_dialog.dart';
 
@@ -73,11 +74,11 @@ class _BottomFractionClipper extends CustomClipper<Rect> {
 // ─────────────────────────────────────────────
 
 class TileStackScreen extends StatefulWidget {
-  final int startingLevel;
+  final int? startingLevel;
 
   const TileStackScreen({
     super.key,
-    this.startingLevel = 1,
+    this.startingLevel,
   });
 
   @override
@@ -161,7 +162,8 @@ class _TileStackScreenState extends State<TileStackScreen>
   @override
   void initState() {
     super.initState();
-    currentLevelNumber = widget.startingLevel;
+    currentLevelNumber = widget.startingLevel ??
+        MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileStack);
 
     // Game loop ticker (60 fps)
     _gameTicker = AnimationController(
@@ -542,6 +544,10 @@ class _TileStackScreenState extends State<TileStackScreen>
     }
 
     setState(() => _isLevelComplete = true);
+    MiniGameProgressManager.instance.saveLevel(
+      MiniGameProgressManager.tileStack,
+      currentLevelNumber + 1,
+    );
     _confettiController.forward();
   }
 
@@ -894,9 +900,9 @@ class _TileStackScreenState extends State<TileStackScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'GOAL',
-            style: TextStyle(
+          Text(
+            'GOAL • LV.$currentLevelNumber',
+            style: const TextStyle(
               color: Color(0xFF5D3312),
               fontSize: 9,
               fontWeight: FontWeight.w900,
@@ -2003,7 +2009,14 @@ class _TileStackScreenState extends State<TileStackScreen>
                         colors: [const Color(0xFF8CE03E), const Color(0xFF439906)],
                         borderColor: const Color(0xFFA5F062),
                         shadowColor: const Color(0xFF286403),
-                        onTap: () => _loadLevel(currentLevelNumber + 1),
+                        onTap: () {
+                          final nextLvl = currentLevelNumber + 1;
+                          MiniGameProgressManager.instance.saveLevel(
+                            MiniGameProgressManager.tileStack,
+                            nextLvl,
+                          );
+                          _loadLevel(nextLvl);
+                        },
                       ),
                     ),
                   ],

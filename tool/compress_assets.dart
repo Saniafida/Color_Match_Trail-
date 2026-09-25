@@ -22,31 +22,26 @@ void main() async {
     if (image == null) continue;
 
     img.Image resized = image;
-    bool modified = false;
 
     if (path.contains('icons') || path.contains('boosters') || path.contains('power_ups')) {
       if (image.width > 256 || image.height > 256) {
         resized = img.copyResize(image, width: 256, height: 256, interpolation: img.Interpolation.average);
-        modified = true;
       }
     } else if (path.contains('home_screen') || path.contains('lose_screen')) {
       if (image.width > 512 || image.height > 512) {
         final maxDim = image.width > image.height ? image.width : image.height;
         final scale = 512 / maxDim;
         resized = img.copyResize(image, width: (image.width * scale).round(), height: (image.height * scale).round(), interpolation: img.Interpolation.average);
-        modified = true;
       }
     } else if (path.contains('backgrounds')) {
       if (image.width > 1280 || image.height > 1280) {
         final scale = 1280 / (image.width > image.height ? image.width : image.height);
         resized = img.copyResize(image, width: (image.width * scale).round(), height: (image.height * scale).round(), interpolation: img.Interpolation.average);
-        modified = true;
       }
     } else {
       if (image.width > 512 || image.height > 512) {
         final scale = 512 / (image.width > image.height ? image.width : image.height);
         resized = img.copyResize(image, width: (image.width * scale).round(), height: (image.height * scale).round(), interpolation: img.Interpolation.average);
-        modified = true;
       }
     }
 

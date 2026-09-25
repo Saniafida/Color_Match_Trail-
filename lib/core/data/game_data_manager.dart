@@ -56,16 +56,16 @@ class GameDataManager extends ChangeNotifier {
 
     _status = GameDataStatus.loading;
     try {
-      // 1. Load Worlds from assets
+      // 1. Load Worlds: load all 15 campaign worlds encompassing all 147 levels
       await _loadAndParseList('assets/data/worlds/worlds.json', (json) {
         final world = WorldDefinition.fromJson(json);
         _worlds[world.worldId] = world;
       });
 
-      // Supplement remaining adventure worlds to cover all 147 levels
+      // Ensure all 15 adventure worlds are present with continuous level sequences
       final adventureWorlds = AdventureLevelGenerator.generateAllWorlds();
       for (final w in adventureWorlds) {
-        _worlds.putIfAbsent(w.worldId, () => w);
+        _worlds[w.worldId] = w;
       }
 
       // 2. Load Levels from assets if valid
@@ -184,6 +184,12 @@ class GameDataManager extends ChangeNotifier {
         _worlds[id] = w;
         return w;
       }
+    }
+    final num = int.tryParse(id.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (num != null && num >= 1) {
+      final generated = AdventureLevelGenerator.generateWorld(num);
+      _worlds[id] = generated;
+      return generated;
     }
     return null;
   }

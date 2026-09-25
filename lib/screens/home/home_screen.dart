@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
 import '../../widgets/dialogs/out_of_hearts_dialog.dart';
+import '../../widgets/dialogs/hearts_full_dialog.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../achievements/widgets/achievement_unlock_popup.dart';
 import '../achievements/widgets/milestone_unlock_popup.dart';
 
@@ -272,7 +274,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 iconPath: 'assets/images/icons/icon_heart.png',
                 value: livesCount,
                 subLabel: livesLabel,
-                onTap: () => OutOfHeartsDialog.show(context),
+                onTap: () {
+                  if (livesManager.isFull) {
+                    HeartsFullDialog.show(context);
+                  } else {
+                    OutOfHeartsDialog.show(context);
+                  }
+                },
               ),
               const SizedBox(width: 8),
 
@@ -805,9 +813,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildMiniGameCard(
                   title: 'TILE SORT',
                   subtitle: 'Sort tiles\nby color',
+                  level: MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileSort),
                   headerColor: const Color(0xFF1E88E5),
                   imagePath: 'assets/images/home_screen/mini_tile_sort.png',
-                  onPlay: () => Navigator.pushNamed(context, AppRoutes.tileSort),
+                  onPlay: () async {
+                    await Navigator.pushNamed(context, AppRoutes.tileSort);
+                    if (mounted) setState(() {});
+                  },
                 ),
               ),
               const SizedBox(width: 4),
@@ -815,9 +827,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildMiniGameCard(
                   title: 'TILE STACK',
                   subtitle: 'Stack same tiles\nto clear them',
+                  level: MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileStack),
                   headerColor: const Color(0xFF8E24AA),
                   imagePath: 'assets/images/home_screen/mini_tile_stack.png',
-                  onPlay: () => Navigator.pushNamed(context, AppRoutes.tileStack),
+                  onPlay: () async {
+                    await Navigator.pushNamed(context, AppRoutes.tileStack);
+                    if (mounted) setState(() {});
+                  },
                 ),
               ),
               const SizedBox(width: 4),
@@ -825,9 +841,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildMiniGameCard(
                   title: 'TILE DROP',
                   subtitle: 'Drop tiles and\nmatch colors',
+                  level: MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileDrop),
                   headerColor: const Color(0xFFFB8C00),
                   imagePath: 'assets/images/home_screen/mini_tile_drop.png',
-                  onPlay: () => Navigator.pushNamed(context, AppRoutes.tileDrop),
+                  onPlay: () async {
+                    await Navigator.pushNamed(context, AppRoutes.tileDrop);
+                    if (mounted) setState(() {});
+                  },
                 ),
               ),
               const SizedBox(width: 4),
@@ -835,9 +855,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildMiniGameCard(
                   title: 'TILE SWAP',
                   subtitle: 'Swap tiles to\nmake matches',
+                  level: MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileSwap),
                   headerColor: const Color(0xFF43A047),
                   imagePath: 'assets/images/home_screen/mini_tile_swap.png',
-                  onPlay: () => Navigator.pushNamed(context, AppRoutes.tileSwap),
+                  onPlay: () async {
+                    await Navigator.pushNamed(context, AppRoutes.tileSwap);
+                    if (mounted) setState(() {});
+                  },
                 ),
               ),
             ],
@@ -895,6 +919,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color headerColor,
     required String imagePath,
     required VoidCallback onPlay,
+    int? level,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -992,13 +1017,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   BoxShadow(color: Color(0xFF286403), offset: Offset(0, 1), blurRadius: 0),
                 ],
               ),
-              child: const Center(
-                child: Text(
-                  'Play',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.0,
-                    fontWeight: FontWeight.w900,
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    level != null && level > 1 ? 'Lv. $level' : 'Play',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),

@@ -6,17 +6,18 @@ import 'package:flutter/services.dart';
 import '../../game/blocks/block_color_mapper.dart';
 import '../../game/tile_drop/tile_drop_level_model.dart';
 import '../../game/tile_drop/tile_drop_level_generator.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../../models/models.dart';
 import '../../core/services/service_locator.dart';
 
 enum _DropBooster { none, hammer, bomb, colorBomb }
 
 class TileDropScreen extends StatefulWidget {
-  final int initialLevel;
+  final int? initialLevel;
 
   const TileDropScreen({
     super.key,
-    this.initialLevel = 1,
+    this.initialLevel,
   });
 
   @override
@@ -79,7 +80,8 @@ class _TileDropScreenState extends State<TileDropScreen>
   @override
   void initState() {
     super.initState();
-    currentLevelNumber = widget.initialLevel;
+    currentLevelNumber = widget.initialLevel ??
+        MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileDrop);
 
     _dropAnimController = AnimationController(
       vsync: this,
@@ -176,6 +178,14 @@ class _TileDropScreenState extends State<TileDropScreen>
 
   BlockColor _randomLevelColor() {
     final colors = currentLevel.activeColors;
+    final uncompletedTargets = currentLevel.targetRequirements.entries
+        .where((e) => (collectedGoals[e.key] ?? 0) < e.value)
+        .map((e) => e.key)
+        .where((c) => colors.contains(c))
+        .toList();
+    if (uncompletedTargets.isNotEmpty && _rng.nextDouble() < 0.60) {
+      return uncompletedTargets[_rng.nextInt(uncompletedTargets.length)];
+    }
     return colors[_rng.nextInt(colors.length)];
   }
 
@@ -456,6 +466,10 @@ class _TileDropScreenState extends State<TileDropScreen>
   void _triggerWin() {
     HapticFeedback.heavyImpact();
     setState(() => isLevelComplete = true);
+    MiniGameProgressManager.instance.saveLevel(
+      MiniGameProgressManager.tileDrop,
+      currentLevelNumber + 1,
+    );
     _confettiController.forward(from: 0);
     try {
       ServiceLocator.instance.coinManager.addCoins(250);
@@ -1738,7 +1752,14 @@ class _TileDropScreenState extends State<TileDropScreen>
                           colors: [const Color(0xFF8CE03E), const Color(0xFF439906)],
                           borderColor: const Color(0xFFA5F062),
                           shadowColor: const Color(0xFF286403),
-                          onTap: () => _loadLevel(currentLevelNumber + 1),
+                          onTap: () {
+                            final nextLvl = currentLevelNumber + 1;
+                            MiniGameProgressManager.instance.saveLevel(
+                              MiniGameProgressManager.tileDrop,
+                              nextLvl,
+                            );
+                            _loadLevel(nextLvl);
+                          },
                         ),
                       ),
                     ],

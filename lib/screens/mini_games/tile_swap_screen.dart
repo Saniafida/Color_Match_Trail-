@@ -5,16 +5,17 @@ import '../../models/models.dart';
 import '../../game/blocks/block_color_mapper.dart';
 import '../../game/tile_swap/tile_swap_level_model.dart';
 import '../../game/tile_swap/tile_swap_level_generator.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../../core/services/service_locator.dart';
 
 enum _SwapBooster { hammer, bomb, colorBomb }
 
 class TileSwapScreen extends StatefulWidget {
-  final int startingLevel;
+  final int? startingLevel;
 
   const TileSwapScreen({
     super.key,
-    this.startingLevel = 1,
+    this.startingLevel,
   });
 
   @override
@@ -81,7 +82,8 @@ class _TileSwapScreenState extends State<TileSwapScreen>
   @override
   void initState() {
     super.initState();
-    currentLevelNumber = widget.startingLevel;
+    currentLevelNumber = widget.startingLevel ??
+        MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileSwap);
 
     _swapAnimController = AnimationController(
       vsync: this,
@@ -175,6 +177,14 @@ class _TileSwapScreenState extends State<TileSwapScreen>
 
   BlockColor _randomActiveColor() {
     final colors = currentLevel.activeColors;
+    final uncompletedTargets = currentLevel.targetRequirements.entries
+        .where((e) => (collectedGoals[e.key] ?? 0) < e.value)
+        .map((e) => e.key)
+        .where((c) => colors.contains(c))
+        .toList();
+    if (uncompletedTargets.isNotEmpty && _rng.nextDouble() < 0.60) {
+      return uncompletedTargets[_rng.nextInt(uncompletedTargets.length)];
+    }
     return colors[_rng.nextInt(colors.length)];
   }
 
@@ -719,6 +729,11 @@ class _TileSwapScreenState extends State<TileSwapScreen>
       isLevelComplete = true;
       currentScore += movesRemaining * 100;
     });
+
+    MiniGameProgressManager.instance.saveLevel(
+      MiniGameProgressManager.tileSwap,
+      currentLevelNumber + 1,
+    );
 
     try {
       ServiceLocator.instance.coinManager.addCoins(bonusCoins);
@@ -1795,7 +1810,14 @@ class _TileSwapScreenState extends State<TileSwapScreen>
                     child: _buildDialogButton(
                       text: 'NEXT',
                       color: const Color(0xFF43A047),
-                      onTap: () => _loadLevel(currentLevelNumber + 1),
+                      onTap: () {
+                        final nextLvl = currentLevelNumber + 1;
+                        MiniGameProgressManager.instance.saveLevel(
+                          MiniGameProgressManager.tileSwap,
+                          nextLvl,
+                        );
+                        _loadLevel(nextLvl);
+                      },
                     ),
                   ),
                 ],

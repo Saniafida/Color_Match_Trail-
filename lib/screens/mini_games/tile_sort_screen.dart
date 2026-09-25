@@ -5,15 +5,16 @@ import '../../models/models.dart';
 import '../../game/blocks/block_color_mapper.dart';
 import '../../game/tile_sort/tile_sort_level_model.dart';
 import '../../game/tile_sort/tile_sort_level_generator.dart';
+import '../../game/mini_games/mini_game_progress_manager.dart';
 import '../../core/services/service_locator.dart';
 import '../gameplay/widgets/pause_dialog.dart';
 
 class TileSortScreen extends StatefulWidget {
-  final int startingLevel;
+  final int? startingLevel;
 
   const TileSortScreen({
     super.key,
-    this.startingLevel = 1,
+    this.startingLevel,
   });
 
   @override
@@ -53,7 +54,8 @@ class _TileSortScreenState extends State<TileSortScreen>
   @override
   void initState() {
     super.initState();
-    currentLevelNumber = widget.startingLevel;
+    currentLevelNumber = widget.startingLevel ??
+        MiniGameProgressManager.instance.getLevel(MiniGameProgressManager.tileSort);
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -102,6 +104,10 @@ class _TileSortScreenState extends State<TileSortScreen>
         _isLevelComplete = true;
         currentScore += 1500 + (movesRemaining * 50);
       });
+      MiniGameProgressManager.instance.saveLevel(
+        MiniGameProgressManager.tileSort,
+        currentLevelNumber + 1,
+      );
       try {
         ServiceLocator.instance.coinManager.addCoins(250);
         ServiceLocator.instance.gemManager.addGems(1);
@@ -232,6 +238,10 @@ class _TileSortScreenState extends State<TileSortScreen>
       _isLevelComplete = true;
       currentScore += 2000;
     });
+    MiniGameProgressManager.instance.saveLevel(
+      MiniGameProgressManager.tileSort,
+      currentLevelNumber + 1,
+    );
   }
 
   @override
@@ -325,26 +335,33 @@ class _TileSortScreenState extends State<TileSortScreen>
             width: 58,
             height: 64,
             decoration: _woodenPanelDecoration(),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Moves',
-                  style: TextStyle(
-                    color: Color(0xFF7A4E24),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Moves',
+                      style: TextStyle(
+                        color: Color(0xFF7A4E24),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '$movesRemaining',
+                      style: const TextStyle(
+                        color: Color(0xFF3E200C),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '$movesRemaining',
-                  style: const TextStyle(
-                    color: Color(0xFF3E200C),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
@@ -354,42 +371,39 @@ class _TileSortScreenState extends State<TileSortScreen>
             alignment: Alignment.topCenter,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 10),
-                padding: const EdgeInsets.fromLTRB(8, 14, 8, 4),
+                padding: const EdgeInsets.fromLTRB(14, 18, 14, 6),
                 decoration: _woodenPanelDecoration(),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: currentLevel.activeColors.map((color) {
+                    final needed = currentLevel.capacity;
+                    final isDone = _completedTubes.any((tIdx) =>
+                        tubes[tIdx].length == needed &&
+                        tubes[tIdx].every((c) => c == color));
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                      child: _buildGoalTile(color, currentLevel.capacity),
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      child: Opacity(
+                        opacity: isDone ? 0.4 : 1.0,
+                        child: _buildGoalTile(color, isDone ? 0 : needed),
+                      ),
                     );
                   }).toList(),
                 ),
               ),
-
-              // Blue Ribbon Header: "Goal"
               Positioned(
-                top: 0,
+                top: -8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFBBDEFB), width: 1.2),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D47A1), offset: Offset(0, 1.5), blurRadius: 0),
-                    ],
+                    color: const Color(0xFF8D5325),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
                   ),
                   child: const Text(
-                    'Goal',
+                    'GOALS',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 8.5,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.5,
                     ),
@@ -404,38 +418,45 @@ class _TileSortScreenState extends State<TileSortScreen>
             width: 58,
             height: 64,
             decoration: _woodenPanelDecoration(),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Score',
-                  style: TextStyle(
-                    color: Color(0xFF7A4E24),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  '$currentScore',
-                  style: const TextStyle(
-                    color: Color(0xFF3E200C),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (i) {
-                    final earned = currentScore >= (i + 1) * 400;
-                    return Icon(
-                      Icons.star_rounded,
-                      color: earned ? const Color(0xFFFFB300) : const Color(0xFF8D6E63),
-                      size: 13,
-                    );
-                  }),
+                  children: [
+                    const Text(
+                      'Score',
+                      style: TextStyle(
+                        color: Color(0xFF7A4E24),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '$currentScore',
+                      style: const TextStyle(
+                        color: Color(0xFF3E200C),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (i) {
+                        final earned = currentScore >= (i + 1) * 400;
+                        return Icon(
+                          Icons.star_rounded,
+                          color: earned ? const Color(0xFFFFB300) : const Color(0xFF8D6E63),
+                          size: 13,
+                        );
+                      }),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -628,8 +649,8 @@ class _TileSortScreenState extends State<TileSortScreen>
   Widget _buildTubesGameplayArea() {
     final tubeWidth = tubes.length <= 4 ? 64.0 : (tubes.length == 5 ? 56.0 : 48.0);
     final tubeHeight = currentLevel.capacity == 3
-        ? 210.0
-        : (currentLevel.capacity == 4 ? 250.0 : 280.0);
+        ? 192.0
+        : (currentLevel.capacity == 4 ? 238.0 : 268.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -734,7 +755,7 @@ class _TileSortScreenState extends State<TileSortScreen>
         break;
     }
 
-    final blockSize = (width - 10).clamp(38.0, 48.0);
+    final blockSize = (width - 8).clamp(38.0, 54.0);
 
     return GestureDetector(
       onTap: () => _onTubeTapped(tubeIndex),
@@ -807,7 +828,7 @@ class _TileSortScreenState extends State<TileSortScreen>
                     // Blocks Stack (slot 0 at bottom of tube, top-most block at top)
                     Positioned.fill(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(3, 6, 3, 8),
+                        padding: const EdgeInsets.fromLTRB(2, 4, 2, 6),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: List.generate(currentLevel.capacity, (index) {
@@ -820,13 +841,18 @@ class _TileSortScreenState extends State<TileSortScreen>
                                   isSelected && slotIndex == stack.length - 1;
 
                               if (isTopAndSelected) {
-                                return SizedBox(height: blockSize + 2);
+                                return SizedBox(height: blockSize);
                               }
 
-                              return _buildBlockTile(stack[slotIndex], size: blockSize);
+                              return _buildBlockTile(
+                                stack[slotIndex],
+                                size: blockSize,
+                                isTop: slotIndex == stack.length - 1,
+                                isBottom: slotIndex == 0,
+                              );
                             }
 
-                            return SizedBox(height: blockSize + 2);
+                            return SizedBox(height: blockSize);
                           }),
                         ),
                       ),
@@ -857,7 +883,13 @@ class _TileSortScreenState extends State<TileSortScreen>
                           ],
                         ),
                       ),
-                      _buildBlockTile(stack.last, size: blockSize, isFloating: true),
+                      _buildBlockTile(
+                        stack.last,
+                        size: blockSize,
+                        isFloating: true,
+                        isTop: true,
+                        isBottom: true,
+                      ),
                     ],
                   ),
                 ),
@@ -882,33 +914,44 @@ class _TileSortScreenState extends State<TileSortScreen>
     );
   }
 
-  Widget _buildBlockTile(BlockColor color, {double size = 44, bool isFloating = false}) {
+  Widget _buildBlockTile(
+    BlockColor color, {
+    double size = 44,
+    bool isFloating = false,
+    bool isTop = false,
+    bool isBottom = false,
+  }) {
     return Container(
       width: size,
       height: size,
-      margin: const EdgeInsets.symmetric(vertical: 1),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          if (isFloating)
-            const BoxShadow(
-              color: Colors.black45,
-              offset: Offset(0, 6),
-              blurRadius: 8,
-            )
-          else
-            const BoxShadow(
-              color: Colors.black26,
-              offset: Offset(0, 2),
-              blurRadius: 2,
-            ),
-        ],
+        borderRadius: isFloating
+            ? BorderRadius.circular(10)
+            : BorderRadius.vertical(
+                top: Radius.circular(isTop ? 6 : 1),
+                bottom: Radius.circular(isBottom ? 6 : 1),
+              ),
+        boxShadow: isFloating
+            ? const [
+                BoxShadow(
+                  color: Colors.black45,
+                  offset: Offset(0, 6),
+                  blurRadius: 8,
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: isFloating
+            ? BorderRadius.circular(10)
+            : BorderRadius.vertical(
+                top: Radius.circular(isTop ? 6 : 1),
+                bottom: Radius.circular(isBottom ? 6 : 1),
+              ),
         child: Image.asset(
           BlockColorMapper.getAssetPath(color),
-          fit: BoxFit.contain,
+          fit: BoxFit.fill,
         ),
       ),
     );
@@ -1250,7 +1293,14 @@ class _TileSortScreenState extends State<TileSortScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => _loadLevel(currentLevelNumber + 1),
+                      onTap: () {
+                        final nextLvl = currentLevelNumber + 1;
+                        MiniGameProgressManager.instance.saveLevel(
+                          MiniGameProgressManager.tileSort,
+                          nextLvl,
+                        );
+                        _loadLevel(nextLvl);
+                      },
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(

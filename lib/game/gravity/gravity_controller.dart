@@ -25,7 +25,11 @@ class GravityController extends ChangeNotifier {
     required this.onCreateBlock,
   });
 
-  Future<GravityResult> applyGravity(List<BlockColor> allowedColors) async {
+  Future<GravityResult> applyGravity(
+    List<BlockColor> allowedColors, {
+    List<BlockColor>? targetColors,
+    double targetBias = 0.65,
+  }) async {
     if (_isProcessing) {
       return const GravityResult();
     }
@@ -84,6 +88,8 @@ class GravityController extends ChangeNotifier {
         
         final newBlock = BlockFactory.createRandomBlock(
           allowedColors: allowedColors,
+          targetColors: targetColors,
+          targetBias: targetBias,
           position: pos,
         );
         

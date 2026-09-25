@@ -6,6 +6,7 @@ import 'score_calculator.dart';
 import 'level_result_validator.dart';
 import '../progression/progression_manager.dart';
 import '../rewards/reward_manager.dart';
+import '../level_result/level_result.dart' show FinalLevelResult;
 import '../level_result/level_event.dart'; 
 import '../level_result/game_status.dart';
 import '../../models/level.dart';
@@ -18,6 +19,8 @@ class LevelResultManager extends ChangeNotifier {
   
   LevelResultState _state = LevelResultState.completed;
   LevelResult? _currentResult;
+  LevelDefinition? _currentLevelData;
+  FinalLevelResult? _currentFinalResult;
   String? _nextLevelId;
   bool _isCampaignComplete = false;
   
@@ -29,6 +32,8 @@ class LevelResultManager extends ChangeNotifier {
 
   LevelResultState get state => _state;
   LevelResult? get currentResult => _currentResult;
+  LevelDefinition? get currentLevelData => _currentLevelData;
+  FinalLevelResult? get currentFinalResult => _currentFinalResult;
   String? get nextLevelId => _nextLevelId;
   bool get isCampaignComplete => _isCampaignComplete;
 
@@ -39,6 +44,8 @@ class LevelResultManager extends ChangeNotifier {
     required int largestBlast,
   }) async {
     final gameplayResult = event.result;
+    _currentLevelData = levelData;
+    _currentFinalResult = gameplayResult;
     
     _state = LevelResultState.calculating;
     notifyListeners();
@@ -152,6 +159,8 @@ class LevelResultManager extends ChangeNotifier {
   void reset() {
     _state = LevelResultState.completed;
     _currentResult = null;
+    _currentLevelData = null;
+    _currentFinalResult = null;
     _nextLevelId = null;
     _isCampaignComplete = false;
   }

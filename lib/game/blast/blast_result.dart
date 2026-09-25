@@ -13,6 +13,8 @@ class BlastResult {
   final List<Position> destroyedPositions;
   final int destroyedCount;
   final BlockColor? color;
+  final Map<BlockColor, int> destroyedColorCounts;
+  final Map<Position, BlockColor> destroyedPositionColors;
   final BlastIntensity intensity;
   final Duration duration;
   final SpecialCreationType specialCreationHint;
@@ -25,6 +27,8 @@ class BlastResult {
     this.destroyedPositions = const [],
     this.destroyedCount = 0,
     this.color,
+    this.destroyedColorCounts = const {},
+    this.destroyedPositionColors = const {},
     this.intensity = BlastIntensity.normal,
     this.duration = Duration.zero,
     this.specialCreationHint = SpecialCreationType.none,

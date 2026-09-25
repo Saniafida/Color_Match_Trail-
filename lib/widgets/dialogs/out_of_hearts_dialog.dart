@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../core/services/service_locator.dart';
+import 'hearts_full_dialog.dart';
 
 class OutOfHeartsDialog extends StatelessWidget {
   const OutOfHeartsDialog({super.key});
 
   static Future<bool> show(BuildContext context) async {
+    final livesManager = ServiceLocator.instance.livesManager;
+    if (livesManager.isFull) {
+      return await HeartsFullDialog.show(context);
+    }
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -19,6 +24,9 @@ class OutOfHeartsDialog extends StatelessWidget {
     final livesManager = ServiceLocator.instance.livesManager;
     final coinManager = ServiceLocator.instance.coinManager;
     final gemManager = ServiceLocator.instance.gemManager;
+
+    final lives = livesManager.lives;
+    final bool isZero = lives <= 0;
 
     return Center(
       child: Material(
@@ -94,19 +102,21 @@ class OutOfHeartsDialog extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 2. Broken Heart Graphic with "0" Count Badge
+                        // 2. Heart Graphic with Count Badge
                         Stack(
                           alignment: Alignment.bottomRight,
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(4.0),
                               child: Image.asset(
-                                'assets/images/lose_screen/broken_heart.png',
+                                isZero
+                                    ? 'assets/images/lose_screen/broken_heart.png'
+                                    : 'assets/images/icons/icon_heart.png',
                                 height: 72,
                                 fit: BoxFit.contain,
                               ),
                             ),
-                            // Circular Red Zero Badge
+                            // Circular Red Badge
                             Positioned(
                               bottom: 2,
                               right: 4,
@@ -129,10 +139,10 @@ class OutOfHeartsDialog extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                child: const Center(
+                                child: Center(
                                   child: Text(
-                                    '0',
-                                    style: TextStyle(
+                                    isZero ? '0' : '$lives',
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w900,
@@ -147,10 +157,10 @@ class OutOfHeartsDialog extends StatelessWidget {
                         const SizedBox(height: 6),
 
                         // Headings
-                        const Text(
-                          'You are out of hearts!',
+                        Text(
+                          isZero ? 'You are out of hearts!' : 'Need more hearts?',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Color(0xFF3E200C),
                             fontSize: 16.5,
                             fontWeight: FontWeight.w900,
@@ -158,10 +168,12 @@ class OutOfHeartsDialog extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Get more hearts and keep playing.',
+                        Text(
+                          isZero
+                              ? 'Get more hearts and keep playing.'
+                              : 'Refill to 5 hearts and keep playing.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Color(0xFF7A4E24),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -386,9 +398,9 @@ class OutOfHeartsDialog extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Text(
-                        'Out of Hearts!',
-                        style: TextStyle(
+                      child: Text(
+                        isZero ? 'Out of Hearts!' : 'Refill Hearts!',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16.5,
                           fontWeight: FontWeight.w900,

@@ -23,6 +23,8 @@ import '../../screens/mini_games/tile_stack_screen.dart';
 import '../../screens/mini_games/tile_drop_screen.dart';
 import '../../screens/mini_games/tile_swap_screen.dart';
 
+import '../../models/booster.dart';
+
 class AppRoutes {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
@@ -60,8 +62,21 @@ class AppRoutes {
       case levelSelect:
         return MaterialPageRoute(builder: (_) => const LevelSelectScreen());
       case gameplay:
-        final levelId = routeSettings.arguments as String? ?? "level_1";
-        return MaterialPageRoute(builder: (_) => GameplayScreen(levelId: levelId));
+        String levelId = "level_1";
+        BoosterType? initialBooster;
+        if (routeSettings.arguments is String) {
+          levelId = routeSettings.arguments as String;
+        } else if (routeSettings.arguments is Map) {
+          final args = routeSettings.arguments as Map;
+          levelId = args['levelId'] as String? ?? "level_1";
+          initialBooster = args['initialBooster'] as BoosterType?;
+        }
+        return MaterialPageRoute(
+          builder: (_) => GameplayScreen(
+            levelId: levelId,
+            initialBooster: initialBooster,
+          ),
+        );
       case levelResult:
         final levelId = routeSettings.arguments as String? ?? "level_1";
         return MaterialPageRoute(builder: (_) => LevelResultScreen(levelId: levelId));
@@ -92,16 +107,22 @@ class AppRoutes {
       case statistics:
         return MaterialPageRoute(builder: (_) => const StatisticsScreen());
       case tileSort:
-        return MaterialPageRoute(builder: (_) => const TileSortScreen());
+        final initialLvl = routeSettings.arguments as int?;
+        return MaterialPageRoute(
+          builder: (_) => TileSortScreen(startingLevel: initialLvl),
+        );
       case tileStack:
-        return MaterialPageRoute(builder: (_) => const TileStackScreen());
+        final initialLvl = routeSettings.arguments as int?;
+        return MaterialPageRoute(
+          builder: (_) => TileStackScreen(startingLevel: initialLvl),
+        );
       case tileDrop:
-        final initialLvl = routeSettings.arguments as int? ?? 1;
+        final initialLvl = routeSettings.arguments as int?;
         return MaterialPageRoute(
           builder: (_) => TileDropScreen(initialLevel: initialLvl),
         );
       case tileSwap:
-        final initialLvl = routeSettings.arguments as int? ?? 1;
+        final initialLvl = routeSettings.arguments as int?;
         return MaterialPageRoute(
           builder: (_) => TileSwapScreen(startingLevel: initialLvl),
         );

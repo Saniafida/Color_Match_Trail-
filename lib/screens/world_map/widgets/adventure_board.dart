@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/progression/level_progress.dart';
@@ -24,30 +25,44 @@ class AdventureBoard extends StatefulWidget {
 class _AdventureBoardState extends State<AdventureBoard> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _selectedLevelKey = GlobalKey();
+  Timer? _debounceTimer;
 
-  // Pattern of tile counts per row from top to bottom
-  static const List<int> _rowPatterns = [
-    7,  // Row 15: 141 - 147
-    8,  // Row 14: 133 - 140
-    9,  // Row 13: 124 - 132
-    10, // Row 12: 114 - 123
-    11, // Row 11: 103 - 113
-    12, // Row 10: 91 - 102 (widest point)
-    11, // Row 9: 78 - 89 (or 80 - 90)
-    10, // Row 8: 66 - 76
-    9,  // Row 7: 55 - 65
-    8,  // Row 6: 45 - 54
-    7,  // Row 5: 36 - 44
-    6,  // Row 4: 28 - 35
-    6,  // Row 3: 21 - 27
-    6,  // Row 2: 15 - 20
-    5,  // Row 1: 10 - 14
+  // Pattern of tile counts per row from base (Row 0) upwards for the first 16 rows (sum = 134)
+  static const List<int> _baseRowPatterns = [
     9,  // Row 0: 1 - 9 (base)
+    5,  // Row 1: 10 - 14
+    6,  // Row 2: 15 - 20
+    6,  // Row 3: 21 - 27
+    6,  // Row 4: 28 - 35
+    7,  // Row 5: 36 - 44
+    8,  // Row 6: 45 - 54
+    9,  // Row 7: 55 - 65
+    10, // Row 8: 66 - 76
+    11, // Row 9: 77 - 87
+    12, // Row 10: 88 - 99
+    11, // Row 11: 100 - 110
+    10, // Row 12: 111 - 120
+    9,  // Row 13: 121 - 129
+    8,  // Row 14: 130 - 137
+    7,  // Row 15: 138 - 144
   ];
+
+  // Procedural oscillating wave pattern for infinite rows (Row 16+)
+  static const List<int> _wavePatterns = [8, 9, 10, 11, 12, 11, 10, 9, 8, 7, 6, 6, 7];
+
+  late int _maxDisplayedLevel;
+  bool _isGeneratingMore = false;
 
   @override
   void initState() {
     super.initState();
+    // Start with at least 134, or higher if selectedLevel warrants it
+    _maxDisplayedLevel = widget.totalLevels > 134
+        ? widget.totalLevels
+        : (widget.selectedLevel > 100 ? widget.selectedLevel + 40 : 134);
+
+    _scrollController.addListener(_onScroll);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         // Start from base of the map (level 1)
@@ -65,7 +80,51 @@ class _AdventureBoardState extends State<AdventureBoard> {
   @override
   void didUpdateWidget(covariant AdventureBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Note: Do not auto-scroll on user selection to prevent fighting user drag/scroll gestures.
+    if (widget.selectedLevel > _maxDisplayedLevel) {
+      setState(() {
+        _maxDisplayedLevel = widget.selectedLevel + 20;
+      });
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _isGeneratingMore) return;
+    // When the player scrolls UP towards the top summit (offset <= 350), dynamically generate more levels!
+    if (_scrollController.position.pixels <= 350) {
+      _generateMoreLevels();
+    }
+  }
+
+  void _generateMoreLevels() {
+    if (_isGeneratingMore) return;
+    _isGeneratingMore = true;
+
+    final double oldMaxScroll = _scrollController.position.maxScrollExtent;
+    final double oldOffset = _scrollController.position.pixels;
+
+    setState(() {
+      // Prepend/add the next batch of 40 levels seamlessly
+      _maxDisplayedLevel += 40;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final double newMaxScroll = _scrollController.position.maxScrollExtent;
+        final double delta = newMaxScroll - oldMaxScroll;
+        if (delta > 0) {
+          // Keep viewport position stationary so there is zero jump/jitter
+          _scrollController.jumpTo((oldOffset + delta).clamp(0.0, newMaxScroll));
+        }
+      }
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _isGeneratingMore = false;
+          });
+        }
+      });
+    });
   }
 
   void _scrollToSelectedLevel({bool animated = true}) {
@@ -109,29 +168,40 @@ class _AdventureBoardState extends State<AdventureBoard> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
+  int _getRowCount(int rowIndex) {
+    if (rowIndex < _baseRowPatterns.length) {
+      return _baseRowPatterns[rowIndex];
+    }
+    final waveIndex = (rowIndex - _baseRowPatterns.length) % _wavePatterns.length;
+    return _wavePatterns[waveIndex];
+  }
+
   List<List<int>> _generateMosaicRows() {
-    // Generate consecutive ranges matching the tapering shape
     final List<List<int>> rows = [];
     int currentNumber = 1;
+    int rowIndex = 0;
 
-    // Build from bottom row (Row 0) upwards
-    final reversedCounts = _rowPatterns.reversed.toList();
-
-    for (int count in reversedCounts) {
+    while (currentNumber <= _maxDisplayedLevel) {
+      final count = _getRowCount(rowIndex);
       final List<int> row = [];
       for (int i = 0; i < count; i++) {
-        if (currentNumber <= widget.totalLevels) {
+        if (currentNumber <= _maxDisplayedLevel) {
           row.add(currentNumber);
           currentNumber++;
+        } else {
+          break;
         }
       }
       if (row.isNotEmpty) {
         rows.add(row);
       }
+      rowIndex++;
     }
 
     // Return in top-to-bottom order for vertical scroll view
@@ -194,21 +264,45 @@ class _AdventureBoardState extends State<AdventureBoard> {
                 padding: const EdgeInsets.fromLTRB(8, 48, 8, 16),
                 child: Column(
                   children: [
-                    // 1. Golden Trophy Banner on Grass
-                    RepaintBoundary(
-                      child: _buildTrophySection(),
-                    ),
+                    // Dynamic Level Generation Pulse Indicator at the summit
+                    if (_isGeneratingMore)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7BA836),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Generating Higher Levels...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
-                    const SizedBox(height: 10),
+                    // Top padding for the mosaic levels
+                    const SizedBox(height: 12),
 
-                    // 2. Motivational Text & Divider
-                    RepaintBoundary(
-                      child: _buildMotivationText(),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // 3. Tapering Diamond Mosaic Grid of Level Tiles (each row cached with RepaintBoundary)
+                    // Tapering Diamond Mosaic Grid of Level Tiles (each row cached with RepaintBoundary)
                     for (final row in mosaicRows)
                       RepaintBoundary(
                         child: Padding(
@@ -307,108 +401,7 @@ class _AdventureBoardState extends State<AdventureBoard> {
     );
   }
 
-  Widget _buildTrophySection() {
-    return Center(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Golden Radial Glow
-          Container(
-            width: 130,
-            height: 130,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Color(0x66FFD54F),
-                  Color(0x22FFD54F),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-          // 3D Trophy on Grass Image
-          Image.asset(
-            'assets/images/trophy_adventure.png',
-            width: 120,
-            height: 120,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => const Icon(
-              Icons.emoji_events_rounded,
-              size: 80,
-              color: Color(0xFFFFB300),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildMotivationText() {
-    return Column(
-      children: [
-        const Text(
-          'Take part in the Adventure',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF4A2E12),
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
-            height: 1.2,
-          ),
-        ),
-        const Text(
-          'and win the trophy.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF4A2E12),
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
-            height: 1.2,
-          ),
-        ),
-        const SizedBox(height: 6),
-        // Decorative Leafy Vine Divider
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 38,
-              height: 1.5,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    const Color(0xFF7BA836).withValues(alpha: 0.7),
-                  ],
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.0),
-              child: Icon(
-                Icons.eco_rounded,
-                color: Color(0xFF7BA836),
-                size: 14,
-              ),
-            ),
-            Container(
-              width: 38,
-              height: 1.5,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF7BA836).withValues(alpha: 0.7),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
   Widget _buildTile(int levelNum) {
     final levelId = 'level_$levelNum';

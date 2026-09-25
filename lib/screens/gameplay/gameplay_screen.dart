@@ -47,10 +47,12 @@ import '../../widgets/dialogs/out_of_hearts_dialog.dart';
 
 class GameplayScreen extends StatefulWidget {
   final String levelId;
+  final BoosterType? initialBooster;
 
   const GameplayScreen({
     super.key,
     required this.levelId,
+    this.initialBooster,
   });
 
   @override
@@ -263,6 +265,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ServiceLocator.instance.tutorialManager.checkAndStartTutorial(widget.levelId);
+      if (widget.initialBooster != null && mounted) {
+        if (widget.initialBooster == BoosterType.extraMoves) {
+          _boosterManager.selectBooster(BoosterType.extraMoves);
+        } else if (_boosterManager.canActivateBooster(widget.initialBooster!)) {
+          _boosterManager.selectBooster(widget.initialBooster!);
+        }
+      }
     });
   }
 
@@ -389,6 +398,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
         destroyedPositions: transformResult.removedPositions,
         destroyedCount: transformResult.removedPositions.length,
         color: trail.color,
+        destroyedColorCounts: trail.color != null
+            ? {trail.color!: transformResult.removedPositions.length}
+            : const {},
         intensity: BlastIntensity.normal,
         duration: Duration.zero,
         source: DestructionSource.playerMatch,
@@ -410,7 +422,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       final dailyManager = ServiceLocator.instance.dailyChallengeManager;
       final eventManager = ServiceLocator.instance.eventManager;
-      dailyManager.onColorBlocksCleared(trail.color!, blastResult.destroyedPositions.length);
+      if (blastResult.destroyedColorCounts.isNotEmpty) {
+        for (final entry in blastResult.destroyedColorCounts.entries) {
+          dailyManager.onColorBlocksCleared(entry.key, entry.value);
+        }
+      } else if (trail.color != null) {
+        dailyManager.onColorBlocksCleared(trail.color!, blastResult.destroyedPositions.length);
+      }
       dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.createSpecial, 1);
       eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
@@ -464,7 +482,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     // 4. Gravity & Cascades (Transformed power-up stays intact on board, falls and settles)
     final allowedColors = _level.colorConfig?.availableColors ?? [];
-    final cascadeResult = await _cascadeController.startCascade(allowedColors);
+    final cascadeResult = await _cascadeController.startCascade(
+      allowedColors,
+      targetColors: _goalController.activeTargetColors,
+    );
     if (cascadeResult.cascadeLevel > 0) {
       _goalController.onCascadeResult(cascadeResult);
       ServiceLocator.instance.dailyChallengeManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
@@ -582,16 +603,17 @@ class _GameplayScreenState extends State<GameplayScreen> {
         setState(() => _largestBlast = blastResult.destroyedPositions.length);
       }
 
-      // Staggered outward pops on all affected blocks
+      // Staggered outward pops on all affected blocks using their individual real color
       for (int i = 0; i < blastResult.destroyedPositions.length; i++) {
         final p = blastResult.destroyedPositions[i];
         final popCenter = _getCellCenter(p, cellSize);
+        final blockColor = blastResult.destroyedPositionColors[p] ?? blastResult.color;
         Future.delayed(Duration(milliseconds: (i * 12).clamp(0, 120)), () {
           if (mounted) {
             _fxController.spawnMatchPop(
               popCenter,
-              blastResult.color != null
-                  ? BlockColorMapper.getStyle(blastResult.color!).main
+              blockColor != null
+                  ? BlockColorMapper.getStyle(blockColor).main
                   : const Color(0xFFFFD700),
               count: 6,
             );
@@ -611,6 +633,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       final dailyManager = ServiceLocator.instance.dailyChallengeManager;
       final eventManager = ServiceLocator.instance.eventManager;
+      if (blastResult.destroyedColorCounts.isNotEmpty) {
+        for (final entry in blastResult.destroyedColorCounts.entries) {
+          dailyManager.onColorBlocksCleared(entry.key, entry.value);
+        }
+      } else if (blastResult.color != null) {
+        dailyManager.onColorBlocksCleared(blastResult.color!, blastResult.destroyedPositions.length);
+      }
       dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
       dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
       dailyManager.updateProgressMax(DailyChallengeType.combo, _comboController.state.level);
@@ -620,7 +649,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       // Trigger cascades & gravity
       final allowedColors = _level.colorConfig?.availableColors ?? [];
-      final cascadeResult = await _cascadeController.startCascade(allowedColors);
+      final cascadeResult = await _cascadeController.startCascade(
+        allowedColors,
+        targetColors: _goalController.activeTargetColors,
+      );
       if (cascadeResult.cascadeLevel > 0) {
         _goalController.onCascadeResult(cascadeResult);
         dailyManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);
@@ -756,6 +788,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
         final dailyManager = ServiceLocator.instance.dailyChallengeManager;
         final eventManager = ServiceLocator.instance.eventManager;
+        if (blastResult.destroyedColorCounts.isNotEmpty) {
+          for (final entry in blastResult.destroyedColorCounts.entries) {
+            dailyManager.onColorBlocksCleared(entry.key, entry.value);
+          }
+        }
         dailyManager.incrementProgress(DailyChallengeType.clearBlocks, blastResult.destroyedPositions.length);
         dailyManager.incrementProgress(DailyChallengeType.score, _scoreController.lastScoreEvent?.pointsAdded ?? 0);
         eventManager.incrementProgress(EventType.clearBlocks, blastResult.destroyedPositions.length);
@@ -779,7 +816,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       // 3. Trigger cascades and gravity drop
       final allowedColors = _level.colorConfig?.availableColors ?? [];
-      final cascadeResult = await _cascadeController.startCascade(allowedColors);
+      final cascadeResult = await _cascadeController.startCascade(
+        allowedColors,
+        targetColors: _goalController.activeTargetColors,
+      );
       if (cascadeResult.cascadeLevel > 0) {
         _goalController.onCascadeResult(cascadeResult);
         ServiceLocator.instance.dailyChallengeManager.incrementProgress(DailyChallengeType.cascade, cascadeResult.cascadeLevel);

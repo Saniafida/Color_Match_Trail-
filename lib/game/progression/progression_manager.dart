@@ -123,6 +123,19 @@ class ProgressionManager extends ChangeNotifier {
       }
     }
 
+    // Check higher unlocked uncompleted levels in state
+    if (_state.levels.isNotEmpty) {
+      final unlockedUncompleted = _state.levels.values
+          .where((p) => p.unlocked && !p.completed)
+          .map((p) => int.tryParse(p.levelId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+          .where((n) => n > 0)
+          .toList()
+        ..sort();
+      if (unlockedUncompleted.isNotEmpty) {
+        return 'level_${unlockedUncompleted.first}';
+      }
+    }
+
     // If all completed or none found, fallback to current level or first level
     return _state.currentLevel ?? (allWorlds.first.levelIds.isNotEmpty ? allWorlds.first.levelIds.first : 'level_1');
   }
@@ -250,9 +263,9 @@ class ProgressionManager extends ChangeNotifier {
       }
     }
 
-    // 4. Numerical fallback: Ensure sequential next level is always unlocked
+    // 4. Numerical fallback: Ensure sequential next level is always unlocked (infinite progression)
     final currentLevelNum = int.tryParse(levelId.replaceAll(RegExp(r'[^0-9]'), ''));
-    if (currentLevelNum != null && currentLevelNum < 147) {
+    if (currentLevelNum != null) {
       final nextNum = currentLevelNum + 1;
       final numericNextId = 'level_$nextNum';
       nextLevelIdToPlay ??= numericNextId;
@@ -260,6 +273,8 @@ class ProgressionManager extends ChangeNotifier {
       if (nextProg == null || !nextProg.unlocked) {
         newLevels[numericNextId] = LevelProgress.unlocked(numericNextId);
       }
+      final nextWorldNum = ((nextNum - 1) ~/ 10) + 1;
+      newUnlockedWorlds.add('world_$nextWorldNum');
       for (final world in allWorlds) {
         if (world.levelIds.contains(numericNextId)) {
           newUnlockedWorlds.add(world.worldId);

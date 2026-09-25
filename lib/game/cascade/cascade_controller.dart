@@ -21,7 +21,11 @@ class CascadeController extends ChangeNotifier {
     this.maxCascadeIterations = 20,
   });
 
-  Future<CascadeResult> startCascade(List<BlockColor> allowedColors) async {
+  Future<CascadeResult> startCascade(
+    List<BlockColor> allowedColors, {
+    List<BlockColor>? targetColors,
+    double targetBias = 0.65,
+  }) async {
     if (_isRunning) {
       return const CascadeResult(completed: false, cascadeLevel: 0, totalCascadeBlasts: 0, totalDestroyedBlocks: 0, phases: []);
     }
@@ -40,7 +44,11 @@ class CascadeController extends ChangeNotifier {
       iterations++;
       
       // Apply gravity and block spawning
-      final gravityResult = await gravityController.applyGravity(allowedColors);
+      final gravityResult = await gravityController.applyGravity(
+        allowedColors,
+        targetColors: targetColors,
+        targetBias: targetBias,
+      );
       
       if (!gravityResult.cascadeCheckRequired) {
         break; // Board is completely stable

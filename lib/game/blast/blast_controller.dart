@@ -164,10 +164,16 @@ class BlastController extends ChangeNotifier {
     final staggerMs = (targetList.length > 1) ? 20 : 0;
     final totalStaggerDuration = Duration(milliseconds: staggerMs * (targetList.length - 1));
 
+    final Map<BlockColor, int> destroyedColorCounts = {};
+    final Map<Position, BlockColor> destroyedPositionColors = {};
+
     for (int i = 0; i < targetList.length; i++) {
       final id = targetList[i];
+      final pos = targetBlocks[id]!;
       final block = getBlock(id);
       if (block != null) {
+        destroyedColorCounts[block.color] = (destroyedColorCounts[block.color] ?? 0) + 1;
+        destroyedPositionColors[pos] = block.color;
         onUpdateBlock(block.copyWith(
           isBeingDestroyed: true,
           isSelected: false,
@@ -223,6 +229,8 @@ class BlastController extends ChangeNotifier {
       destroyedPositions: targetBlocks.values.toList(),
       destroyedCount: targetBlocks.length,
       color: match.color,
+      destroyedColorCounts: destroyedColorCounts,
+      destroyedPositionColors: destroyedPositionColors,
       intensity: intensity,
       duration: duration,
       specialCreationHint: match.specialCreationHint,

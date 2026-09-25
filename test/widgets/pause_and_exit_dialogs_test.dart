@@ -87,14 +87,13 @@ void main() {
     });
 
     testWidgets('3. ExitLevelDialog displays 1-life loss warning and handles callbacks', (tester) async {
-      bool resumed = false;
       bool exited = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: ExitLevelDialog(
-              onResume: () => resumed = true,
+              onResume: () {},
               onExit: () => exited = true,
             ),
           ),

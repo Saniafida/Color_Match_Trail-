@@ -3,9 +3,11 @@ import '../../core/services/service_locator.dart';
 import '../../game/results/level_result_manager.dart';
 import '../../game/results/level_result_state.dart';
 import '../../app/routes/routes.dart';
-import '../../widgets/buttons/glossy_button.dart';
 import '../../widgets/common/game_top_bar.dart';
 import '../../widgets/dialogs/out_of_hearts_dialog.dart';
+import '../../models/models.dart';
+import '../../game/goals/goal_state.dart';
+import '../../game/blocks/block_color_mapper.dart';
 
 class LevelResultScreen extends StatefulWidget {
   final String levelId;
@@ -18,11 +20,19 @@ class LevelResultScreen extends StatefulWidget {
 
 class _LevelResultScreenState extends State<LevelResultScreen> {
   late final LevelResultManager _resultManager;
+  LevelDefinition? _levelDefinition;
 
   @override
   void initState() {
     super.initState();
     _resultManager = ServiceLocator.instance.levelResultManager;
+    _levelDefinition = _resultManager.currentLevelData;
+    if (_levelDefinition == null) {
+      final parsedId = int.tryParse(widget.levelId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+      ServiceLocator.instance.levelRepository.getLevel(parsedId).then((lvl) {
+        if (mounted) setState(() => _levelDefinition = lvl);
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _resultManager.acknowledgeResult();
     });
@@ -733,9 +743,22 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
   }
 
   // ==========================================
-  // 🎯 GOAL VS YOU GOT PANEL (Using Real Game Blocks)
+  // 🎯 GOAL VS YOU GOT PANEL (Dynamic Level Goals & Real Progress)
   // ==========================================
   Widget _buildGoalComparisonPanel() {
+    final levelDef = _levelDefinition ?? _resultManager.currentLevelData;
+    final goals = levelDef?.goals ?? [];
+
+    final allGoalStates = <String, GoalState>{};
+    if (_resultManager.currentFinalResult != null) {
+      for (final s in _resultManager.currentFinalResult!.completedGoals) {
+        allGoalStates[s.goalId] = s;
+      }
+      for (final s in _resultManager.currentFinalResult!.incompleteGoals) {
+        allGoalStates[s.goalId] = s;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
@@ -763,11 +786,24 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   fit: BoxFit.scaleDown,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildGoalBlock(assetPath: 'assets/blocks/1 (4).png', count: '20'),
-                      const SizedBox(width: 8),
-                      _buildGoalBlock(assetPath: 'assets/blocks/1 (6).png', count: '20'),
-                    ],
+                    children: goals.isNotEmpty
+                        ? goals.map((def) {
+                            final state = allGoalStates[def.id];
+                            final target = state?.targetAmount ?? def.targetAmount;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: _buildGoalBlock(
+                                visual: _buildGoalVisual(def),
+                                count: '$target',
+                              ),
+                            );
+                          }).toList()
+                        : [
+                            _buildGoalBlock(
+                              visual: Image.asset('assets/blocks/1 (4).png', width: 32, height: 32, fit: BoxFit.contain),
+                              count: '20',
+                            ),
+                          ],
                   ),
                 ),
               ],
@@ -794,11 +830,27 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
                   fit: BoxFit.scaleDown,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildGoalBlock(assetPath: 'assets/blocks/1 (4).png', count: '12'),
-                      const SizedBox(width: 8),
-                      _buildGoalBlock(assetPath: 'assets/blocks/1 (6).png', count: '8'),
-                    ],
+                    children: goals.isNotEmpty
+                        ? goals.map((def) {
+                            final state = allGoalStates[def.id];
+                            final got = state?.currentAmount ?? 0;
+                            final target = state?.targetAmount ?? def.targetAmount;
+                            final isCompleted = state?.completed ?? (got >= target);
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: _buildGoalBlock(
+                                visual: _buildGoalVisual(def),
+                                count: '$got',
+                                isCompleted: isCompleted,
+                              ),
+                            );
+                          }).toList()
+                        : [
+                            _buildGoalBlock(
+                              visual: Image.asset('assets/blocks/1 (4).png', width: 32, height: 32, fit: BoxFit.contain),
+                              count: '0',
+                            ),
+                          ],
                   ),
                 ),
               ],
@@ -809,25 +861,126 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
     );
   }
 
-  Widget _buildGoalBlock({required String assetPath, required String count}) {
+  Widget _buildGoalVisual(GoalDefinition def) {
+    // 1. Color-specific block
+    if (def.type == GoalType.clearColor && def.color != null) {
+      final style = BlockColorMapper.getStyle(def.color!);
+      return Image.asset(
+        style.assetPath,
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+      );
+    }
+
+    // 2. Clear any blocks
+    if (def.type == GoalType.clearBlocks) {
+      final style = BlockColorMapper.getStyle(def.color ?? BlockColor.yellow);
+      return Image.asset(
+        style.assetPath,
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+      );
+    }
+
+    // 3. Special block (Rocket, Bomb, Color Bomb)
+    if (def.type == GoalType.createSpecial ||
+        def.type == GoalType.activateSpecial ||
+        def.type == GoalType.destroySpecial ||
+        def.specialType != null) {
+      final st = def.specialType;
+      String asset = 'assets/images/power_ups/powerup_4_rocket.png';
+      if (st == SpecialBlockType.bomb || st == SpecialBlockType.smallArea || st == SpecialBlockType.megaBomb) {
+        asset = 'assets/images/power_ups/powerup_5_bomb.png';
+      } else if (st == SpecialBlockType.colorSpecial) {
+        asset = 'assets/images/power_ups/powerup_7_color_bomb.png';
+      }
+      return Image.asset(
+        asset,
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+      );
+    }
+
+    // 4. Booster usage
+    if (def.type == GoalType.useBooster && def.boosterType != null) {
+      String asset = 'assets/images/boosters/hammer.png';
+      if (def.boosterType == BoosterType.extraMoves) {
+        asset = 'assets/images/boosters/extra_moves.png';
+      } else if (def.boosterType == BoosterType.shuffle) {
+        asset = 'assets/images/boosters/shuffle.png';
+      } else if (def.boosterType == BoosterType.areaBlast) {
+        asset = 'assets/images/power_ups/powerup_5_bomb.png';
+      } else if (def.boosterType == BoosterType.colorClear) {
+        asset = 'assets/images/power_ups/powerup_7_color_bomb.png';
+      } else if (def.boosterType == BoosterType.rowClear) {
+        asset = 'assets/images/power_ups/powerup_4_rocket.png';
+      }
+      return Image.asset(
+        asset,
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+      );
+    }
+
+    // 5. Score goal
+    if (def.type == GoalType.score) {
+      return const Icon(
+        Icons.stars_rounded,
+        color: Color(0xFFFFD700),
+        size: 28,
+      );
+    }
+
+    // 6. Cascade combo goal
+    if (def.type == GoalType.reachCascade) {
+      return const Icon(
+        Icons.bolt_rounded,
+        color: Colors.cyanAccent,
+        size: 28,
+      );
+    }
+
+    return const Icon(
+      Icons.flag_rounded,
+      color: Colors.amber,
+      size: 28,
+    );
+  }
+
+  Widget _buildGoalBlock({
+    required Widget visual,
+    required String count,
+    bool isCompleted = false,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset(
-          assetPath,
+        SizedBox(
           width: 32,
           height: 32,
-          fit: BoxFit.contain,
+          child: Center(child: visual),
         ),
         const SizedBox(width: 4),
         Text(
           count,
-          style: const TextStyle(
-            color: Color(0xFF3E200C),
+          style: TextStyle(
+            color: isCompleted ? const Color(0xFF2E7D32) : const Color(0xFF3E200C),
             fontSize: 15,
             fontWeight: FontWeight.w900,
           ),
         ),
+        if (isCompleted) ...[
+          const SizedBox(width: 2),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF43A047),
+            size: 14,
+          ),
+        ],
       ],
     );
   }
@@ -836,6 +989,8 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
   // ⚡ DON'T GIVE UP! BOOSTERS SECTION
   // ==========================================
   Widget _buildBoostersSuggestionSection() {
+    final inventoryManager = ServiceLocator.instance.inventoryManager;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(10, 16, 10, 12),
@@ -852,7 +1007,7 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
             children: [
               const SizedBox(height: 2),
               const Text(
-                'Try these boosters to beat the level!',
+                'Tap a booster to play with an advantage!',
                 style: TextStyle(
                   color: Color(0xFF5D3A1A),
                   fontSize: 11,
@@ -861,15 +1016,37 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
               ),
               const SizedBox(height: 10),
 
-              // 4 Booster Cards Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildBoosterCard('assets/images/lose_screen/booster_hammer_card.png', 3),
-                  _buildBoosterCard('assets/images/lose_screen/booster_bomb_card.png', 3),
-                  _buildBoosterCard('assets/images/lose_screen/booster_color_bomb_card.png', 2),
-                  _buildBoosterCard('assets/images/boosters/extra_moves.png', 1, isExtraMoves: true),
-                ],
+              // 4 Booster Cards Row with live inventory listener
+              ListenableBuilder(
+                listenable: inventoryManager,
+                builder: (context, _) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildBoosterCard(
+                        type: BoosterType.hammer,
+                        assetPath: 'assets/images/lose_screen/booster_hammer_card.png',
+                        count: inventoryManager.getQuantity(BoosterType.hammer),
+                      ),
+                      _buildBoosterCard(
+                        type: BoosterType.areaBlast,
+                        assetPath: 'assets/images/lose_screen/booster_bomb_card.png',
+                        count: inventoryManager.getQuantity(BoosterType.areaBlast),
+                      ),
+                      _buildBoosterCard(
+                        type: BoosterType.colorClear,
+                        assetPath: 'assets/images/lose_screen/booster_color_bomb_card.png',
+                        count: inventoryManager.getQuantity(BoosterType.colorClear),
+                      ),
+                      _buildBoosterCard(
+                        type: BoosterType.extraMoves,
+                        assetPath: 'assets/images/boosters/extra_moves.png',
+                        count: inventoryManager.getQuantity(BoosterType.extraMoves),
+                        isExtraMoves: true,
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -907,62 +1084,98 @@ class _LevelResultScreenState extends State<LevelResultScreen> {
     );
   }
 
-  Widget _buildBoosterCard(String assetPath, int count, {bool isExtraMoves = false}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7E8CE),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFD8C09E), width: 1.5),
-            boxShadow: const [
-              BoxShadow(color: Colors.black12, offset: Offset(0, 2), blurRadius: 2),
-            ],
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Image.asset(
-            assetPath,
-            fit: BoxFit.contain,
-          ),
-        ),
-
-        // Count Badge
-        Positioned(
-          bottom: -4,
-          right: -4,
-          child: Container(
-            width: 20,
-            height: 20,
+  Widget _buildBoosterCard({
+    required BoosterType type,
+    required String assetPath,
+    required int count,
+    bool isExtraMoves = false,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onBoosterTapped(type),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 1.5),
+              color: const Color(0xFFF7E8CE),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFFD54F), width: 1.8),
               boxShadow: const [
-                BoxShadow(color: Colors.black38, offset: Offset(0, 1), blurRadius: 2),
+                BoxShadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 3),
               ],
             ),
-            child: Center(
-              child: Text(
-                '$count',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
+            padding: const EdgeInsets.all(4),
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+            ),
+          ),
+
+          // Count Badge
+          Positioned(
+            bottom: -4,
+            right: -4,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: count > 0
+                      ? const [Color(0xFFFF5252), Color(0xFFD32F2F)]
+                      : const [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black38, offset: Offset(0, 1), blurRadius: 2),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  count > 0 ? '$count' : '+',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  Future<void> _onBoosterTapped(BoosterType type) async {
+    final livesManager = ServiceLocator.instance.livesManager;
+    if (!livesManager.hasLives) {
+      final refilled = await OutOfHeartsDialog.show(context);
+      if (!refilled || !livesManager.hasLives) return;
+    }
+
+    final inventoryManager = ServiceLocator.instance.inventoryManager;
+    if (inventoryManager.getQuantity(type) <= 0) {
+      await inventoryManager.addBooster(type, 1);
+    }
+
+    _resultManager.reset();
+    if (mounted) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.gameplay,
+        arguments: {
+          'levelId': widget.levelId,
+          'initialBooster': type,
+        },
+      );
+    }
   }
 
   // ==========================================

@@ -30,7 +30,7 @@ void main() {
       expect(progressionManager.canPlayLevel('level_10'), isFalse);
     });
 
-    testWidgets('2. WorldMapScreen shows Locked state on play button for locked levels and prevents launching', (WidgetTester tester) async {
+    testWidgets('2. Locked level nodes cannot be clicked and selection remains on unlocked level', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: WorldMapScreen(),
@@ -42,23 +42,16 @@ void main() {
       expect(find.text('LEVEL 1'), findsOneWidget);
       expect(find.byType(AdventurePlayButton), findsOneWidget);
 
-      // Find node for level 5 and tap it
+      // Find node for level 5 and tap it -> locked levels should not be clickable
       final level5Node = find.widgetWithText(LevelNode, '5');
       if (level5Node.evaluate().isNotEmpty) {
-        await tester.tap(level5Node.first);
+        await tester.tap(level5Node.first, warnIfMissed: false);
         await tester.pump(const Duration(milliseconds: 200));
 
-        // Button should now show LOCKED state
-        expect(find.text('LEVEL 5 (LOCKED)'), findsOneWidget);
-        expect(find.byIcon(Icons.lock_rounded), findsWidgets);
-
-        // Tap the locked play button -> should show locked warning SnackBar
-        await tester.tap(find.byType(AdventurePlayButton));
-        await tester.pump();
-
-        expect(find.text('Level 5 is Locked! Complete Level 4 first.'), findsOneWidget);
+        // Button should still show LEVEL 1 (level 5 was locked and not clickable)
+        expect(find.text('LEVEL 1'), findsOneWidget);
       }
-      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('3. Completing level 1 unlocks level 2', (WidgetTester tester) async {

@@ -37,6 +37,29 @@ class GoalController extends ChangeNotifier {
     return _states.values.every((g) => g.completed);
   }
 
+  /// Returns the target colors for all color goals defined in this level.
+  List<BlockColor> get allTargetColors {
+    return _definitions.values
+        .where((d) => d.type == GoalType.clearColor && d.color != null)
+        .map((d) => d.color!)
+        .toSet()
+        .toList();
+  }
+
+  /// Returns target colors for goals that are NOT yet completed.
+  /// If all color goals are completed or none exist, falls back to allTargetColors.
+  List<BlockColor> get activeTargetColors {
+    final active = _states.values
+        .where((s) => !s.completed)
+        .map((s) => _definitions[s.goalId])
+        .where((d) => d != null && d.type == GoalType.clearColor && d.color != null)
+        .map((d) => d!.color!)
+        .toSet()
+        .toList();
+    if (active.isNotEmpty) return active;
+    return allTargetColors;
+  }
+
   void initialize(List<GoalDefinition> goals) {
     _definitions.clear();
     _states.clear();
@@ -133,11 +156,14 @@ class GoalController extends ChangeNotifier {
       if (def.type == GoalType.clearBlocks) {
         _updateGoalProgress(def.id, result.destroyedCount, source);
       } else if (def.type == GoalType.clearColor) {
-        // We assume result.color matches the blocks destroyed. 
-        // Note: For a mixed-color bomb blast, the blast result currently just passes the initial match color or red if none.
-        // For a more robust implementation, we would need the breakdown of colors destroyed.
-        // Based on the prompt: "Only destroyed blocks of the exact configured color count."
-        if (result.color == def.color) {
+        // If exact breakdown of colors destroyed is available (e.g. from a rocket, bomb, or line blast),
+        // credit each color goal by the actual count of blocks destroyed of that color!
+        if (result.destroyedColorCounts.isNotEmpty) {
+          final countForColor = result.destroyedColorCounts[def.color] ?? 0;
+          if (countForColor > 0) {
+            _updateGoalProgress(def.id, countForColor, source);
+          }
+        } else if (result.color == def.color) {
           _updateGoalProgress(def.id, result.destroyedCount, source);
         }
       }
@@ -172,10 +198,31 @@ class GoalController extends ChangeNotifier {
     }
   }
 
+  bool _isMatchingSpecial(SpecialBlockType? defType, SpecialBlockType actualType) {
+    if (defType == null || defType == actualType) return true;
+    const rocketGroup = {
+      SpecialBlockType.horizontalLine,
+      SpecialBlockType.verticalLine,
+      SpecialBlockType.smallArea,
+      SpecialBlockType.crossBlast,
+    };
+    if (rocketGroup.contains(defType) && rocketGroup.contains(actualType)) {
+      return true;
+    }
+    const bombGroup = {
+      SpecialBlockType.bomb,
+      SpecialBlockType.megaBomb,
+    };
+    if (bombGroup.contains(defType) && bombGroup.contains(actualType)) {
+      return true;
+    }
+    return false;
+  }
+
   void onSpecialCreation(SpecialCreationResult result) {
     if (!result.created || result.type == SpecialBlockType.none) return;
     for (var def in _definitions.values) {
-      if (def.type == GoalType.createSpecial && def.specialType == result.type) {
+      if (def.type == GoalType.createSpecial && _isMatchingSpecial(def.specialType, result.type)) {
         _updateGoalProgress(def.id, 1, GoalEventSource.specialCreation);
       }
     }
@@ -184,7 +231,8 @@ class GoalController extends ChangeNotifier {
   void onSpecialActivation(SpecialActivationResult result) {
     if (!result.success) return;
     for (var def in _definitions.values) {
-      if (def.type == GoalType.activateSpecial && def.specialType == result.specialType) {
+      if ((def.type == GoalType.activateSpecial || def.type == GoalType.createSpecial) &&
+          _isMatchingSpecial(def.specialType, result.specialType)) {
         _updateGoalProgress(def.id, 1, GoalEventSource.special);
       }
     }

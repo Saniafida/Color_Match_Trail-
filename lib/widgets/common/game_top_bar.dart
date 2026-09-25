@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/routes/routes.dart';
 import '../../core/services/service_locator.dart';
-import '../../game/lives/lives_manager.dart';
 import '../dialogs/out_of_hearts_dialog.dart';
 
 class GameTopBar extends StatelessWidget {

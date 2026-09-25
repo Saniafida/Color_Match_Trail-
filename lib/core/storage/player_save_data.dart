@@ -15,6 +15,7 @@ class PlayerSaveData {
   final Map<String, dynamic> monetization;
   final Map<String, dynamic> analytics;
   final Map<String, dynamic> profile;
+  final Map<String, dynamic> miniGameProgress;
 
   const PlayerSaveData({
     required this.saveVersion,
@@ -33,6 +34,7 @@ class PlayerSaveData {
     this.monetization = const {},
     this.analytics = const {},
     this.profile = const {},
+    this.miniGameProgress = const {},
   });
 
   PlayerSaveData copyWith({
@@ -52,6 +54,7 @@ class PlayerSaveData {
     Map<String, dynamic>? monetization,
     Map<String, dynamic>? analytics,
     Map<String, dynamic>? profile,
+    Map<String, dynamic>? miniGameProgress,
   }) {
     return PlayerSaveData(
       saveVersion: saveVersion ?? this.saveVersion,
@@ -70,6 +73,7 @@ class PlayerSaveData {
       monetization: monetization ?? this.monetization,
       analytics: analytics ?? this.analytics,
       profile: profile ?? this.profile,
+      miniGameProgress: miniGameProgress ?? this.miniGameProgress,
     );
   }
 
@@ -91,6 +95,7 @@ class PlayerSaveData {
       'monetization': monetization,
       'analytics': analytics,
       'profile': profile,
+      'miniGameProgress': miniGameProgress,
     };
   }
 
@@ -112,6 +117,7 @@ class PlayerSaveData {
       monetization: json['monetization'] as Map<String, dynamic>? ?? {},
       analytics: json['analytics'] as Map<String, dynamic>? ?? {},
       profile: json['profile'] as Map<String, dynamic>? ?? {},
+      miniGameProgress: json['miniGameProgress'] as Map<String, dynamic>? ?? {},
     );
   }
 }

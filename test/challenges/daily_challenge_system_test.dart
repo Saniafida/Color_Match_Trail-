@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:color_match_trail/core/services/service_locator.dart';
-import 'package:color_match_trail/core/services/date_service.dart';
 import 'package:color_match_trail/game/challenges/daily_challenge_generator.dart';
 import 'package:color_match_trail/game/challenges/daily_challenge_manager.dart';
 import 'package:color_match_trail/game/challenges/daily_challenge_storage.dart';
@@ -206,10 +205,6 @@ void main() {
       await tester.pumpAndSettle();
       FlutterError.onError = oldHandler;
 
-      if (errorDetails != null) {
-        print('EXACT OVERFLOW CAUSE:');
-        print(errorDetails!.toString());
-      }
       expect(errorDetails, isNull);
       expect(find.byType(DailyChallengeScreen), findsOneWidget);
     });

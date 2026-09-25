@@ -132,7 +132,7 @@ class AdventureLevelGenerator {
     final seed = levelNumber * 1000 + 77;
     final random = Random(seed);
 
-    final worldIndex = ((levelNumber - 1) ~/ 10).clamp(0, worldThemes.length - 1);
+    final worldIndex = ((levelNumber - 1) ~/ 10) % worldThemes.length;
     final theme = worldThemes[worldIndex];
 
     // 1. Board Dimensions (6x6 for early, 7x7 for mid, 8x8 for advanced)
@@ -171,8 +171,8 @@ class AdventureLevelGenerator {
       availableColors = List.from(allColors);
     }
 
-    // 3. Difficulty Tier
-    final isBossLevel = levelNumber % 10 == 0 || levelNumber == totalAdventureLevels;
+    // 3. Difficulty Tier (Every 10th level is Boss, every 5th is Hard)
+    final isBossLevel = levelNumber % 10 == 0;
     final isHardLevel = !isBossLevel && levelNumber % 5 == 0;
 
     // 4. Determine Dynamic Level Goal Archetype to guarantee variety
@@ -250,18 +250,19 @@ class AdventureLevelGenerator {
         ));
       }
     } else if (archetypeIndex == 3) {
-      // Archetype 3: Color + Cascade Combo Goal
+      // Archetype 3: Color + Power-Up Goal (Replaces cascade with Rocket / Bomb power target)
       goals.add(GoalDefinition(
         id: 'goal_1',
         type: GoalType.clearColor,
         targetAmount: primaryTarget,
         color: color1,
       ));
-      final cascadeLevelTarget = (2 + (levelNumber ~/ 40)).clamp(2, 4);
+      final powerTarget = (2 + (levelNumber ~/ 35)).clamp(2, 5);
       goals.add(GoalDefinition(
         id: 'goal_2',
-        type: GoalType.reachCascade,
-        targetAmount: cascadeLevelTarget,
+        type: GoalType.createSpecial,
+        targetAmount: powerTarget,
+        specialType: (levelNumber % 2 == 0) ? SpecialBlockType.bomb : SpecialBlockType.horizontalLine,
       ));
     } else {
       // Archetype 4: Boss Level (3 Epic Goals)
@@ -348,7 +349,7 @@ class AdventureLevelGenerator {
   /// Generates offline data model LevelDefinitionData.
   static LevelDefinitionData generateData(int levelNumber) {
     final def = generateLevel(levelNumber);
-    final isBoss = levelNumber % 10 == 0 || levelNumber == totalAdventureLevels;
+    final isBoss = levelNumber % 10 == 0;
     final isHard = !isBoss && levelNumber % 5 == 0;
 
     final baseScore = (levelNumber * 500) + 1200;
@@ -377,6 +378,33 @@ class AdventureLevelGenerator {
       difficulty: isBoss ? 'expert' : (isHard ? 'hard' : (levelNumber <= 4 ? 'easy' : 'normal')),
       scoreTarget: star3,
       starThresholds: [star1, star2, star3],
+    );
+  }
+
+  /// Generates a dynamic WorldDefinition for any world number (campaign or beyond).
+  static WorldDefinition generateWorld(int worldNum) {
+    final themeIndex = (worldNum - 1) % worldThemes.length;
+    final theme = worldThemes[themeIndex];
+    final worldId = 'world_$worldNum';
+    final startLevel = (worldNum - 1) * 10 + 1;
+    final levelIds = List.generate(10, (i) => 'level_${startLevel + i}');
+
+    final cycle = (worldNum - 1) ~/ worldThemes.length;
+    final titleSuffix = cycle > 0 ? ' ${cycle + 1}' : '';
+
+    return WorldDefinition(
+      worldId: worldId,
+      titleKey: '${theme.title}$titleSuffix',
+      descriptionKey: theme.description,
+      levelIds: levelIds,
+      firstLevelId: levelIds.first,
+      lastLevelId: levelIds.last,
+      unlockRequirement: (worldNum - 1) * 10,
+      requiredLevelId: worldNum > 1 ? 'level_${(worldNum - 1) * 10}' : null,
+      rewardCoins: 100 + (worldNum * 50),
+      mapAsset: theme.bgAsset,
+      backgroundAsset: theme.bgAsset,
+      enabled: true,
     );
   }
 

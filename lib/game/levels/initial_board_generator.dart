@@ -3,6 +3,8 @@ import '../../models/board.dart';
 import '../../models/block.dart';
 import '../../models/level.dart';
 import '../../models/position.dart';
+import '../../models/goal.dart';
+import '../blocks/block_factory.dart';
 import 'board_validity_checker.dart';
 
 class InitialBoardGenerator {
@@ -17,6 +19,13 @@ class InitialBoardGenerator {
       throw StateError('Cannot generate board: No colors configured.');
     }
 
+    final targetColors = config.goals
+        .where((g) => g.type == GoalType.clearColor && g.color != null)
+        .map((g) => g.color!)
+        .where((c) => allowedColors.contains(c))
+        .toSet()
+        .toList();
+
     final allowInitialMatches = config.blockGenerationConfig?.allowInitialMatches ?? false;
     final allowEmptyCells = config.blockGenerationConfig?.allowEmptyCells ?? false;
     
@@ -28,8 +37,10 @@ class InitialBoardGenerator {
         rows: rows,
         columns: columns,
         allowedColors: allowedColors,
+        targetColors: targetColors,
         seed: randomSeed != null ? randomSeed + attempts : null,
         allowEmptyCells: allowEmptyCells,
+        allowInitialMatches: allowInitialMatches,
       );
 
       if (allowInitialMatches || !_hasMatches(board, rows, columns)) {
@@ -48,12 +59,15 @@ class InitialBoardGenerator {
     required int rows,
     required int columns,
     required List<BlockColor> allowedColors,
+    List<BlockColor>? targetColors,
     int? seed,
     required bool allowEmptyCells,
+    required bool allowInitialMatches,
   }) {
     final random = seed != null ? Random(seed) : Random();
     final List<BoardCell> cells = [];
     final Map<String, Block> blocks = {};
+    final Map<String, BlockColor> assignedColors = {};
     int idCounter = 1;
 
     for (int r = 0; r < rows; r++) {
@@ -65,8 +79,40 @@ class InitialBoardGenerator {
            continue;
         }
 
-        final colorIndex = random.nextInt(allowedColors.length);
-        final color = allowedColors[colorIndex];
+        final forbiddenColors = <BlockColor>{};
+        if (!allowInitialMatches) {
+          // Check horizontal left: (r, c-1) and (r, c-2)
+          if (c >= 2) {
+            final c1 = assignedColors['$r,${c - 1}'];
+            final c2 = assignedColors['$r,${c - 2}'];
+            if (c1 != null && c1 == c2) {
+              forbiddenColors.add(c1);
+            }
+          }
+          // Check vertical top: (r-1, c) and (r-2, c)
+          if (r >= 2) {
+            final c1 = assignedColors['${r - 1},$c'];
+            final c2 = assignedColors['${r - 2},$c'];
+            if (c1 != null && c1 == c2) {
+              forbiddenColors.add(c1);
+            }
+          }
+        }
+
+        final cellAllowed = forbiddenColors.isNotEmpty
+            ? allowedColors.where((c) => !forbiddenColors.contains(c)).toList()
+            : allowedColors;
+        final effectiveAllowed = cellAllowed.isNotEmpty ? cellAllowed : allowedColors;
+        final effectiveTargets = targetColors?.where((c) => effectiveAllowed.contains(c)).toList();
+
+        final color = BlockFactory.getRandomColor(
+          effectiveAllowed,
+          targetColors: effectiveTargets,
+          targetBias: 0.60,
+          rng: random,
+        );
+        assignedColors['$r,$c'] = color;
+
         final blockId = 'block_${r}_${c}_$idCounter';
         idCounter++;
 

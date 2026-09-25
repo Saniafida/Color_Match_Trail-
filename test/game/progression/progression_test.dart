@@ -196,7 +196,7 @@ void main() {
       final wp = progressionManager.getWorldProgress('world_1');
       expect(wp.completedLevels, 1);
       expect(wp.stars, 3);
-      expect(wp.completionPercentage, closeTo(0.2, 0.01));
+      expect(wp.completionPercentage, closeTo(0.1, 0.01));
     });
 
     test('8. First win reward is granted only once', () async {
